@@ -1,0 +1,43 @@
+
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dmanage"
+version = "0.0.1"
+authors = [
+  { name="Marcus Pearlman", email="***REMOVED***@***REMOVED***.edu" },
+]
+description = "A package for generating, organizing, and processing data."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+dependencies = [
+  "tabulate", 
+  "scipy",
+  "natsort", 
+  "python-xlib", 
+  "tables", 
+  "openpyxl", 
+  "seaborn", 
+  "dask", 
+  "openmdao",
+  "hvplot", 
+  "numpy", 
+  "pandas", 
+  "matplotlib",
+]
+
+
+
+
+[project.urls]
+Homepage = "https://github.com/pearlmam/dmanage/"
+Issues = "https://github.com/pearlmam/dmanage/issues"

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-
+import numpy as np
 from dmanage.dataDir import DataDir
 
-folder = './test_data/vsim_data/'
+folder = './test_data/vsim_data/VDC-87.8e3/'
 DD = DataDir(folder)
 
 ##############################################################
@@ -29,14 +29,19 @@ histName = 'Pout'
 df = DD.Hists.readAsDF(histName)
 print(df)
 
+print('\nRead 1D Historys')
+histNames = ['Pout','Vout']
+df = DD.Hists.readAsDF(histNames,concat=True)
+print(df)
+
 print('\nRead 2D Vector History')
 histName = 'EedgeCircleR200'
 df = DD.Hists.readAsDF(histName)
 print(df)
 
 print('\nRead All particles')
-partName = 'electrons'
-df = DD.Parts.readAllAsDF(partName,nc=4)
+partType = 'electronsT'
+df = DD.Parts.readAsDF(steps=None,partType=partType,nc=4)
 print(df)
 
 print('\nRead All Fields')
@@ -51,8 +56,6 @@ print('\nRead Pre Variables')
 varNames = ['VDC', 'BSTATIC','PRF_AVG','undefinedVariable']
 out = DD.PreVars.read(varNames,warn=True)
 print(out)
-
-
 
 
 

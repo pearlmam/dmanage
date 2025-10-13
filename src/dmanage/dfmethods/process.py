@@ -10,10 +10,19 @@ if mpl.cbook._get_running_interactive_framework() == 'headless':
 import copy
 from scipy import signal
 from scipy.optimize import curve_fit
+from pathos.multiprocessing import Pool
+import functools
 
+
+# for parallelize methods
+import collections
+from inspect import getframeinfo, currentframe
+
+# my package methods
 from dmanage.dfmethods import functions as func
 from dmanage.dfmethods.convert import numpy2DF,DF2Numpy,replaceBounds
-from dmanage.dfmethods.plot import plot1D,plot1DWPks,scatter,drawFig
+from dmanage.dfmethods.plot import Plot as DFP
+# plot1D,plot1DWPks,scatter,drawFig
     
 def mi_iloc(DF,indices):
     if type(indices) is not list: indices = [indices]
@@ -602,7 +611,7 @@ def checkStability(DF,method='fft',debug=False,**kwargs):
         DF = DF.iloc[ (DF.index.get_level_values(0)>=fLow) & (DF.index.get_level_values(0)<=fHigh) ]
         DFpks,props = findPks(DF,maxPks=10,hRatio=None,pRatio=0.05,height=noiseLevel)
         if debug:
-            fig,ax = plot1DWPks(DF, fig=fignum,pRatio=0.05,height=noiseLevel)
+            fig,ax = DFP.plot1DWPks(DF, fig=fignum,pRatio=0.05,height=noiseLevel)
         Npks = len(DFpks)
         NpksCheck = 1
         if Npks == NpksCheck:
@@ -646,7 +655,7 @@ def checkStability(DF,method='fft',debug=False,**kwargs):
             fhigh = max(cutoff)
             DFfilt = applyFilter(DF,method='high',cutoff=flow,order=3,axis=-1)
             if debug: 
-                fig,ax = plot1D(DFfilt,fig=fignum)
+                fig,ax = DFP.plot1D(DFfilt,fig=fignum)
                 fignum = fignum + 1
             DFfilt = applyFilter(DFfilt,method='low',cutoff=fhigh,order=3,axis=-1)
         elif filt.lower() == 'bandpass':
@@ -658,7 +667,7 @@ def checkStability(DF,method='fft',debug=False,**kwargs):
             fhigh = max(cutoff)
             DFfilt = applyFilter(DF,method='low',cutoff=fhigh,order=3,axis=-1)
             if debug: 
-                fig,ax = plot1D(DFfilt,fig=fignum)
+                fig,ax = DFP.plot1D(DFfilt,fig=fignum)
                 fignum = fignum + 1
             DFfilt = DFfilt.diff()
         elif method.lower() == 'abs':
@@ -677,12 +686,12 @@ def checkStability(DF,method='fft',debug=False,**kwargs):
             stableFilt = False
                 
         if debug: 
-            fig,ax = plot1D(DFfilt,fig=fignum)
-            fig,ax = scatter(DFpks,fig=fig,clear=False,color='b')
+            fig,ax = DFP.plot1D(DFfilt,fig=fignum)
+            fig,ax = DFP.scatter(DFpks,fig=fig,clear=False,color='b')
             ax.relim()
             ax.autoscale()
             ax.set(title='Peak Check: detect=%0.0f, max=%0.0f, stable = %0.0f'%(Npks,NpksCheck,stableFilt))
-            fig = drawFig(fig)
+            fig = DFP.drawFig(fig)
             fignum = fignum + 1
         stable = stableFilt
         
@@ -719,16 +728,16 @@ def checkStability(DF,method='fft',debug=False,**kwargs):
         tStart = getStartup(DF,method='bandpass',cutoff=cutoff,hRatio=0.4,pRatio=0.4,debug=debug,fignum=fignum)
         
         if debug:
-            fig,ax = plot1D(DF,fig=fignum)
+            fig,ax = DFP.plot1D(DF,fig=fignum)
             ax.set(title='Original Signal, tstart=%0.2f ns'%(tStart*1e9))
-            fig = drawFig(fig)
+            fig = DFP.drawFig(fig)
             fignum = fignum + 1
 
         #DF = applyFilter(DF,method='high',cutoff=flow,order=3,axis=-1)
 
         DFfilt = applyFilter(DF,method='low',cutoff=fhigh,order=3,axis=-1)
         if debug:
-            fig,ax = plot1D(DFfilt,fig=fignum)
+            fig,ax = DFP.plot1D(DFfilt,fig=fignum)
             ax.set(title='low pass signal')
             fignum = fignum + 1
         
@@ -741,7 +750,7 @@ def checkStability(DF,method='fft',debug=False,**kwargs):
         # DFfilt = DFfilt.pow(2)
         
         if debug:
-            fig,ax = plot1D(DFfilt,fig=fignum,clear=True)
+            fig,ax = DFP.plot1D(DFfilt,fig=fignum,clear=True)
         
         
         ###### step 2: check the decay of the beat signal
@@ -795,18 +804,18 @@ def checkStability(DF,method='fft',debug=False,**kwargs):
                 
             if debug:
                 # # for sqared signal denormalization
-                # fig,ax = plot1D(DFfiltAbs,fig=fignum,clear=True)
-                # fig,ax = scatter(DFpksCheck.pow(1/2),fig=fig,clear=False,color='b')
+                # fig,ax = DFP.plot1D(DFfiltAbs,fig=fignum,clear=True)
+                # fig,ax = DFP.DFP.scatter(DFpksCheck.pow(1/2),fig=fig,clear=False,color='b')
                 
                 # for non-sqared signals
-                fig,ax = plot1D(DFfilt,fig=fignum,clear=True)
-                fig,ax = scatter(DFpksCheck,fig=fig,clear=False,color='b')
+                fig,ax = DFP.plot1D(DFfilt,fig=fignum,clear=True)
+                fig,ax = DFP.scatter(DFpksCheck,fig=fig,clear=False,color='b')
                 
-                fig,ax = plot1D(DFline,fig=fig,clear=False)
+                fig,ax = DFP.plot1D(DFline,fig=fig,clear=False)
                 ax.relim()
                 ax.autoscale()
                 ax.set(title='mod decay [%%/ns]: detect=%0.1f, min=%0.1f, stable=%0.0f'%(-decayRate*100,minDecay*100,stableDecay))
-                fig = drawFig(fig)
+                fig = DFP.drawFig(fig)
                 fignum = fignum + 1
         
         
@@ -819,9 +828,9 @@ def checkStability(DF,method='fft',debug=False,**kwargs):
             DFfilt = DFfilt[DFfilt.index.get_level_values(0) > tStart]
             
             if debug:
-                fig,ax = plot1D(DF,fig=fignum)
+                fig,ax = DFP.plot1D(DF,fig=fignum)
                 ax.set(title='Original Signal, tstart=%0.2f ns'%(tStart*1e9))
-                fig = drawFig(fig)
+                fig = DFP.drawFig(fig)
                 fignum = fignum + 1
     
             
@@ -842,10 +851,10 @@ def checkStability(DF,method='fft',debug=False,**kwargs):
                     stableAttenuation = True
 
                 if debug: 
-                    fig,ax = plot1D(DFfilt,fig=fignum)
-                    fig,ax = plot1D(DFline,fig=fig,clear=False)
+                    fig,ax = DFP.plot1D(DFfilt,fig=fignum)
+                    fig,ax = DFP.plot1D(DFline,fig=fig,clear=False)
                     ax.set(title='attenuation [%%/ns]: detect=%0.2f, min=%0.2f,stable=%0.0f'%(attenuationRate*100,-maxAttenuationRate*100,stableAttenuation))
-                    fig = drawFig(fig)
+                    fig = DFP.drawFig(fig)
                     fignum = fignum + 1
             else:
                 stableAttenuation = True
@@ -873,9 +882,9 @@ def _checkStabilityOld(DF,method='bandpass',minStart=60e-9,minSteady=10e-9,fftRa
         
     fignum = 1
     if debug:
-        fig,ax = plot1D(DF,fig=fignum)
+        fig,ax = DFP.plot1D(DF,fig=fignum)
         ax.set(title='Original Signal, tstart=%0.2f ns'%(tStart*1e9))
-        fig = drawFig(fig)
+        fig = DFP.drawFig(fig)
         fignum = fignum + 1
         
     ##### check startup and steady state signal time for minimum requirments
@@ -903,7 +912,7 @@ def _checkStabilityOld(DF,method='bandpass',minStart=60e-9,minSteady=10e-9,fftRa
         ###### fit sinusoid to filtered signal  
         # T = getPeriod(DFfilt,hRatio=hRatio,pRatio=pRatio,debug=debug)
         # if debug:
-        #     fig,ax = plot1D(DFfilt,fig=fignum)
+        #     fig,ax = DFP.plot1D(DFfilt,fig=fignum)
         #     ax.set(title='Estimated Beat Period = %0.2f ns'%(T*1e9))
         #     fignum = fignum + 1
             
@@ -930,13 +939,13 @@ def _checkStabilityOld(DF,method='bandpass',minStart=60e-9,minSteady=10e-9,fftRa
                 
             
         # if debug:
-        #     fig,ax = plot1D(DFline,fig=fig,clear=False)
+        #     fig,ax = DFP.plot1D(DFline,fig=fig,clear=False)
         #     # if (DFpksCheck.shape[0] > minPks):
-        #     #     fig,ax = plot1D(DFline,fig=fig,clear=False)
+        #     #     fig,ax = DFP.plot1D(DFline,fig=fig,clear=False)
         #     ax.relim()
         #     ax.autoscale()
         #     ax.set(title='mod decay [%%/ns]: detect=%0.1f, min=%0.1f, stable=%0.0f'%(-decayRate*100,minDecay*100,stable))
-        #     fig = drawFig(fig)
+        #     fig = DFP.drawFig(fig)
         #     fignum = fignum + 1
             
      
@@ -961,14 +970,14 @@ def getBeatPeriod(DF,cutoff=[50e6,500e6],hRatio=0.4,pRatio=0.3,startup=True,debu
             
     DF = applyFilter(DF,method='low',cutoff=fhigh,order=3,axis=-1)
     if debug:
-        fig,ax = plot1D(DF,fig=11)
+        fig,ax = DFP.plot1D(DF,fig=11)
         ax.set(title='filtered signal')
     
     DF = DF.loc[DF.index.get_level_values('t')>(startup+startupBuff)]
     DF = DF - DF.mean()
     T = getPeriod(DF,hRatio=hRatio,pRatio=pRatio,debug=debug)
     if debug:
-        fig,ax = plot1D(DF,fig=12)
+        fig,ax = DFP.plot1D(DF,fig=12)
         ax.set(title='Estimated Beat Period = %0.2f ns'%(T*1e9))
 
     return T
@@ -983,32 +992,32 @@ def getStartup(DF,method='bandpass',cutoff=[50e6,500e6],hRatio=0.4,pRatio=0.4,de
         flow = min(cutoff)
         fhigh = max(cutoff)
         DF = applyFilter(DF,method='high',cutoff=flow,order=3,axis=-1)
-        if debug: plot1D(DF,fig=fignum)
+        if debug: DFP.plot1D(DF,fig=fignum)
         DF = applyFilter(DF,method='low',cutoff=fhigh,order=3,axis=-1)
     elif method == 'bandpass':
         flow = min(cutoff)
         fhigh = max(cutoff)
         DF = applyFilter(DF,method='band',cutoff=cutoff,order=3,axis=-1)
-        if debug: plot1D(DF,fig=fignum)   
+        if debug: DFP.plot1D(DF,fig=fignum)   
     elif method == 'lowdiff':
         fhigh = max(cutoff)
         DF = applyFilter(DF,method='low',cutoff=fhigh,order=3,axis=-1)
-        if debug: plot1D(DF,fig=fignum)
+        if debug: DFP.plot1D(DF,fig=fignum)
         DF = DF.diff()
     elif method == 'abs':
         DF = DF.abs()
-        if debug: plot1D(DF,fig=fignum)
+        if debug: DFP.plot1D(DF,fig=fignum)
     else:
-        if debug: plot1D(DF,fig=fignum)
+        if debug: DFP.plot1D(DF,fig=fignum)
         
     fignum += 1
     DFpks,props = findPks(DF,maxPks=10,hRatio=hRatio,pRatio=pRatio)
     if debug: 
-        fig,ax = plot1D(DF,fig=fignum)
-        fig,ax = scatter(DFpks,fig=fig,clear=False,color='b')
+        fig,ax = DFP.plot1D(DF,fig=fignum)
+        fig,ax = DFP.scatter(DFpks,fig=fig,clear=False,color='b')
         ax.relim()
         ax.autoscale()
-        fig = drawFig(fig)
+        fig = DFP.drawFig(fig)
     if not DFpks.empty: startup = DFpks.index[0]
     else: startup = np.nan
     return startup
@@ -1226,6 +1235,68 @@ def genBinBreaks(DF,binCols,bins,phiRange='2pi'):
         pass
     
     return binBreaks
+
+
+def parallelize_df_method(func):
+    def wrapper(*args,**kwargs):
+        # first arg needs to be DF and not kw, and kwargs need to be in order!!!
+        # ??? make function more robust to input ordering
+        nc = kwargs.pop('nc')
+        if nc>1:
+            DFs = np.split(args[0], nc)
+            variables = [(DF,)+tuple(kwargs.values()) for DF in DFs]
+            pool = Pool(processes=nc)
+            result = pool.starmap_async(func,variables)
+            result.wait()
+            DFs = result.get()
+            pool.close()
+            DF = pd.concat(DFs)
+        else: 
+            DF = func(args[0],*kwargs.values())
+        return DF
+    return wrapper
+
+
+def looperize(func):
+    @functools.wraps(func)
+    def wrapper(*args,**kwargs):
+        DFs = []
+        for step in args[0]:
+            DFs = DFs + [func(step,*args[1:],*kwargs.values())]
+        return pd.concat(DFs)
+    return wrapper
+
+def parallelize_iterator_method(func):
+    func = looperize(func)
+    @functools.wraps(func)
+    def wrapper(*args,**kwargs):
+        
+        # first arg needs to be DF and not kw, and kwargs need to be in order!!!
+        # ??? make function more robust to input ordering
+        nc = kwargs.pop('nc')
+        steps = args[0]
+        if not isinstance(steps,collections.abc.Iterable): steps = [steps]
+        nc = min(nc,len(steps))
+        
+        if nc>1:
+            if type(steps) is range: steps=np.array(steps)
+            stepss = np.array_split(steps, nc)
+            variables = [(steps,)+tuple(kwargs.values()) for steps in stepss]
+            pool = Pool(processes=nc)
+            result = pool.starmap_async(func,variables)
+            result.wait()
+            DFs = result.get()
+            pool.close()
+            DFs = pd.concat(DFs)
+        else:
+            DFs = func(steps,*args[1:],**kwargs)
+            # DFs = func(steps,kwargs['partType'])
+        
+        return DFs
+    return wrapper
+
+
+
 
     
 def lineEqu(x,m,b):

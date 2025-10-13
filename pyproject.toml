@@ -20,21 +20,25 @@ license = "MIT"
 license-files = ["LICEN[CS]E*"]
 
 dependencies = [
-  "tabulate", 
-  "scipy",
-  "natsort", 
-  "python-xlib", 
-  "tables", 
-  "openpyxl", 
-  "seaborn", 
-  "dask", 
-  "openmdao",
-  "hvplot", 
-  "numpy", 
-  "pandas", 
-  "matplotlib",
+  "tabulate",          # For generate text charts on plots?
+  "scipy",             # filter options
+  "natsort",           # for numerically sorting of filenames 
+  "python-xlib",       # ?
+  "tables",            # for h5 file reading and writing
+  "openpyxl",          # ?
+  "numpy",             # data manipulation
+  "pandas",            # data manipulation
+  "matplotlib",        # for plotting
+  "pathos"             # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
 ]
 
+
+
+# unused dependances to be used
+#  "dask", 
+#  "openmdao",
+#  "hvplot", 
+#  "seaborn", 
 
 
 

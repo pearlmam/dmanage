@@ -6,7 +6,7 @@ Created on Fri Apr 16 19:42:59 2021
 This Opens H5 files
 @author: marcus
 """
-
+import collections
 import numpy as np              # array functions and manipulation 
 import numpy.matlib
 # import h5py                     # H5 file package
@@ -15,12 +15,12 @@ import glob                     # searching files function
 import os                       # filename manipulation
 import pandas as pd
 from multiprocessing import Pool
-import functools
 import time
 import natsort
 import copy
-from . import VsHdf5
-import sys
+from dmanage.loaders import VsHdf5
+from dmanage import dfmethods as dfm
+
 
 from dmanage.dfmethods.convert import numpy2DF,createBounds
 from dmanage.dfmethods.functions import checkExist,vrrotvec
@@ -46,28 +46,10 @@ class UniMesh():
         self.NC = self.M.getNumCells()
         self.dim = len(self.NC)
         self.kind = self.M.getKind()
-        self.axes = self.getAxes()
+        self.axes = self._getAxes()
         self.d = (self.UB-self.LB)/self.NC
 
-    def getAxes(self):
-        h5 = tables.open_file(self.file)
-        nodeName = '/'+ self.fileSuffix
-        if nodeName[1:] in h5.get_node('/')._v_children.keys():
-            node = h5.get_node(nodeName)
-            attrs = node.attrs._v_attrnames
-        else:
-            node = None
-            attrs = []
-        if 'vsAxisLabels' in attrs:
-            axes = node.attrs.vsAxisLabels.decode('ascii').split(',')
-        else:
-            ##### old version doesnt have labels, add them here but it might be 2D
-            if self.dim == 3: axes = ['X','Y','Z']
-            elif self.dim == 2: axes = ['X','Y']
-            elif self.dim == 1: axes = ['X']
-        axes = [a.lower() for a in axes]
-        h5.close()
-        return axes
+    
     
     def getMesh(self):
         bounds = self.getBounds()
@@ -97,6 +79,26 @@ class UniMesh():
         for i,axis in enumerate(self.axes):
             boundsDict[axis] = bounds[i]
         return boundsDict
+    
+    def _getAxes(self):
+        h5 = tables.open_file(self.file)
+        nodeName = '/'+ self.fileSuffix
+        if nodeName[1:] in h5.get_node('/')._v_children.keys():
+            node = h5.get_node(nodeName)
+            attrs = node.attrs._v_attrnames
+        else:
+            node = None
+            attrs = []
+        if 'vsAxisLabels' in attrs:
+            axes = node.attrs.vsAxisLabels.decode('ascii').split(',')
+        else:
+            ##### old version doesnt have labels, add them here but it might be 2D
+            if self.dim == 3: axes = ['X','Y','Z']
+            elif self.dim == 2: axes = ['X','Y']
+            elif self.dim == 1: axes = ['X']
+        axes = [a.lower() for a in axes]
+        h5.close()
+        return axes
     
 class GeoData():
     def __init__(self, folder,geoFiles):
@@ -153,53 +155,6 @@ class H5Hist():
         h5.close()
         return
     
-    def _readTimeInfo(self,h5):
-        if 'timeSeries' in h5.root._v_children.keys():
-            node = h5.get_node('/timeSeries')
-            attrs = node._v_attrs._v_attrnames
-            if 'time' in node._v_children.keys():
-                t = np.array(node.time.read())
-                self.tend = t[-1]
-                self.TSTEPS = t.shape[0]
-                self.dt = self.tend/self.TSTEPS
-            else:
-                ##### this is for version VSim 7.2
-                self.tend = node._v_attrs.vsUpperBounds[0]
-                self.TSTEPS = node._v_attrs.vsNumCells[0]
-                self.dt = self.tend/self.TSTEPS
-        else: 
-            # version VSim 12.3 doesnt have generic /timeSeries anymore
-            # This steps through each history to check for max time
-            # if the dumprate is not every timestep, then the tend might be wrong
-            # one of the histories must have dumped at the last timestep to be correct
-            tend = 0.0
-            for key in h5.root._v_children.keys():
-                if 'timeSeries' in  key:
-                    node = h5.get_node('/' + key)
-                    tend = max(tend,max(node.time.read()))
-            self.tend = tend
-            self.TSTEPS = None
-            self.dt = None
-        
-        return self.tend,self.TSTEPS,self.dt
-
-    def readManyAsOneDF(self, histNames):
-        if not type(histNames) is list: histNames = [histNames]
-        DF = self.readManyAsDF(histNames,concat=True)
-        return DF
-    
-    def readManyAsDF(self, histNames,concat=True,axis=1):
-        if not type(histNames) is list: histNames = [histNames]
-        DFs = []
-        for histName in histNames:
-            DFs = DFs + [self.readAsDF(histName)]
-        if concat and DFs:
-            DFs = pd.concat(DFs,axis=axis,verify_integrity=False)
-            DFs = DFs.loc[:,~DFs.columns.duplicated()].copy()
-        elif not DFs:
-            DFs = pd.DataFrame([])
-        return DFs
-    
     def readSeriesAsDF(self, baseName,concat=True,axis=1):
         histNames = [ hist for hist in self.types if baseName in hist]
         histNames = natsort.natsorted(histNames)
@@ -212,26 +167,19 @@ class H5Hist():
             DFs = DFs.loc[:,~DFs.columns.duplicated()].copy()
         return DFs,histNames
     
-    def checkDataset(self,histNames,output=False):
+    def readAsDF(self,histNames,concat=True,axis=1,**kwargs):
         if not type(histNames) is list: histNames = [histNames]
-        h5 = tables.open_file(self.histFile)
-        check = True
-        histNamesOut = []
+        DFs = []
         for histName in histNames:
-            if checkExist(histName,self.types,output=False):
-                node = h5.get_node('/'+histName)
-                s = node.shape
-                if len(s) == 0:
-                    print('%s is not a dataset'% (histName))
-                    check = False
-                else:
-                    histNamesOut = histNamesOut + [histName]
-            else:
-                check = False
-        h5.close()
-        return check,histNamesOut
-            
-    def readAsDF(self, histName,**kwargs):
+            DFs = DFs + [self._readAsDF(histName,**kwargs)]
+        if concat and DFs:
+            DFs = pd.concat(DFs,axis=axis,verify_integrity=False)
+            DFs = DFs.loc[:,~DFs.columns.duplicated()].copy()
+        elif not DFs:
+            DFs = pd.DataFrame([])
+        return DFs
+ 
+    def _readAsDF(self, histName,**kwargs):
         if type(histName) is list: 
             histName = histName[0]
         
@@ -408,6 +356,60 @@ class H5Hist():
             array = None
             bounds = None
         return array,bounds
+    
+    def checkDataset(self,histNames,output=False):
+        if not type(histNames) is list: histNames = [histNames]
+        h5 = tables.open_file(self.histFile)
+        check = True
+        histNamesOut = []
+        for histName in histNames:
+            if checkExist(histName,self.types,output=False):
+                node = h5.get_node('/'+histName)
+                s = node.shape
+                if len(s) == 0:
+                    print('%s is not a dataset'% (histName))
+                    check = False
+                else:
+                    histNamesOut = histNamesOut + [histName]
+            else:
+                check = False
+        h5.close()
+        return check,histNamesOut
+    
+    ###########################################
+    #       private methods
+    ###########################################
+    def _readTimeInfo(self,h5):
+        if 'timeSeries' in h5.root._v_children.keys():
+            node = h5.get_node('/timeSeries')
+            attrs = node._v_attrs._v_attrnames
+            if 'time' in node._v_children.keys():
+                t = np.array(node.time.read())
+                self.tend = t[-1]
+                self.TSTEPS = t.shape[0]
+                self.dt = self.tend/self.TSTEPS
+            else:
+                ##### this is for version VSim 7.2
+                self.tend = node._v_attrs.vsUpperBounds[0]
+                self.TSTEPS = node._v_attrs.vsNumCells[0]
+                self.dt = self.tend/self.TSTEPS
+        else: 
+            # version VSim 12.3 doesnt have generic /timeSeries anymore
+            # This steps through each history to check for max time
+            # if the dumprate is not every timestep, then the tend might be wrong
+            # one of the histories must have dumped at the last timestep to be correct
+            tend = 0.0
+            for key in h5.root._v_children.keys():
+                if 'timeSeries' in  key:
+                    node = h5.get_node('/' + key)
+                    tend = max(tend,max(node.time.read()))
+            self.tend = tend
+            self.TSTEPS = None
+            self.dt = None
+        
+        return self.tend,self.TSTEPS,self.dt
+    
+    
 
 class H5Particles():
     def __init__(self, folder,partTypes=None,uniFile=None):
@@ -427,52 +429,36 @@ class H5Particles():
                 basename = os.path.splitext(basename)[0]
                 nums = nums + [int(basename.split('_')[-1])]
             self.stepNums[partType] = nums
-            self.info[partType] = self.getPartInfo(partType)
+            self.info[partType] = self._getPartInfo(partType)
+    
+   
+    def readAsDF(self,steps=None,partType=None,relData=None,relTags=None,sampleRatio=False,nc=1):
+        if partType is None:
+            raise Exception("partType must be defined as one of %s"%self.types)
             
-    def _getUnique(self,partType,step,col='tag'):
-        # if not type(col) is list: col = [col]
-        DF = self.readAsDF(partType,step=step,relData=col)
-        if col in DF.columns:
-            if not issubclass(type(DF), pd.core.series.Series): 
-                DF = DF[col].unique()
-            else:
-                DF = DF.unique()
-        else:
-            print("'%s' is not a column in the %s dump data"%(col,partType))
+        startTime = time.time()
+        print('  Reading particle dumps with %i cores...'%(nc), end=' ')
+        
+        if steps is None or type(steps) is str: steps = range(0,self.steps[partType])
+        readAsDF_ = dfm.process.parallelize_iterator_method(self._readAsDF)
+        DF = readAsDF_(steps,partType=partType,relData=relData,relTags=relTags,sampleRatio=sampleRatio,nc=nc)
+        
+        executionTime = (time.time()-startTime)
+        print(' Done in %0.2f seconds'%(executionTime))
+        
         return DF
     
-    def getUnique(self,partType,steps=None,col='tag',nc=1):
-        if type(steps) == type(None) or steps == 'all': steps = range(0,self.steps[partType])
-        nc = min(nc,len(steps))
-        if nc>1:
-            if type(steps) is range: steps=[steps.start,steps.stop]
-            chunks = list(np.int64(np.linspace(steps[0],steps[1],nc+1)))
-            theArgs = [(partType,range(chunk,chunks[i+1]),col,1) for i,chunk in enumerate(chunks[:-1])]
-            pool = Pool(processes=nc)
-            F =  pool.starmap_async(self.getUnique,theArgs)
-            
-            arraylist = F.get()
-            pool.close()
-            array = np.unique(np.concatenate(arraylist))
-        else:
-            # DF = dm.PerfectDataFrame()
-            arrayList = []
-            for step in steps:
-                arrayList = arrayList + [ self._getUnique(partType,step,col) ]
-                # if step%10 == 0:
-                #     print("%i steps read"%step)
-            array = np.unique(np.concatenate(arrayList))
-
-        return array
     
-        
-    def readAsDF(self,partType,step,relData=None,relTags=None,sampleRatio=False):
+    def _readAsDF(self,step,partType,relData=None,relTags=None,sampleRatio=False,nc=1):
         """
         
         """
+        if step > self.steps[partType]:
+            raise Exception("Particle '%s' only has %d steps and step %d is out of range"%(partType,self.steps[partType],step))
+        
         h5 = tables.open_file(self.H5Files[partType][step])
         
-        colNames = self.getColumnNames(h5)
+        colNames = self._getColumnNames(h5)
         if 'tags' in colNames: colNames[colNames.index('tags')] = 'tag'
         node = h5.get_node('/'+partType)
         array = node.read()
@@ -495,7 +481,7 @@ class H5Particles():
         
         if ('tag' in DF.columns) and (len(DF.columns) != 1): 
             DF = DF.groupby(['tag','t']).first().sort_index()
-        
+        # this is very slow
         if type(relTags) != type(None):
             iTags = list(DF.index.get_level_values('tag'))
             matchTags = []
@@ -506,65 +492,8 @@ class H5Particles():
             
         if sampleRatio != 0: DF = DF.sample(int(len(DF)*sampleRatio),axis=0).sort_index()
         h5.close()
-        return DF
+        return DF 
     
-    def readAllAsDFSeq(self,partType,steps=None,relData=None,tagRatio=None,nc=1):
-        startTime = time.time()
-        relTags = None
-        if type(steps) == type(None) or steps == 'all': steps = range(0,self.steps[partType])
-        
-        if type(tagRatio) != type(None):
-            print('  Getting unique tags for decimation...', end=' ')
-            relTags = self.getUnique(partType,steps=steps,col='tag',nc=nc)
-            relTags = np.random.choice(relTags,int(len(relTags)*tagRatio),replace=False)
-            relTags.sort()
-            print(' Done')
-            
-        print('  Reading particle dumps...', end=' ')
-        
-        ts = np.zeros(len(steps))
-        arrays = []
-        for i,step in enumerate(steps):
-            h5 = tables.open_file(self.H5Files[partType][step])
-            node = h5.get_node('/'+partType)
-            arrays = arrays + [node.read()]
-            ts[i] = node._v_attrs.time
-            if i == 0:
-                colNames = self.getColumnNames(h5)
-            h5.close()
-    
-        if 'tags' in colNames: 
-            colNames[colNames.index('tags')] = 'tag'
-        if nc >1:
-            theArgs = [(array,t,colNames,partType) for array,t in zip(arrays,ts)]
-            pool = Pool(processes=nc)
-            F =  pool.starmap_async(self.array2DF,theArgs)
-            
-            DFs = F.get()
-            pool.close()
-        else:
-            DFs = []
-            for array,t in zip(arrays,ts):
-                DFs = DFs + [self.array2DF(array,t,colNames,partType)]
-        
-        DF = pd.concat(DFs)
-        
-        executionTime = (time.time()-startTime)
-        print(' Done in %0.2f seconds'%(executionTime))
-        if type(relData) != type(None):
-            DF = DF[relData]
-        if issubclass(type(DF), pd.core.series.Series): 
-            DF = DF.to_frame()
-        
-        if type(relTags) != type(None):
-            iTags = list(DF.index.get_level_values('tag'))
-            matchTags = []
-            for iTag in iTags:
-                if iTag in relTags:
-                    matchTags = matchTags + [iTag]
-            DF = DF.loc[matchTags]
-        return DF
-        
     def array2DF(self,array,t,colNames,partType):      
         DF = pd.DataFrame(array,columns=colNames)
         DF.index.name = 'num'
@@ -579,101 +508,24 @@ class H5Particles():
         else: 
             DF['weight'] = self.info[partType]['ppm']
         return DF
-            
-            
-    def readAllAsDF(self,partType,steps=None,relData=None,tagRatio=None,nc=1):
-        startTime = time.time()
-        relTags = None
-        
-        if type(tagRatio) != type(None):
-            
-            print('  Getting unique tags for decimation...', end=' ')
-            relTags = self.getUnique(partType,steps=steps,col='tag',nc=nc)
-            relTags = np.random.choice(relTags,int(len(relTags)*tagRatio),replace=False)
-            relTags.sort()
-            print(' Done')
-        print('  Reading particle dumps with %i cores...'%(nc), end=' ')
-        DF = self._readAllAsDF(partType,steps,relData,relTags,nc)
-        executionTime = (time.time()-startTime)
-        print(' Done in %0.2f seconds'%(executionTime))
-        return DF
-    
-    def _readAllAsDF(self,partType,steps=None,relData = None,relTags=None,nc=1):
-        # this does not read in chunks
-        if type(steps) == type(None) or steps == 'all': steps = range(0,self.steps[partType])
-        nc = min(nc,len(steps))
-        if nc>1:
-            
-            if type(steps) is range: steps=[steps.start,steps.stop]
-            
-            chunks = list(np.int64(np.linspace(steps[0],steps[1],nc+1)))
-            theArgs = [(partType,range(chunk,chunks[i+1]),relData,relTags,1) for i,chunk in enumerate(chunks[:-1])]
-            pool = Pool(processes=nc)
-            F =  pool.starmap_async(self._readAllAsDF,theArgs)
-            
-            DFlist = F.get()
-            pool.close()
-            DF = DFlist
-            DF = pd.concat(DFlist) 
-        else:
-            DFlist = []
-            for step in steps:
-                DFlist = DFlist + [self.readAsDF(partType,step,relData,None)]
-                # if step%100 == 0:
-                #     print("%i steps read"%step)
-            DF = pd.concat(DFlist)     
-            if type(relTags) != type(None):
-                iTags = list(DF.index.get_level_values('tag').unique())
-                matchTags = []
-                for iTag in iTags:
-                    if iTag in relTags:
-                        matchTags = matchTags + [iTag]
-                DF = DF.loc[matchTags]
-        return DF
-    
-    def ___readAllAsDF(self,partType,steps=None,relData=None,relTags=None,nc=1):
-        # this reads in chunks and calls _readAllAsDF
-        if type(steps) == type(None): steps = range(0,self.steps[partType])
-        if type(steps) is range: steps=[steps.start,steps.stop]
-        chunkSize = 100*nc
-        
-        chunks = list(np.int64(np.arange(steps[0],steps[1],chunkSize)))
-        chunks = chunks + [steps[1]]
-        DFlist = [0]*(len(chunks)-1)
-        # Nchunks = 4
-        # chunks = np.int64(np.linspace(steps[0],steps[1],Nchunks+1))
-        # DFlist = [0]*Nchunks
-        
-        for i,chunk in enumerate(chunks[:-1]):
-            DFlist[i] = self._readAllAsDF(partType,steps=range(chunk,chunks[i+1]),relData=relData,relTags=None,nc=nc)
-            if type(relTags) != type(None):
-                iTags = list(DFlist[i].index.get_level_values('tag').unique())
-                matchTags = []
-                for iTag in iTags:
-                    if iTag in relTags:
-                        matchTags = matchTags + [iTag]
-                DFlist[i] = DFlist[i].loc[matchTags]
-                
-        DF = pd.concat(DFlist)
-        DF = DF.sort_index()
-        return DF  
-    
-    
-    
-    
+
     def readAsNumpy(self,partType,step):
         h5 = tables.open_file(self.H5Files[partType][step])
         node = h5.get_node('/'+partType)
         array = node.read()
         t = node._v_attrs.time
-        dataNames = self.getColumnNames(h5)
+        dataNames = self._getColumnNames(h5)
         iNames = ['num','data']
         bounds = createBounds(array,iNames,bounds={'data':dataNames})
         bounds['t'] = t
         h5.close()
         return array,bounds
-
-    def getColumnNames(self,h5):
+    
+    ##########################
+    #   private methods
+    ##########################
+    
+    def _getColumnNames(self,h5):
         keys = list(h5.root._v_children.keys())
         remKeys = ['globalGridGlobalLimits', 'runInfo', 'time']
         for remKey in remKeys:
@@ -685,7 +537,7 @@ class H5Particles():
         colNames = [colName.split('_')[-1] for colName in colNames]
         return colNames
     
-    def getPartInfo(self,partType):
+    def _getPartInfo(self,partType):
         i = 0
         tFirstFound = False
         while (i < self.steps[partType]) and not tFirstFound:
@@ -711,22 +563,69 @@ class H5Particles():
         h5.close()
         return info
     
-    def getMaxMinStep(self,partType,step,coords='cyl',phiRange='2pi'):
+    
+    ##########################
+    #   Possibly OBSOLETE CODE BELOW
+    ##########################
+    
+    def getUnique(self,partType,steps=None,col='tag',nc=1):
+        if steps is None or type(steps) is str: steps = range(0,self.steps[partType])
+        if not isinstance(steps,collections.abc.Iterable): steps = [steps]
+        nc = min(nc,len(steps))
+        
+        if nc>1:
+            if type(steps) is range: steps=np.array(steps)
+            stepss = np.array_split(np.array(steps),nc)
+            variables = [(partType,steps,col,1) for steps in stepss]
+            pool = Pool(processes=nc)
+            F =  pool.starmap_async(self.getUnique,variables)
+            
+            arraylist = F.get()
+            pool.close()
+            array = np.unique(np.concatenate(arraylist))
+        else:
+            # DF = dm.PerfectDataFrame()
+            arrayList = []
+            for step in steps:
+                arrayList = arrayList + [ self._getUnique(partType,step,col) ]
+
+            array = np.unique(np.concatenate(arrayList))
+
+        return array
+    
+    def _getUnique(self,partType,step,col='tag'):
+        # if not type(col) is list: col = [col]
+        DF = self._readAsDF(partType,steps=step,relData=col)
+        if col in DF.columns:
+            if not issubclass(type(DF), pd.core.series.Series): 
+                DF = DF[col].unique()
+            else:
+                DF = DF.unique()
+        else:
+            print("'%s' is not a column in the %s dump data"%(col,partType))
+        return DF
+    
+    
+    
+    ##########################
+    #   OBSOLETE CODE BELOW
+    ##########################
+    def ___getMaxMinStep(self,partType,step,coords='cyl',phiRange='2pi'):
         DF = self.readAsDF(partType,step)
         if not DF.empty:
-            if coords == 'cart':
-                DF = DF.agg(['min','max'])
             if coords == 'cyl':
                 DF = self.cart2Cyl(DF,phiRange=phiRange)
-                DF = DF.agg(['min','max'])
+            DF = DF.agg(['min','max'])
         else: 
             DF=None
         return DF
     
-    def getMaxMinSteps(self,partTypes,steps=None,coords='cyl',phiRange='2pi',nc=1):
+    def ___getMaxMinSteps(self,partTypes,steps=None,coords='cyl',phiRange='2pi',nc=1):
         """
         Gets max and min of all dumps of the columns in the particle steps
         """
+        if steps is None: steps = range(0,self.steps[partTypes[0]])
+        
         if not type(partTypes) is list:
             partTypes = [partTypes]
         else:
@@ -734,7 +633,6 @@ class H5Particles():
             stepsCheck = [self.steps[partType] ==  self.steps[partTypes[0]] for partType in partTypes] 
             if not stepsCheck: raise Exception("For partTypes = %s, the number of steps are not equal!"%partTypes)
         
-        if type(steps) == type(None): steps = range(0,self.steps[partTypes[0]])
         DFlist = []
         for partType in partTypes:
             if nc > 1:
@@ -760,7 +658,23 @@ class H5Particles():
     def ___readAllAsNumpy(self,partType,steps=None):
         # UNAVAILABLE because it is non-uniform array in time
         pass
+     
+    def ___readAsDF(self,partType,steps=None,relData=None,tagRatio=None,nc=1):
+        startTime = time.time()
+        relTags = None
         
+        if type(tagRatio) != type(None):
+            
+            print('  Getting unique tags for decimation...', end=' ')
+            relTags = self.getUnique(partType,steps=steps,col='tag',nc=nc)
+            relTags = np.random.choice(relTags,int(len(relTags)*tagRatio),replace=False)
+            relTags.sort()
+            print(' Done')
+        print('  Reading particle dumps with %i cores...'%(nc), end=' ')
+        DF = self._readAsDF(partType,steps,relData,relTags,nc)
+        executionTime = (time.time()-startTime)
+        print(' Done in %0.2f seconds'%(executionTime))
+        return DF
         
 class H5Fields():
     """
@@ -904,33 +818,23 @@ class InputVariables():
 def isVSim(folder):
     folder = os.path.join(folder,'')
     varFile = glob.glob(folder + '*Vars.py')
-    if len(varFile) == 0: check =False
-    else: check=True
+    if len(varFile) == 0: check = False
+    else: check = True
     return check
 
 
-class VSimRead():
-    def __init__(self,folder,DDObj=None):
+class VSim():
+    def __init__(self,folder):
 
         if not self.isValid(folder):
-            # print(folder + ' is not a VSim data directory!')
-            if type(DDObj)==type(None): self.sim = 'None'
-            else: DDObj.sim = 'None'
-            
+            self.sim = self.__name__
         else:
-            if type(DDObj)==type(None):
-                self.dataDir = folder
-                self.sim = 'VSim'
-                self.PreVars = InputVariables(self.varFile)
-                self.Hists, self.Parts,self.Fields,self.Geos = self.loadReaders(folder)
-                self.types = ['Hist','Parts','Fields','geos']
-            else:
-                DDObj.dataDir = folder
-                DDObj.sim = 'VSim'
-                DDObj.PreVars = InputVariables(self.varFile)
-                DDObj.Hists, DDObj.Parts,DDObj.Fields,DDObj.Geos = self.loadReaders(folder)
-                DDObj.types = ['Hists','Parts','Fields','Geos','PreVars']
-    
+            self.dataDir = folder
+            self.sim = 'VSim'
+            self.PreVars = InputVariables(self.varFile)
+            self.Hists, self.Parts,self.Fields,self.Geos = loadReaders(folder)
+            self.types = ['Hist','Parts','Fields','geos']
+   
     def isValid(self,folder):
         folder = os.path.join(folder,'')
         varFile = glob.glob(folder + '*Vars.py')
@@ -942,79 +846,45 @@ class VSimRead():
             self.valid=True
         return self.valid
     
-    def loadReaders(self,folder):
-        ignores = ['Globals', 'universe','History']
-        files = np.array(glob.glob(folder + '*.h5'))
-        types = []
-        for file in files:
-            if 'History' in file:
-                histExist = True
-                types = types + ['History']
-            else:  
-                types = types + [file.split('_')[-2]] 
-        
-        types,i = np.unique(types,return_index=True)
-        files = files[i]
-        fieldTypes = []; particleTypes = []; geoTypes = []; geoFiles = []
-        for i,file in enumerate(files):
-            if not any([ignore in file for ignore in ignores ]):
-                try: 
-                    h5 = tables.open_file(file)
-                    rootNodes = h5.get_node('/')._v_children.keys()
-                    if 'poly' in rootNodes: 
-                        geoFiles = geoFiles + [str(file)] # its a geometry
-                    elif not 'globalGridGlobalLimits' in rootNodes: 
-                        pass # its a multifield
-                    elif 'globalGridGlobal' in rootNodes: 
-                        fieldTypes = fieldTypes + [str(types[i])] # its a field
-                    else: 
-                        particleTypes = particleTypes + [str(types[i])]
-                    h5.close()
-                except:
-                    #os.path.basename(file)
-                    print("Cannot open '%s', it my be corrupt, this file should be deleted"%os.path.basename(file))
-        if histExist:
-            Hists = H5Hist(folder,uniFile=geoFiles[0])
-        
-        Geos = GeoData(folder,geoFiles)
-        Parts = H5Particles(folder,particleTypes,uniFile=geoFiles[0])
-        Fields = H5Fields(folder,fieldTypes)
-        return Hists,Parts,Fields,Geos
+def loadReaders(folder):
+    ignores = ['Globals', 'universe','History']
+    files = np.array(glob.glob(folder + '*.h5'))
+    types = []
+    for file in files:
+        if 'History' in file:
+            histExist = True
+            types = types + ['History']
+        else:  
+            types = types + [file.split('_')[-2]] 
+    
+    types,i = np.unique(types,return_index=True)
+    files = files[i]
+    fieldTypes = []; particleTypes = []; geoTypes = []; geoFiles = []
+    for i,file in enumerate(files):
+        if not any([ignore in file for ignore in ignores ]):
+            try: 
+                h5 = tables.open_file(file)
+                rootNodes = h5.get_node('/')._v_children.keys()
+                if 'poly' in rootNodes: 
+                    geoFiles = geoFiles + [str(file)] # its a geometry
+                elif not 'globalGridGlobalLimits' in rootNodes: 
+                    pass # its a multifield
+                elif 'globalGridGlobal' in rootNodes: 
+                    fieldTypes = fieldTypes + [str(types[i])] # its a field
+                else: 
+                    particleTypes = particleTypes + [str(types[i])]
+                h5.close()
+            except:
+                #os.path.basename(file)
+                print("Cannot open '%s', it my be corrupt, this file should be deleted"%os.path.basename(file))
+    if histExist:
+        Hists = H5Hist(folder,uniFile=geoFiles[0])
+    
+    Geos = GeoData(folder,geoFiles)
+    Parts = H5Particles(folder,particleTypes,uniFile=geoFiles[0])
+    Fields = H5Fields(folder,fieldTypes)
+    return Hists,Parts,Fields,Geos
             
     
 if __name__ == "__main__":
-    import tables
-    folder = '/home***REMOVED***Documents/fastData/SCLCdata/Hsweep/finalFiles/H-0.0100D/' 
-    # folder = '/home***REMOVED***Documents/fastData/CFAdata/2024/electronStats/VDC-94.0e3/'
-#    folder = '/media***REMOVED******REMOVED***/Documents/CFA_data/2022/date-7.13.22/phiSweep/PHISTART-0.000/'
-    W_ANODE =  0.1e-2
-
-    UM = UniMesh(folder)
-    UM.getBounds()
-    
-    VRead = VSimRead(folder)
-    VRead.Geos.readAsDF(VRead.Geos.types[0])
-
-    print(VRead.Hists.types)
-    histName = 'electronsNOMP'
-    # histName = 'EedgeCircleR800'
-    # histName = 'EOnCathode'
-    histName = 'numMacroParticles'
-    DF = VRead.Hists.readAsDF(histName)
-    DF = VRead.Parts.readAsDF('electrons',3)
-    
-    
-    startTime = time.time()
-    file = glob.glob(folder + '*_universe_*')[0]
-    file = glob.glob(folder + '*_geometry_*')[0]
-    # file = glob.glob(folder + '*_electronsT_4577*')[0]
-    file = glob.glob(folder + '*_History*')[0]
-    h5 = tables.open_file(file)
-    # h51 = h5py.File(file,'r')
-
-    h5.close()
-    H = VsHdf5.History(fileName=file)
-    
-
-    executionTime = (time.time() - startTime)
-    print('Execution time in seconds: ' + str(executionTime))
+    pass

@@ -31,7 +31,9 @@ class PlotDefs():
         self.unitFactors = {'[ns]':1e9,'[cm]':1e2,'[GHz]':1e-9}
         self.setParameters()
         
-        framework = mpl.cbook._get_running_interactive_framework()
+        # This doesnt work for some reason 
+        '''
+        framework = mpl.cbook._get_running_interactive_framework()  # returns None at the moment
         if framework == 'headless':
             #print("The currently running framework is '%s, using 'Agg' backend"%framework)
             self.backEnd = 'Agg'
@@ -49,6 +51,9 @@ class PlotDefs():
             print("The backend %s is not availiable, using 'Agg' instead"%backEnd)
             self.backEnd = 'Agg'
             self.use(self.backEnd)
+        '''
+        #self.backEnd = backEnd
+        #self.use(self.backEnd)
         holoview = False
         if holoview:
             self.setup_holoview()
@@ -101,11 +106,11 @@ class PlotDefs():
     
 # SHOULD THIS BE A CLASS OR NOT? I want it to have access to global plot defs...
 # maybe they should be global...
-class DFPlot():   
+class Plot():   
     warn.filterwarnings("ignore", message="Ignoring specified arguments in this call because figure with num:*") # ignore warning for fig = plt.figure(fig, figsize=figsize)
-    def __init__(self):
+    def __init__(self,backEnd='TkAgg'):
         super().__init__()
-        self.P = PlotDefs()
+        self.P = PlotDefs(backEnd)
         
         #self.err = DFErrorMessages()
         #print('loading DFPlotter')

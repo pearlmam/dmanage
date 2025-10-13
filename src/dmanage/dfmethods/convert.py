@@ -48,8 +48,7 @@ def replaceBounds(bounds,oldKeys,newKeys,vals=None):
         else: newBounds[key]=val
     return newBounds
 
-        
-    
+
 def numpy2DF(array,bounds,colName='value',inplace=False):
     """
     Convert from numpy array to pandas dataframe. each dimension is an index with the values representing the data.
@@ -155,8 +154,6 @@ def cart2CylVector(DF,vecIndex='v',phiIndex='phi',phiRange='2pi'):
         else:
             raise Exception("%s is not in the index or columns"%phiIndex)
         
-        
-            
     else:
         # attempt to create the phi index from x and y positions
         setPhiIndex = False
@@ -304,35 +301,31 @@ def cyl2Cart(DF,xyCols=['r','phi'],uxyCols = ['ur','uphi']):
     
     return DF
 
-def cart2Cyl(DF,xyCols=['x','y'],uxyCols = ['ux','uy'],rphiCols=['r','phi'],phiRange='2pi',inplace=True,nc=1):
+
+def cart2Cyl(DF,xyCols=['x','y'],uxyCols = ['ux','uy'],rphiCols=['r','phi'],phiRange='2pi',nc=1):
+    '''
+    paralell process often takes longer.
+    '''
     if nc > 1:
         DFs = np.array_split(DF,nc)
-        variables = [(DF,xyCols,uxyCols,rphiCols,phiRange,inplace) for DF in DFs]
+        variables = [(DF,xyCols,uxyCols,rphiCols,phiRange) for DF in DFs]
         pool = Pool(processes=nc)
         F =  pool.starmap_async(_cart2Cyl,variables)
         DFs = F.get()
         pool.close()
-        if inplace:
-            DF = pd.concat(DFs,axis=0)
-            return DF
-        else:
-            DFout = pd.concat(DFs,axis=0)
-            return DFout
-        
+        DF = pd.concat(DFs,axis=0)
     else:
-        if inplace:
-            DF = _cart2Cyl(DF,xyCols=xyCols,uxyCols=uxyCols,rphiCols=rphiCols,phiRange=phiRange,inplace=True)
-            return DF
-        else:
-            DFout = _cart2Cyl(DF,xyCols=xyCols,uxyCols=uxyCols,rphiCols=rphiCols,phiRange=phiRange,inplace=False)
-            return DFout
+        DF = _cart2Cyl(DF,xyCols=xyCols,uxyCols=uxyCols,rphiCols=rphiCols,phiRange=phiRange)
+    return DF
         
 
-def _cart2Cyl(DF,xyCols=['x','y'],uxyCols = ['ux','uy'],rphiCols=['r','phi'],phiRange='2pi',inplace=True):
+def _cart2Cyl(DF,xyCols=['x','y'],uxyCols = ['ux','uy'],rphiCols=['r','phi'],phiRange='2pi'):
     """
     converts a dataFrame from cartesian to cylindrical coordinates
     needs implementation for converting multiIndex from cart to cyl
     and vectors might need a convert
+    
+    To Do: the order of the columns for the inplace=False method should be in the same order.
     """
     if type(uxyCols) == type(None):
         uxyCols = []
@@ -345,6 +338,7 @@ def _cart2Cyl(DF,xyCols=['x','y'],uxyCols = ['ux','uy'],rphiCols=['r','phi'],phi
     newCols = {**newXYCols,**newUxyCols}
     # newCols = {'x':'r','y':'phi','ux':'ur','uy':'uphi'}   
     cols = xyCols + uxyCols
+    phiCol = rphiCols[1]
     iNames = False
     if len([(True) for col in cols if col in DF.columns]) != len(cols): 
         if len([(True) for col in cols if col in DF.index.names]) == len(cols): 
@@ -356,54 +350,20 @@ def _cart2Cyl(DF,xyCols=['x','y'],uxyCols = ['ux','uy'],rphiCols=['r','phi'],phi
         else:
             raise Exception("%s is not found in columns or index, aborting"%cols)
     
-    ##########
-    ####    minimize memory method ???
-    ###########
-    
-    if inplace:
-        
-        DFtemp=copy.deepcopy(DF.loc[:,cols])
-        
-        DF.rename(columns=newXYCols,inplace=inplace)
-        
-        DF[rphiCols[0]] = np.sqrt(DFtemp.loc[:,xyCols[0]]**2 + DFtemp.loc[:,xyCols[1]]**2)
-        DF[rphiCols[1]]  = np.arctan2(DFtemp[xyCols[1]],DFtemp[xyCols[0]])
-        if len(uxyCols) == 2: 
-            DF.rename(columns=newXYCols,inplace=True)
-            DF['u'+rphiCols[0]] = (DFtemp[xyCols[0]]*DFtemp[uxyCols[0]] + DFtemp[xyCols[1]]*DFtemp[uxyCols[1]])/DF[rphiCols[0]]
-            DF['u'+rphiCols[1]] = (DFtemp[xyCols[0]]*DFtemp[uxyCols[1]] - DFtemp[uxyCols[0]]*DFtemp[xyCols[1]])/DF[rphiCols[0]]**2
-        
-        phiCol = rphiCols[1]
-        if phiRange == '2pi':
-            DF[phiCol] = (DF[phiCol]%(2*np.pi))
-        elif phiRange == '2pi/pi':
-            DF[phiCol] = (DF[phiCol]%(2*np.pi))/np.pi
-        elif phiRange == 'pi':
-            DF[phiCol] = (DF[phiCol]+np.pi)%(2*np.pi) - np.pi
- 
-        if iNames:
-            DF = DF.set_index(list(newCols.values()),append=True).reorder_levels(iNames).sort_index()
-        return DF
-    else:
-        ##########
-        ####    minimize chained assignment method
-        ###########
-        DFout=copy.deepcopy(DF.loc[:,cols])
-        DFout.rename(columns=newXYCols,inplace=True)
-        DFout[rphiCols[0]] = np.sqrt(DF.loc[:,xyCols[0]]**2 + DF.loc[:,xyCols[1]]**2)
-        DFout[rphiCols[1]]  = np.arctan2(DF[xyCols[1]],DF[xyCols[0]])
-        if len(uxyCols) == 2: 
-            DFout.rename(columns=newXYCols,inplace=True)
-            DFout['u'+rphiCols[0]] = (DF[xyCols[0]]*DF[uxyCols[0]] + DF[xyCols[1]]*DF[uxyCols[1]])/DFout[rphiCols[0]]
-            DFout['u'+rphiCols[1]] = (DF[xyCols[0]]*DF[uxyCols[1]] - DF[uxyCols[0]]*DF[xyCols[1]])/DFout[rphiCols[0]]**2
-        DF = DF.drop(cols,axis=1,inplace=False)
-        DFout = pd.concat([DFout,DF],axis=1)
-        
-        if iNames:
-            DFout = DFout.set_index(list(newCols.values()),append=True).reorder_levels(iNames).sort_index()
-        
-        
-        return DFout
+    DFout=copy.deepcopy(DF.loc[:,cols])
+    DFout.rename(columns=newXYCols,inplace=True)
+    DFout[rphiCols[0]] = np.sqrt(DF.loc[:,xyCols[0]]**2 + DF.loc[:,xyCols[1]]**2)
+    DFout[rphiCols[1]]  = np.arctan2(DF[xyCols[1]],DF[xyCols[0]])
+    if len(uxyCols) == 2:
+        DFout.rename(columns=newUxyCols,inplace=True)
+        DFout['u'+rphiCols[0]] = (DF[xyCols[0]]*DF[uxyCols[0]] + DF[xyCols[1]]*DF[uxyCols[1]])/DFout[rphiCols[0]]
+        DFout['u'+rphiCols[1]] = (DF[xyCols[0]]*DF[uxyCols[1]] - DF[uxyCols[0]]*DF[xyCols[1]])/DFout[rphiCols[0]]**2
+    DF = DF.drop(cols,axis=1,inplace=False)
+    DFout = pd.concat([DFout,DF],axis=1)
+    if iNames:
+        DFout = DFout.set_index(list(newCols.values()),append=True).reorder_levels(iNames).sort_index()
+    DFout = convertPhiRange(DFout,phiRange=phiRange,phiCol=phiCol)
+    return DFout
     
 
 def rotateCyl(DF,theta=0,phiCol='phi',discretePhi=False,phiRange='2pi',interpolate=True,nc=1):
@@ -492,8 +452,7 @@ def convertPhiRange(DF,phiRange='2pi',phiCol='phi'):
             DF = ((DF+2*np.pi)%(2*np.pi))/np.pi
         elif phiRange == 'pi':
             DF = (DF+np.pi)%(2*np.pi) - np.pi
-    
-        
+
     return DF.sort_index()
 
 

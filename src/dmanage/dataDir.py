@@ -15,7 +15,7 @@ from dmanage import dfmethods as dfm
 from dmanage.loaders import vsim  # this needs to change to be more generic
 
 
-class DataDir():
+class DataDir(vsim.VSim):
     """
     opens a VSim data directory for common analysis I use. Plotting relevant histories, plotting electrons, stuff like that
     This is the first step to analysing the data directory. You may open up the H5 files directly to access the data
@@ -27,16 +27,17 @@ class DataDir():
                   if an entry is excluded, no error is thrown until you use that entry}
         
     """
-    def __init__(self,dataDir=None,fullLoad=True,simType=None):
+    def __init__(self,dataDir=None,simType=None,fullLoad=True):
+        super().__init__(dataDir)
         self.debug = True
         self.cmapPhase = 'twilight'
         if (not dataDir is None) and fullLoad:
-            self.dataDir = os.path.join(dataDir,'')
-            self.resDir = self.dataDir+'processed/'
-            self.summaryFile = self.dataDir + 'summary.csv'
+            self.baseDir = os.path.join(dataDir,'')
+            self.resDir = self.baseDir+'processed/'
+            self.summaryFile = self.baseDir + 'summary.csv'
             # self.summaryData = pd.Series() # 
             self.summaryData = self.readSummary()
-            vsim.VSimRead(self.dataDir,self)  # ??? There should be a validity chack and generic sim loader here
+            #vsim.VSimRead(self.baseDir,self)  # ??? There should be a validity chack and generic sim loader here
             
     
     def addDataToSummary(self,data,summaryData=None,internalSummary=True):

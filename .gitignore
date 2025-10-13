@@ -53,6 +53,7 @@ cover/
 
 # test data
 tests/test_data/
+tests/scratch/
 
 # Translations
 *.mo

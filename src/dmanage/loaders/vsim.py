@@ -32,7 +32,7 @@ class UniMesh():
     def __init__(self, folder,file=None):
         fileExists = os.path.exists(str(file))
         if file is None or not fileExists:
-            self.uniFile = glob.glob(folder + '*_Globals_*')
+            self.uniFile = glob.glob(folder + '/*_Globals_*')
             if len(self.uniFile) < 1:
                 raise Exception("No Universe H5 file found, Not a VSim Directory: '%s'"%folder)
             else:
@@ -138,7 +138,7 @@ class H5Hist():
     """
     def __init__(self, folder, fileName = None,uniFile=None):
         if fileName is None:
-            self.histFile = glob.glob(folder + '*_History.h5')[0]
+            self.histFile = glob.glob(folder + '/*_History.h5')[0]
         else:
             self.histFile = os.path.join(folder, '') + fileName
         self.H = VsHdf5.Mesh(fileName=self.histFile)
@@ -158,7 +158,7 @@ class H5Hist():
     def readSeriesAsDF(self, baseName,concat=True,axis=1):
         histNames = [ hist for hist in self.types if baseName in hist]
         histNames = natsort.natsorted(histNames)
-        DFs = self.readManyAsDF(histNames,concat=False,axis=axis)
+        DFs = self.readAsDF(histNames,concat=False,axis=axis)
         if concat:
             if axis == 0:
                 for histName,DF in zip(histNames,DFs):
@@ -414,18 +414,18 @@ class H5Hist():
 class H5Particles():
     def __init__(self, folder,partTypes=None,uniFile=None):
         self.types = partTypes
-        self.H5Files = {}
+        self.files = {}
         self.steps = {}
         self.stepNums = {}
         self.info = {}
         self.UNI = UniMesh(folder,file=uniFile)
         for partType in partTypes:
-            self.H5Files[partType] = glob.glob(folder + '*_' + partType + '_*')
-            self.H5Files[partType] = sorted(self.H5Files[partType],key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))
-            self.steps[partType] = len(self.H5Files[partType])
+            self.files[partType] = glob.glob(folder + '/*_' + partType + '_*')
+            self.files[partType] = sorted(self.files[partType],key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))
+            self.steps[partType] = len(self.files[partType])
             nums = []
-            for H5file in self.H5Files[partType]:
-                basename = os.path.basename(H5file)
+            for files in self.files[partType]:
+                basename = os.path.basename(files)
                 basename = os.path.splitext(basename)[0]
                 nums = nums + [int(basename.split('_')[-1])]
             self.stepNums[partType] = nums
@@ -456,7 +456,7 @@ class H5Particles():
         if step > self.steps[partType]:
             raise Exception("Particle '%s' only has %d steps and step %d is out of range"%(partType,self.steps[partType],step))
         
-        h5 = tables.open_file(self.H5Files[partType][step])
+        h5 = tables.open_file(self.files[partType][step])
         
         colNames = self._getColumnNames(h5)
         if 'tags' in colNames: colNames[colNames.index('tags')] = 'tag'
@@ -510,7 +510,7 @@ class H5Particles():
         return DF
 
     def readAsNumpy(self,partType,step):
-        h5 = tables.open_file(self.H5Files[partType][step])
+        h5 = tables.open_file(self.files[partType][step])
         node = h5.get_node('/'+partType)
         array = node.read()
         t = node._v_attrs.time
@@ -541,7 +541,7 @@ class H5Particles():
         i = 0
         tFirstFound = False
         while (i < self.steps[partType]) and not tFirstFound:
-            h5 = tables.open_file(self.H5Files[partType][i])
+            h5 = tables.open_file(self.files[partType][i])
             node = h5.get_node('/'+partType)
             if node.shape[0] > 0:
                 tFirstFound = True
@@ -557,7 +557,7 @@ class H5Particles():
         info['tFirst'] = node.get_attr('time')
         h5.close()
         
-        h5 = tables.open_file(self.H5Files[partType][-1])
+        h5 = tables.open_file(self.files[partType][-1])
         node = h5.get_node('/'+partType)
         info['tLast'] = node.get_attr('time')
         h5.close()
@@ -683,21 +683,21 @@ class H5Fields():
     def __init__(self, folder, fieldTypes = ['E']):
         if not type(fieldTypes) is list: fieldTypes = [fieldTypes]
         self.types = fieldTypes
-        self.H5Files = {}
+        self.files = {}
         self.steps = {}
         self.stepNums = {}
         
         for fieldType in fieldTypes:
-            self.H5Files[fieldType] = glob.glob(folder + '*_' + fieldType + '_*')
-            self.H5Files[fieldType] = sorted(self.H5Files[fieldType],key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))
-            self.steps[fieldType] = len(self.H5Files[fieldType])
+            self.files[fieldType] = glob.glob(folder + '/*_' + fieldType + '_*')
+            self.files[fieldType] = sorted(self.files[fieldType],key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))
+            self.steps[fieldType] = len(self.files[fieldType])
             nums = []
-            for H5file in self.H5Files[fieldType]:
-                basename = os.path.basename(H5file)
+            for file in self.files[fieldType]:
+                basename = os.path.basename(file)
                 basename = os.path.splitext(basename)[0]
                 nums = nums + [int(basename.split('_')[-1])]
             self.stepNums[fieldType] = nums
-        if len(fieldTypes)>0: uniFile = self.H5Files[fieldType][0]
+        if len(fieldTypes)>0: uniFile = self.files[fieldType][0]
         else: uniFile=None
         self.UNI = UniMesh(folder,file=uniFile)
     
@@ -707,7 +707,7 @@ class H5Fields():
         return DF
     
     def readAsDF(self, fieldType,step):
-        h5 = tables.open_file(self.H5Files[fieldType][step])
+        h5 = tables.open_file(self.files[fieldType][step])
         vcolName = 'v'
         node = h5.get_node('/'+fieldType)
         array = node.read()
@@ -757,7 +757,7 @@ class H5Fields():
         return array,bounds
     
     def readAsNumpy(self, fieldType, step):
-        h5 = tables.open_file(self.H5Files[fieldType][step])
+        h5 = tables.open_file(self.files[fieldType][step])
         vcolName = 'v'
         node = h5.get_node('/'+fieldType)
         array = node.read()
@@ -814,41 +814,34 @@ class InputVariables():
             if '### Translation: ' in line:
                 date = line.rstrip().replace('### Translation: ','')
         return date
-    
-def isVSim(folder):
-    folder = os.path.join(folder,'')
-    varFile = glob.glob(folder + '*Vars.py')
-    if len(varFile) == 0: check = False
-    else: check = True
-    return check
-
 
 class VSim():
     def __init__(self,folder):
-
+        
+        
+        
         if not self.isValid(folder):
-            self.sim = self.__name__
+            pass
         else:
-            self.dataDir = folder
             self.sim = 'VSim'
             self.PreVars = InputVariables(self.varFile)
             self.Hists, self.Parts,self.Fields,self.Geos = loadReaders(folder)
-            self.types = ['Hist','Parts','Fields','geos']
+            self.components = ['Hist','Parts','Fields','Geos','PreVars']
    
     def isValid(self,folder):
         folder = os.path.join(folder,'')
-        varFile = glob.glob(folder + '*Vars.py')
+        varFile = glob.glob(folder + '/*Vars.py')
         if len(varFile) == 0:
             # print(folder + ' is not a VSim data directory!')
-            self.valid = False
+            valid = False
         else:
             self.varFile = varFile[0]
-            self.valid=True
-        return self.valid
+            valid=True
+        return valid
     
 def loadReaders(folder):
     ignores = ['Globals', 'universe','History']
-    files = np.array(glob.glob(folder + '*.h5'))
+    files = np.array(glob.glob(folder + '/*.h5'))
     types = []
     for file in files:
         if 'History' in file:

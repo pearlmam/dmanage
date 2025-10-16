@@ -8,7 +8,53 @@ Created on Tue Oct  7 16:22:09 2025
 
 from dmanage import dfmethods as dfm
 from dmanage.sweepDir import SweepDir  # this needs to change to be more generic
+from dmanage.dataDir import DataDir  # this needs to change to be more generic
+from dmanage.loaders import vsim
 
-folder = './test_data/vsim_data/'
 
-SD = SweepDir(folder)
+class MyDataDir(vsim.VSim,DataDir):
+    def __init__(self,dataDir=None):
+        super().__init__(dataDir)
+        # add personal component loader here that modifies self Obj
+        # personalSimulationLoader(dataDir,self)
+        
+        ####   add any attributes here    ####
+        
+    #### Add person methods here   ####
+
+class MySweepDir(SweepDir,MyDataDir):
+    # def __init__(self,dataDir=None):
+    #     #super().__init__(dataDir
+    #     pass
+    pass
+
+if __name__ == "__main__":
+    folder = './test_data/vsim_data/VDC-87.8e3/'
+    DD = MyDataDir(folder)
+    
+    folder = './test_data/vsim_data/'
+    SD = MySweepDir(folder)
+    
+    histName = 'Pout'
+    DF = SD.Hists.readAsDF(histName)
+    print(DF)
+    
+    histName = 'Vout'
+    DF = SD.Hists.readAsDF(histName)
+    print(DF)
+    
+    
+    partName = 'electronsT'
+    DF = SD.Parts.readAsDF(partType=partName,nc=4,)
+    print(DF)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

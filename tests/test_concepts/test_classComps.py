@@ -363,13 +363,6 @@ class D5(C5):
             else:
                 return original_func(*args, **kwargs)
         return wrapper
-
-    def on_component_call(self, component_name, method_name, original, *args, **kwargs):
-        print(f"⚡ Before {component_name}.{method_name}")
-        result = original(*args, **kwargs)
-        print(f"✅ After {component_name}.{method_name}")
-        return result
-    
     
     def on_component_call(self, component_name, method_name, original, *args, **kwargs):
         return 'D' + original(*args, **kwargs)   # returns 'DA'

@@ -15,29 +15,21 @@ from dmanage import dfmethods as dfm
 from dmanage.loaders import vsim  # this needs to change to be more generic
 
 
-class DataDir(vsim.VSim):
+class DataDir():
     """
-    opens a VSim data directory for common analysis I use. Plotting relevant histories, plotting electrons, stuff like that
-    This is the first step to analysing the data directory. You may open up the H5 files directly to access the data
-    for uncommon analysis, but I like the structure of this. 
     
-    Inputs:
-        dataDir: <string>, path to the data directory
-        relHAPlots: <Dict>, the format must look like this: { plotTitle:{'histNames':histNames, 'movAvg':movAvg, 'ylabel':ylabel }
-                  if an entry is excluded, no error is thrown until you use that entry}
         
     """
-    def __init__(self,dataDir=None,simType=None,fullLoad=True):
-        super().__init__(dataDir)
-        self.debug = True
-        self.cmapPhase = 'twilight'
-        if (not dataDir is None) and fullLoad:
-            self.baseDir = os.path.join(dataDir,'')
-            self.resDir = self.baseDir+'processed/'
-            self.summaryFile = self.baseDir + 'summary.csv'
-            # self.summaryData = pd.Series() # 
-            self.summaryData = self.readSummary()
-            #vsim.VSimRead(self.baseDir,self)  # ??? There should be a validity chack and generic sim loader here
+    def __init__(self,dataDir=None):
+        
+        # define attributes
+        
+        self.baseDir = os.path.join(dataDir,'')
+        self.resDir = self.baseDir+'processed/'
+        self.summaryFile = self.baseDir + 'summary.csv'
+        # self.summaryData = pd.Series() # 
+        self.summaryData = self.readSummary()
+        #vsim.VSimRead(self.baseDir,self)  # ??? There should be a validity chack and generic sim loader here
             
     
     def addDataToSummary(self,data,summaryData=None,internalSummary=True):

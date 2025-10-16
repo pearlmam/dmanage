@@ -6,6 +6,7 @@ Created on Mon May 10 16:14:34 2021
 SweepDir
 @author: marcus
 """
+import inspect, types
 import os
 import time
 import pandas as pd
@@ -27,31 +28,85 @@ class SweepDir(DataDir):
         
     """
     
-    def __init__(self,baseDir,simType=None,baseNameDepth=3):
+    def __init__(self,baseDir):
         # sweep data directories
         print('Opening %s...'%baseDir, end = ' ')
         startTime = time.time()
         self.baseDir = os.path.join(baseDir,'')
-
         self.sweepDirs = self.getDDs(baseDir,nc=1)
         if len(self.sweepDirs) == 0: raise Exception("There are no Data Directories in '%s'"%self.baseDir)
         self.sweepDirs = natsort.natsorted(self.sweepDirs)
-        #self.DD = dataDir.DataDir(self.baseDir+self.sweepDirs[0])
-
-        self.resDir = self.baseDir + 'processed/' # result directory
+        super().__init__(os.path.join(baseDir,self.sweepDirs[0]))
+        self._wrap_component_methods()
+        
+        
+        # attributes
+        self.resDir = self.baseDir+'processed/'
         self.sweepResDir = self.resDir + 'sweep/'
-        self.sweepDataSaveName = 'sweepData'
-        self.saveType = 'png'
-        self.debug = False
         self.dataLookupFile = self.baseDir + 'dataLookup.xlsx'
         self.baseNameDepth=3
-        # remove processed directory from list
-        try: self.sweepDirs.remove('processed')
-        except: pass
+
+        
         executionTime = time.time()-startTime
         print('Done in %0.3f Seconds'%executionTime)
 
+    def _wrap_component_methods(self):
+        """Scan all attributes and wrap methods of component-like objects."""
+        for attr_name, attr_value in vars(self).items():
+            if attr_name.startswith("_"):
+                continue  # skip internal attributes
+            if not hasattr(attr_value, "__class__"):
+                continue  # skip primitives
 
+            # Detect component-like objects (skip classes, numbers, etc.)
+            if inspect.isclass(attr_value) or isinstance(attr_value, (int, float, str, dict, list, tuple)):
+                continue
+
+            # Wrap all public methods of the component
+            for method_name, method in inspect.getmembers(attr_value, predicate=inspect.isroutine):
+                if method_name.startswith("_"):
+                    continue  # skip private methods
+                # elif not hasattr(method, "_component_override"):  # if you want to use decorators
+                #     continue  # skip methods without '_component_override' attribute
+                elif not 'DF' in method_name:
+                    continue
+                original_func = method
+                wrapped = self._make_wrapper(attr_name, method_name, original_func)
+                setattr(attr_value, method_name, types.MethodType(wrapped, attr_value))
+                #self._original_methods[f"{attr_name}.{method_name}"] = original_func
+
+    def _make_wrapper(self, component_name, method_name, original_func):
+        def wrapper(_self, *args, **kwargs):
+            # If subclass defines on_component_call, use it
+            if hasattr(self, "on_component_call"):
+                return self.on_component_call(
+                    component_name,
+                    method_name,
+                    lambda *a, **kw: original_func(*a, **kw),
+                    *args,
+                    **kwargs,
+                )
+            else:
+                return original_func(*args, **kwargs)
+        return wrapper
+    
+    def _on_component_call(self, sweepDir,component_name, method_name, original, *args, **kwargs):
+        super().__init__(os.path.join(self.baseDir,sweepDir))  
+        component = getattr(self,component_name)
+        DD_func = getattr(component,method_name)
+        return DD_func( *args, **kwargs )
+    
+    def on_component_call(self, component_name, method_name, original, *args, **kwargs):
+        DFs = []
+        for sweepDir in self.sweepDirs:
+            # this overwrites the component methods with the DD equivalent
+            super().__init__(os.path.join(self.baseDir,sweepDir))  
+            component = getattr(self,component_name)
+            DD_func = getattr(component,method_name)
+            DFs = DFs + [DD_func( *args, **kwargs )]
+        #DFs = pd.concat(DFs)
+        self._wrap_component_methods()                # rewrap component methods with SD equivalent
+        return DFs
     
     def _getDDs(self,subDirs):
         sweepDirs = []
@@ -69,7 +124,7 @@ class SweepDir(DataDir):
             else: pass
             
         return sweepDirs
-        
+       
     def getDDs(self,baseDir=None,nc=1):
         
         if type(baseDir) == type(None):
@@ -168,7 +223,7 @@ class SweepDir(DataDir):
         if not type(relVars) is list: relVars = [relVars]
         DFList = []
         for sweepDir in self.sweepDirs:
-            DD = dataDir.DataDir(self.baseDir + sweepDir)
+            DD = DataDir(self.baseDir + sweepDir)
             DF = DD.getScalerVars(relVars,dtype='DF')
             DF['sweepDir'] = sweepDir
             DFList = DFList + [DF]

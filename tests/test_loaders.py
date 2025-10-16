@@ -3,7 +3,7 @@ import numpy as np
 from dmanage.dataDir import DataDir
 
 folder = './test_data/vsim_data/VDC-87.8e3/'
-DD = DataDir(folder)
+DD = DataDir(folder,simType='vsim')
 
 ##############################################################
 ## checking the structure of the class

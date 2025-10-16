@@ -14,7 +14,10 @@ import functools
 def parallelize(func):
     @functools.wraps(func)
     def wrapper(*args,**kwargs):
-        nc = kwargs.pop('nc')
+        if 'nc' in kwargs.keys():
+            nc = kwargs.pop('nc')
+        else:
+            nc = 1
         values = args[0]
         nc = min(nc,len(values))
         
@@ -43,10 +46,10 @@ def looperize(func):
         return values
     return wrapper
   
-def doSomething(value,nc=1):
+def doSomething(value):
     return abs(value)
 
-def doSomethingLooped(values,nc=1):
+def doSomethingLooped(values):
     valuesOut = np.empty(0)
     for value in values:
         valuesOut = np.append(valuesOut,abs(value))
@@ -62,7 +65,7 @@ if __name__ == "__main__":
     # two wrappers NOT picklable but dillable
     doSomething = looperize(doSomething)
     doSomething = parallelize(doSomething)
-    result = doSomething(values,nc=4)  # Fails with multiprocessing bu NOT pathos.multiprocessing
+    result = doSomething(values)  # Fails with multiprocessing bu NOT pathos.multiprocessing
     
     
     

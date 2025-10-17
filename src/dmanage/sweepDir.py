@@ -97,6 +97,17 @@ class SweepDir(DataDir):
         return DD_func( *args, **kwargs )
     
     def on_component_call(self, component_name, method_name, original, *args, **kwargs):
+        if 'ncPass' in kwargs:
+            ncPass = kwargs.pop('ncPass')
+        else:
+            ncPass = False
+        method = dfm.process.parallelize_iterator_method(self._on_component_call,concat=False,ncPass=ncPass ) 
+        DFs = method(self.sweepDirs,component_name, method_name, original, *args, **kwargs)
+        self._wrap_component_methods()                # rewrap component methods with SD equivalent
+        return DFs
+    
+    
+    def ___on_component_call(self, component_name, method_name, original, *args, **kwargs):
         DFs = []
         for sweepDir in self.sweepDirs:
             # this overwrites the component methods with the DD equivalent

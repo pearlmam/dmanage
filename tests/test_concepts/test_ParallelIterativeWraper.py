@@ -10,38 +10,46 @@ import numpy as np
 # from multiprocessing import Pool
 from pathos.multiprocessing import Pool
 import functools
+import inspect
 
 def parallelize(func):
+    sig = inspect.signature(func)
     @functools.wraps(func)
     def wrapper(*args,**kwargs):
         if 'nc' in kwargs.keys():
             nc = kwargs.pop('nc')
         else:
             nc = 1
-        values = args[0]
+        
+        bound = sig.bind_partial(*args, **kwargs)
+        bound.apply_defaults()
+        
+        
+        values = bound.args[0]
         nc = min(nc,len(values))
         
         if nc>1:
             valuess = np.split(values, nc)
-            variables = [(values,)+tuple(kwargs.values()) for values in valuess]
+            variables = [(values,)+bound.args[1:]+tuple(bound.kwargs.values()) for values in valuess]
             pool = Pool(processes=nc)
             result = pool.starmap_async(func,variables)
             result.wait()
             values = result.get()
             pool.close()
+            values = np.concatenate(values)
         else:
-            # DFs = []
-            # for step in steps:
-            #     DFs = DFs + [func(step,*kwargs.values())]
             values = func(values,**kwargs)
-        return np.concatenate(values)
+        return values
     return wrapper
 
 def looperize(func):
+    sig = inspect.signature(func)
     @functools.wraps(func)
     def wrapper(*args,**kwargs):
+        bound = sig.bind_partial(*args, **kwargs)
+        bound.apply_defaults()
         values = np.empty(0)
-        for value in args[0]:
+        for value in bound.args[0]:
             values = np.append(values,func(value,*kwargs.values()))
         return values
     return wrapper
@@ -65,7 +73,7 @@ if __name__ == "__main__":
     # two wrappers NOT picklable but dillable
     doSomething = looperize(doSomething)
     doSomething = parallelize(doSomething)
-    result = doSomething(values)  # Fails with multiprocessing bu NOT pathos.multiprocessing
+    result = doSomething(values,nc=1)  # Fails with multiprocessing bu NOT pathos.multiprocessing
     
     
     

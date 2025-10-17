@@ -440,7 +440,7 @@ class H5Particles():
         print('  Reading particle dumps with %i cores...'%(nc), end=' ')
         
         if steps is None or type(steps) is str: steps = range(0,self.steps[partType])
-        readAsDF_ = dfm.process.parallelize_iterator_method(self._readAsDF)
+        readAsDF_ = dfm.process.parallelize_iterator_method(self._readAsDF,concat=True)
         DF = readAsDF_(steps,partType=partType,relData=relData,relTags=relTags,sampleRatio=sampleRatio,nc=nc)
         
         executionTime = (time.time()-startTime)

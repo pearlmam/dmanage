@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     print('\nRead All particles')
     partType = 'electronsT'
-    df = DD.Parts.readAsDF(steps=None,partType=partType,nc=4)
+    df = DD.Parts.readAsDF(partType=partType,nc=4)
     print(df)
 
     print('\nRead All Fields')

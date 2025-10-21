@@ -6,10 +6,11 @@ Created on Tue Oct 14 13:31:59 2025
 @author: marcus
 """
 
-from dmanage.dataDir import DataDir
+from dmanage.dataDir import makeDataDir
 from dmanage.loaders import vsim
 
-class MyDataDir(vsim.VSim,DataDir):
+DataDir = makeDataDir(vsim.VSim)
+class MyDataDir(DataDir):
     def __init__(self,dataDir=None):
         super().__init__(dataDir)
         

@@ -7,12 +7,12 @@ Created on Tue Oct  7 16:22:09 2025
 """
 
 from dmanage import dfmethods as dfm
-from dmanage.sweepDir import SweepDir  # this needs to change to be more generic
-from dmanage.dataDir import DataDir  # this needs to change to be more generic
+from dmanage.sweepDir import makeSweepDir  # this needs to change to be more generic
+from dmanage.dataDir import makeDataDir  # this needs to change to be more generic
 from dmanage.loaders import vsim
 
-
-class MyDataDir(vsim.VSim,DataDir):
+DataDir = makeDataDir(vsim.VSim)
+class MyDataDir(DataDir):
     def __init__(self,dataDir=None):
         super().__init__(dataDir)
         # add personal component loader here that modifies self Obj
@@ -21,8 +21,8 @@ class MyDataDir(vsim.VSim,DataDir):
         ####   add any attributes here    ####
         
     #### Add person methods here   ####
-
-class MySweepDir(SweepDir,MyDataDir):
+SweepDir = makeSweepDir(MyDataDir)
+class MySweepDir(SweepDir):
     # def __init__(self,dataDir=None):
     #     #super().__init__(dataDir
     #     pass
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     SD = MySweepDir(folder)
     
     histName = 'Pout'
-    DF = SD.Hists.readAsDF(histName,nc=2)
+    DF = SD.Hists.readAsDF(histName,nc=1)
     print(DF)
     
     histName = 'Vout'

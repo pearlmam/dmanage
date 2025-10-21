@@ -156,6 +156,7 @@ class H5Hist():
         return
     
     def readSeriesAsDF(self, baseName,concat=True,axis=1):
+        # want to include this in self.readAsDF
         histNames = [ hist for hist in self.types if baseName in hist]
         histNames = natsort.natsorted(histNames)
         DFs = self.readAsDF(histNames,concat=False,axis=axis)
@@ -440,7 +441,7 @@ class H5Particles():
         print('  Reading particle dumps with %i cores...'%(nc), end=' ')
         
         if steps is None or type(steps) is str: steps = range(0,self.steps[partType])
-        readAsDF_ = dfm.process.parallelize_iterator_method(self._readAsDF,concat=True)
+        readAsDF_ = dfm.wrapper.parallelize_iterator_method(self._readAsDF,concat=True)
         DF = readAsDF_(steps,partType=partType,relData=relData,relTags=relTags,sampleRatio=sampleRatio,nc=nc)
         
         executionTime = (time.time()-startTime)
@@ -817,15 +818,14 @@ class InputVariables():
 
 class VSim():
     def __init__(self,folder):
-        
-        
-        
+
         if not self.isValid(folder):
-            pass
+            print('Not a valid VSim folder')
+            
         else:
             self.sim = 'VSim'
             self.PreVars = InputVariables(self.varFile)
-            self.Hists, self.Parts,self.Fields,self.Geos = loadReaders(folder)
+            self.Hists, self.Parts,self.Fields,self.Geos = self.loadComponents(folder)
             self.components = ['Hist','Parts','Fields','Geos','PreVars']
    
     def isValid(self,folder):
@@ -839,45 +839,89 @@ class VSim():
             valid=True
         return valid
     
-def loadReaders(folder):
-    ignores = ['Globals', 'universe','History']
-    files = np.array(glob.glob(folder + '/*.h5'))
-    types = []
-    for file in files:
-        if 'History' in file:
-            histExist = True
-            types = types + ['History']
-        else:  
-            types = types + [file.split('_')[-2]] 
+    def loadComponents(self,folder):
+        ignores = ['Globals', 'universe','History']
+        files = np.array(glob.glob(folder + '/*.h5'))
+        types = []
+        for file in files:
+            if 'History' in file:
+                histExist = True
+                types = types + ['History']
+            else:  
+                types = types + [file.split('_')[-2]] 
+        
+        types,i = np.unique(types,return_index=True)
+        files = files[i]
+        fieldTypes = []; particleTypes = []; geoTypes = []; geoFiles = []
+        for i,file in enumerate(files):
+            if not any([ignore in file for ignore in ignores ]):
+                try: 
+                    h5 = tables.open_file(file)
+                    rootNodes = h5.get_node('/')._v_children.keys()
+                    if 'poly' in rootNodes: 
+                        geoFiles = geoFiles + [str(file)] # its a geometry
+                    elif not 'globalGridGlobalLimits' in rootNodes: 
+                        pass # its a multifield
+                    elif 'globalGridGlobal' in rootNodes: 
+                        fieldTypes = fieldTypes + [str(types[i])] # its a field
+                    else: 
+                        particleTypes = particleTypes + [str(types[i])]
+                    h5.close()
+                except:
+                    #os.path.basename(file)
+                    print("Cannot open '%s', it my be corrupt, this file should be deleted"%os.path.basename(file))
+        if histExist:
+            Hists = H5Hist(folder,uniFile=geoFiles[0])
+        
+        Geos = GeoData(folder,geoFiles)
+        Parts = H5Particles(folder,particleTypes,uniFile=geoFiles[0])
+        Fields = H5Fields(folder,fieldTypes)
+        return Hists,Parts,Fields,Geos
+        
+    def _loadComponents(self,folder,DDobj=None):
+        DDobj.PreVars = InputVariables(self.varFile) # ???
+        ignores = ['Globals', 'universe','History']
+        files = np.array(glob.glob(folder + '/*.h5'))
+        types = []
+        for file in files:
+            if 'History' in file:
+                histExist = True
+                types = types + ['History']
+            else:  
+                types = types + [file.split('_')[-2]] 
+        
+        types,i = np.unique(types,return_index=True)
+        files = files[i]
+        fieldTypes = []; particleTypes = []; geoTypes = []; geoFiles = []
+        for i,file in enumerate(files):
+            if not any([ignore in file for ignore in ignores ]):
+                try: 
+                    h5 = tables.open_file(file)
+                    rootNodes = h5.get_node('/')._v_children.keys()
+                    if 'poly' in rootNodes: 
+                        geoFiles = geoFiles + [str(file)] # its a geometry
+                    elif not 'globalGridGlobalLimits' in rootNodes: 
+                        pass # its a multifield
+                    elif 'globalGridGlobal' in rootNodes: 
+                        fieldTypes = fieldTypes + [str(types[i])] # its a field
+                    else: 
+                        particleTypes = particleTypes + [str(types[i])]
+                    h5.close()
+                except:
+                    #os.path.basename(file)
+                    print("Cannot open '%s', it my be corrupt, this file should be deleted"%os.path.basename(file))
+        
+        DDobj.PreVars = InputVariables(self.varFile)
+        if histExist:
+            DDobj.Hists = H5Hist(folder,uniFile=geoFiles[0])
+        
+        
+        DDobj.Geos = GeoData(folder,geoFiles)
+        DDobj.Parts = H5Particles(folder,particleTypes,uniFile=geoFiles[0])
+        DDobj.Fields = H5Fields(folder,fieldTypes)
+        return None    
     
-    types,i = np.unique(types,return_index=True)
-    files = files[i]
-    fieldTypes = []; particleTypes = []; geoTypes = []; geoFiles = []
-    for i,file in enumerate(files):
-        if not any([ignore in file for ignore in ignores ]):
-            try: 
-                h5 = tables.open_file(file)
-                rootNodes = h5.get_node('/')._v_children.keys()
-                if 'poly' in rootNodes: 
-                    geoFiles = geoFiles + [str(file)] # its a geometry
-                elif not 'globalGridGlobalLimits' in rootNodes: 
-                    pass # its a multifield
-                elif 'globalGridGlobal' in rootNodes: 
-                    fieldTypes = fieldTypes + [str(types[i])] # its a field
-                else: 
-                    particleTypes = particleTypes + [str(types[i])]
-                h5.close()
-            except:
-                #os.path.basename(file)
-                print("Cannot open '%s', it my be corrupt, this file should be deleted"%os.path.basename(file))
-    if histExist:
-        Hists = H5Hist(folder,uniFile=geoFiles[0])
-    
-    Geos = GeoData(folder,geoFiles)
-    Parts = H5Particles(folder,particleTypes,uniFile=geoFiles[0])
-    Fields = H5Fields(folder,fieldTypes)
-    return Hists,Parts,Fields,Geos
-            
+   
     
 if __name__ == "__main__":
     pass

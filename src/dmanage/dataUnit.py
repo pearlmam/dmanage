@@ -15,13 +15,13 @@ import os
 # import inspect
 
 
-def makeDataDir(base):
-    class DataDir(base):
+def makeDataUnit(base):
+    class DataUnit(base):
         """
-        
+        alternate naming: DataUnit, DataRun, 
             
         """
-        def __init__(self,dataDir=None):
+        def __init__(self,dataDir=None,server='local'):
             super().__init__(dataDir)
             # define attributes
             
@@ -33,18 +33,17 @@ def makeDataDir(base):
             #vsim.VSimRead(self.baseDir,self)  # ??? There should be a validity check and generic sim loader here
         
         def inheritanceLevel():
-            return 'DD'
+            return 'DU'
         
-        def load(self,dataDir=None,iLevel='DD'):
+        def load(self,dataDir=None,iLevel='DU'):
             # step through inheretanceLevels
             base = self.__class__
             level = base.inheritanceLevel()
-            while not (level.lower() == 'dd'):
+            while not (level.lower() == 'du'):
                 if len(base.__bases__) < 1:
                     raise Exception("Inheritance chain does not include level '%s'"%level)
                 base = base.__bases__[0]
-                level = base.inheritanceLevel()
-                
+                level = base.inheritanceLevel() 
             return base(dataDir)
         
         def addDataToSummary(self,data,summaryData=None,internalSummary=True):
@@ -113,4 +112,4 @@ def makeDataDir(base):
                                 print('Unable to Coerce %s  to Dataframe'%(col))
             return self.summaryData
         
-    return DataDir
+    return DataUnit

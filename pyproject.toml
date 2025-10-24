@@ -30,6 +30,7 @@ dependencies = [
   "pandas",            # data manipulation
   "matplotlib",        # for plotting
   "pathos"             # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
+  "paramiko"           # for server implementation
 ]
 
 

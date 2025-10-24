@@ -51,8 +51,7 @@ def parallelize_df_method(func):
         return DF
     return wrapper
 
-def parallelize_iterator_method(func,concat=True,ncPass=False):
-    func = looperize(func,concat=concat)
+def parallelize_looped_method(func,concat=True,ncPass=False):
     sig = inspect.signature(func)
     @functools.wraps(func)
     def wrapper(*args,**kwargs):
@@ -89,6 +88,7 @@ def parallelize_iterator_method(func,concat=True,ncPass=False):
         return DFs
     return wrapper
 
-
-
+def parallelize_iterator_method(func,concat=True,ncPass=False):
+    func = looperize(func,concat=concat)
+    return parallelize_looped_method(func,concat=concat,ncPass=ncPass)
 

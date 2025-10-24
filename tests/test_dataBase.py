@@ -1,0 +1,46 @@
+# -*- coding: utf-8 -*-
+
+
+
+from dmanage import dfmethods as dfm
+from dmanage.dataGroup import makeDataGroup # this needs to change to be more generic
+from dmanage.dataUnit import makeDataUnit  # this needs to change to be more generic
+from dmanage.dataBase import makeDataBase  # this needs to change to be more generic
+from dmanage.loaders import vsim
+
+
+
+DataDir = makeDataUnit(vsim.VSim)
+class MyDataDir(DataDir):
+    def __init__(self,dataDir=None):
+        super().__init__(dataDir)
+        # add personal component loader here that modifies self Obj
+        # personalSimulationLoader(dataDir,self)
+        
+        ####   add any attributes here    ####
+        
+    #### Add person methods here   ####
+SweepDir = makeDataGroup(MyDataDir)
+class MySweepDir(SweepDir):
+    # def __init__(self,dataDir=None):
+    #     #super().__init__(dataDir
+    #     pass
+    pass
+
+DataBase = makeDataBase(MySweepDir)
+class MyDataBase(DataBase):
+    # def __init__(self,dataDir=None):
+    #     #super().__init__(dataDir
+    #     pass
+    pass
+
+
+if __name__ == "__main__":
+    eceSim = '***REMOVED***.***REMOVED***.edu'
+    eceSimFolders = ['/media***REMOVED******REMOVED***/Documents/CFAdata/2025/VBSweep/NXY-109/TEND-300e-9/FREQ-1.315e9/iCathode-1000/BSTATIC-0.140/PRF_AVG-200e3/']
+    localFolder = ['./test_data/vsim_data/']
+    dataBases = {eceSim:{'dataCollections':eceSimFolders,'user':'***REMOVED***'}, \
+                 'local':{'dataCollections':localFolder,'user':'***REMOVED***'}}
+    DB = DataBase(dataBases)
+
+

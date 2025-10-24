@@ -7,11 +7,11 @@ Created on Tue Oct  7 16:22:09 2025
 """
 
 from dmanage import dfmethods as dfm
-from dmanage.sweepDir import makeSweepDir  # this needs to change to be more generic
-from dmanage.dataDir import makeDataDir  # this needs to change to be more generic
+from dmanage.dataGroup import makeDataGroup 
+from dmanage.dataUnit import makeDataUnit  
 from dmanage.loaders import vsim
 
-DataDir = makeDataDir(vsim.VSim)
+DataDir = makeDataUnit(vsim.VSim)
 class MyDataDir(DataDir):
     def __init__(self,dataDir=None):
         super().__init__(dataDir)
@@ -21,7 +21,7 @@ class MyDataDir(DataDir):
         ####   add any attributes here    ####
         
     #### Add person methods here   ####
-SweepDir = makeSweepDir(MyDataDir)
+SweepDir = makeDataGroup(MyDataDir)
 class MySweepDir(SweepDir):
     # def __init__(self,dataDir=None):
     #     #super().__init__(dataDir

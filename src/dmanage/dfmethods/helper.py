@@ -3,15 +3,14 @@
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
-if mpl.cbook._get_running_interactive_framework() == 'headless':
-    mpl.use('agg')
-    mpl.rcParams['path.simplify'] = True
+
 
 import copy
 
 # my package methods
 from dmanage.dfmethods import functions as func
 from dmanage.dfmethods.convert import numpy2DF,DF2Numpy
+from dmanage.dfmethods.linalg import norm
 
 
 # plot1D,plot1DWPks,scatter,drawFig
@@ -24,6 +23,9 @@ def mi_iloc(DF,indices):
         newDF = newDF.loc[ival]
     return newDF
 
+
+
+##### might noet be needed in preference for np.array_split()?
 def splitBy(DF,N,indices=[],axis=0):
     if not type(indices) is list:
         indices = [indices]
@@ -228,64 +230,28 @@ def _reduce(DF,iName=None,method='mean',iApply=False,inplace=False,block=False,*
     
     return DF
 
-def norm(DF,iName,order=2):
-    """
-    takes the norm of the DF with respect to the iName index. The input DF may have multiple columns at the moment
-
-    Parameters
-    ----------
-    DF : pandas DataFrame
-    iName : string
-        name of the index to take the norm over
-    order : float
-        norm order, see np.linalg.norm
-
-    Returns
-    -------
-    DF : pandas DataFrame
-        The DF will have one less index level
-
-    """
-    if issubclass(type(DF),pd.core.series.Series): 
-        cols = [DF.name]
-        DF = DF.to_frame()
-    elif issubclass(type(DF),pd.core.frame.DataFrame): 
-        cols = DF.columns
-        
-    if len(DF.index.names) == 1: 
-        scaler = np.linalg.norm(DF.to_numpy()[:,0],ord=order,axis=0)
-        DF = pd.DataFrame([scaler],cols)[0]
-    else:
-        if len(cols)>1: DF = DF.stack()
-        DF = DF.unstack(level=iName)
-        mi = DF.index
-        array = np.linalg.norm(DF.to_numpy(),ord=order,axis=1)
-        if len(cols)>1: DF = pd.DataFrame(array,mi).unstack(level=-1)[0]
-        else: DF = pd.DataFrame(array,mi,cols)
-    return DF
-
-def weightedConcat(DFlist,nc=1):
+def weightedConcat(DFlist,col='weight',nc=1):
     if len(DFlist)==1:
         DF = DFlist[0]
     elif len(DFlist)>1:
         if nc>1:
             DF = None
         else:
-            DF = _weightedConcat(DFlist)
+            DF = _weightedConcat(DFlist,col)
     else:
         DF = None
     return DF
         
-def _weightedConcat(DFlist):
+def _weightedConcat(DFlist,col='weight'):
     """
     requires column named 'weight'
     """
     DF = pd.concat(DFlist)
     iNames = list(DF.index.names)
-    wSum = DF.groupby(iNames)['weight'].transform('sum') # grouped weighted sum
+    wSum = DF.groupby(iNames)[col].transform('sum') # grouped weighted sum
     wCols = list(DF.columns)
-    wCols.remove('weight')
-    DF[wCols] = DF[wCols].multiply(DF['weight'],axis='index')
+    wCols.remove(col)
+    DF[wCols] = DF[wCols].multiply(DF[col],axis='index')
     DF[wCols] = DF[wCols].div(wSum,axis='index')
     DF = DF.groupby(iNames).sum() 
     return DF
@@ -324,10 +290,6 @@ def getSlice(DF,iName,value,drop=True):
     if drop: DF = DF.reset_index(iName,drop=True)
     
     return DF
-
-
-
-
 
 def windowedInfo(DF,win=None,overlap=0.5,info='period',window='hanning',**kwargs):
     array,bounds = DF2Numpy(DF)
@@ -393,25 +355,32 @@ def getStableData(DF,method,iSweep,checkCols=[],stableCol='stable'):
         DF = DF.set_index(iNames,append=True)
     return DF
 
-def movAvg(DF,n=100):
-    DF = DF.rolling(n).mean()
-    if not issubclass(type(DF), pd.core.series.Series): 
-        DF.columns = ['movAvg(%s)'%col for col in DF.columns]
-    else:
-        DF.name = 'movAvg(%s)'%DF.name
- 
-    return DF.dropna()
-
 def binDF(DF,binVars,bins,inplace=False):
     """
     This bins the DataFrame by the column labeled <var> by the <bins> and the agregation in methods
     bins can be an integer representing the number of bins, or a list of the bin breaks
-    Input:
-        bins: [integer] the number of bins
-              [list of floats]: list of the bin breaks
-        methods: [string] name of the method to agregate, function returns groups DF
-                 [list of strings]: names of the method to agregate, function returns dictionary
-                 
+
+    Parameters
+    ----------
+    DF : pandas.DataFrame
+        DataFrame that has columns to bin...
+    binVars : str, list
+        names of the columns to bin
+    bins : int, list
+        The number of bins for each binVar
+    inplace : bool, optional
+        To bin in place or not. The default is False.
+
+    Raises
+    ------
+    Exception
+        if the len(bins) is not equal to len(binVars)
+
+    Returns
+    -------
+    DF : pandas.DataFrame
+        bined DataFrame
+
     """
     
     if type(binVars) is not list:
@@ -430,42 +399,6 @@ def binDF(DF,binVars,bins,inplace=False):
     # NaN entries for rBins, and phiBins are electrons that cant be binned? 
     # they must be removed
     # if any other columns have a NaN, they too will be removed, which could be bad.
-    return DF
-
-
-def curl(DF):
-    if not issubclass(type(DF), pd.core.series.Series): 
-        if len(DF.columns)>1:
-            raise Exception("DF must be of type Series or of type DataFrame with one column.")
-        else:
-            name = DF.columns[0]
-    else:
-        name = DF.name
-        
-    array,bounds = DF2Numpy(DF)
-    s = array.shape
-    keys = list(bounds.keys())
-    dsteps = [bounds[key][1] - bounds[key][0] for key in keys[:len(s)-1]]
-    array = func.curl(array,dsteps)
-    DF = numpy2DF(array,bounds,colName='curl(%s)'%name)
-    
-    return DF
-
-
-def intervalColumns2Num(DF,inplace=True):
-    """
-    This converts a pd.series of pd.intervals object to one with floats. 
-    Usefull for storing as H5 or plotting 
-    """
-    if not inplace: DF = copy.deepcopy(DF)
-    #AG = AG.reset_index()
-    if not issubclass(type(DF), pd.core.series.Series): 
-        for i,col in DF.iteritems():
-            if type(col.iloc[0])==pd._libs.interval.Interval:
-                DF[col.name]=[(x.left+x.right)/2 for x in col]
-    else:
-        if type(DF.iloc[0])==pd._libs.interval.Interval:
-                DF=[(x.left+x.right)/2 for x in DF]
     return DF
 
 

@@ -521,3 +521,23 @@ def makeUniformDF(DF,method=None,fill_value=np.nan,interpolate=True,limit_area='
     
     # print(DF)
     return DF
+
+
+def intervalColumns2Num(DF,inplace=True):
+    """
+    This converts a pd.series of pd.intervals object to one with floats. 
+    Usefull for storing as H5 or plotting 
+    """
+    if not inplace: DF = copy.deepcopy(DF)
+    #AG = AG.reset_index()
+    if not issubclass(type(DF), pd.core.series.Series): 
+        for i,col in DF.iteritems():
+            if type(col.iloc[0])==pd._libs.interval.Interval:
+                DF[col.name]=[(x.left+x.right)/2 for x in col]
+    else:
+        if type(DF.iloc[0])==pd._libs.interval.Interval:
+                DF=[(x.left+x.right)/2 for x in DF]
+    return DF
+
+
+

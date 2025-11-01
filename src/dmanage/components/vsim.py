@@ -18,7 +18,7 @@ from multiprocessing import Pool
 import time
 import natsort
 import copy
-from dmanage.loaders import VsHdf5
+from dmanage.components import VsHdf5
 from dmanage import dfmethods as dfm
 
 
@@ -127,14 +127,7 @@ class GeoData():
     
 class H5Hist():
     """
-    Opens H5 history file for data extraction.
-    Common use to read multiple histories: 
-        histNames = ['outputPower0', 'inputPower0']
-        H5 = H5read.H5Hist(subFolder)
-        hists = H5.readHistories(histNames)
-        
-    hists is a dictionary of hist objects. 
-    hist objects have the data, time, data type, etc. packaged together
+    History component for VSim data
     """
     def __init__(self, folder, fileName = None,uniFile=None):
         if fileName is None:

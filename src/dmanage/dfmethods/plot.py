@@ -14,7 +14,8 @@ import warnings as warn
 import subprocess as sp
 import shutil
 
-from dmanage.dfmethods.convert import multiIndex2Index
+
+from dmanage.dfmethods.convert import multiIndex2Index,numpy2DF,DF2Numpy,rotateCart
 
 class PlotDefs():
     def __init__(self,backEnd='TkAgg'):
@@ -496,13 +497,43 @@ class Plot():
 
     def contourf(self,DF,fig=None,figsize=(12, 5),clear=True,polar=False,cmap='viridis',convertAxis=True):
         """
-        plots 2D contour plots on flat or polar coords
-        input:
-            AG: an aggregated group. A panda.groupby object with TWO indeces
-            plotVar: the values to plot
-            saveLoc: string location
-            plotType: acceptable types: ['flat', 'polar','contour']
+        Description needed
+
+        Parameters
+        ----------
+        DF : TYPE
+            DESCRIPTION.
+        fig : TYPE, optional
+            DESCRIPTION. The default is None.
+        figsize : TYPE, optional
+            DESCRIPTION. The default is (12, 5).
+        clear : TYPE, optional
+            DESCRIPTION. The default is True.
+        polar : TYPE, optional
+            DESCRIPTION. The default is False.
+        cmap : TYPE, optional
+            DESCRIPTION. The default is 'viridis'.
+        convertAxis : TYPE, optional
+            DESCRIPTION. The default is True.
+
+        Raises
+        ------
+        Exception
+            DESCRIPTION.
+
+        Returns
+        -------
+        fig : TYPE
+            DESCRIPTION.
+        ax : TYPE
+            DESCRIPTION.
+        plot : TYPE
+            DESCRIPTION.
+        cbar : TYPE
+            DESCRIPTION.
+
         """
+        
         # check DF for proper format
         if not issubclass(type(DF), pd.core.series.Series): 
             if len(DF.columns)>1: raise Exception("DF must be of type Series or of type DataFrame with one column.")
@@ -520,7 +551,7 @@ class Plot():
         
         fig,ax = self.checkFig(fig,figsize,clear,projection)
         
-        array,bounds = self.DF2Numpy(DF,sort_index=False)
+        array,bounds = DF2Numpy(DF,sort_index=False)
         x = bounds[iNames[0]]
         y = bounds[iNames[1]]
         
@@ -572,7 +603,7 @@ class Plot():
         else:
              ax = axs
              
-        array,bounds = self.DF2Numpy(DF,sort_index=True)
+        array,bounds = DF2Numpy(DF,sort_index=True)
         x = bounds[iNames[0]]
         y = bounds[iNames[1]]
         
@@ -621,7 +652,7 @@ class Plot():
             else: title = DF.columns[0]
         else: title = DF.name
         
-        array,bounds = self.DF2Numpy(DF)
+        array,bounds = DF2Numpy(DF)
         z = bounds[list(bounds.keys())[0]]
         dz=z[1]-z[0]
         x = bounds[list(bounds.keys())[1]]
@@ -796,7 +827,7 @@ class Plot():
             t = DF.index.values
             if rot:
                 theta = -2*np.pi/3*freq*(t)
-                DF = self.rotateCart(DF,theta,xyCols=xy)  
+                DF = rotateCart(DF,theta,xyCols=xy)  
             # info = [xs, ys, ts, tag]
             info = [DF[xy[0]].to_numpy(),DF[xy[1]].to_numpy(),DF.index.values,nums[num]]
             return info
@@ -806,7 +837,7 @@ class Plot():
             # print(DF)
             if rot:
                 theta = -2*np.pi/3*freq*(t)
-                DF = self.rotateCart(DF,theta,xyCols=xy)
+                DF = rotateCart(DF,theta,xyCols=xy)
             info = [DF[xy[0]].to_numpy(),DF[xy[1]].to_numpy()]
             return info
             

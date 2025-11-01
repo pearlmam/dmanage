@@ -3,7 +3,7 @@
 
 
 import dmanage.dfmethods as dfm
-from dmanage.utillities.server import Server
+from dmanage.server import basic
 
 def makeDataBase(base):
     class DataBase(base):

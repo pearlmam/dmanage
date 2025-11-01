@@ -7,7 +7,7 @@ Created on Tue Oct 14 13:31:59 2025
 """
 
 from dmanage.dataUnit import makeDataUnit
-from dmanage.loaders import vsim
+from dmanage.components import vsim
 
 DataDir = makeDataUnit(vsim.VSim)
 class MyDataDir(DataDir):
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     print('\nRead All particles')
     partType = 'electronsT'
-    df = DD.Parts.readAsDF(partType=partType,nc=4)
+    df = DD.Parts.readAsDF(range(500,1000),partType=partType,nc=4)
     print(df)
 
     print('\nRead All Fields')

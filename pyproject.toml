@@ -29,8 +29,9 @@ dependencies = [
   "numpy",             # data manipulation
   "pandas",            # data manipulation
   "matplotlib",        # for plotting
-  "pathos"             # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
-  "paramiko"           # for server implementation
+  "pathos",            # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
+  "paramiko",           # for server implementation
+  "rpyc"               # ??? testing
 ]
 
 
@@ -40,6 +41,15 @@ dependencies = [
 #  "openmdao",
 #  "hvplot", 
 #  "seaborn", 
+
+# for documentation
+#  nbconvert[webpdf]     # notebooks
+#  nbsphinx              # notebooks
+#  jupyter               # notebooks
+#  pandoc                # might need sudo apt-get install pandoc
+#  sphinx                # sphinx
+#  sphinx_rtd_theme      # sphinx theme
+#  sphinx-apidoc?        # automatically generate documentation
 
 
 

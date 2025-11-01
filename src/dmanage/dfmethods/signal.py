@@ -569,6 +569,13 @@ def getStartup(DF,method='bandpass',cutoff=[50e6,500e6],hRatio=0.4,pRatio=0.4,de
     else: startup = np.nan
     return startup
 
+def movAvg(DF,n=100):
+    DF = DF.rolling(n).mean()
+    if not issubclass(type(DF), pd.core.series.Series): 
+        DF.columns = ['movAvg(%s)'%col for col in DF.columns]
+    else:
+        DF.name = 'movAvg(%s)'%DF.name
+    return DF.dropna()
 
 
   

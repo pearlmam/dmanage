@@ -13,15 +13,9 @@ import os                       # filename manipulation
 import pandas as pd
 
 
-class ICEHist:
+class ICEHist():
     """
-    Opens history files for data extraction.
-    Common use to read multiple histories: 
-        histNames = ['outputPower0', 'inputPower0']
-        H5 = H5read.H5Hist(subFolder)
-        hists = H5.readHistories(histNames)
-        
-    hists is a dictionary of hist objects. hist objects have the data and time packaged together
+    This loads the components related to ICEPIC
     """
     def __init__(self, folder, fileName = 0):
         if fileName == 0:

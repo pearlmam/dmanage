@@ -18,12 +18,12 @@ from multiprocessing import Pool
 import time
 import natsort
 import copy
-from dmanage.components import VsHdf5
+from dmanage.components.vsim import VsHdf5
 from dmanage import dfmethods as dfm
 
 
 from dmanage.dfmethods.convert import numpy2DF,createBounds
-from dmanage.dfmethods.functions import checkExist,vrrotvec
+from dmanage.methods.functions import checkExist,vrrotvec
 
 class UniMesh():
     """

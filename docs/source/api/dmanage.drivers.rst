@@ -9,13 +9,13 @@ dmanage.drivers.vsim module
 
 .. automodule:: dmanage.drivers.vsim
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: dmanage.drivers
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

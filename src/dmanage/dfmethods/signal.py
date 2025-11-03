@@ -7,7 +7,7 @@ from scipy import signal
 from scipy.optimize import curve_fit
 
 from dmanage.dfmethods.convert import numpy2DF,DF2Numpy
-from dmanage.dfmethods import functions as func
+from dmanage.methods import functions as func
 from dmanage.dfmethods.fft import FFT, FFTamplitude
 from dmanage.dfmethods.plot import Plot as DFP
 

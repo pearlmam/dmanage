@@ -6,7 +6,7 @@ from dmanage import dfmethods as dfm
 from dmanage.dataGroup import makeDataGroup # this needs to change to be more generic
 from dmanage.dataUnit import makeDataUnit  # this needs to change to be more generic
 from dmanage.dataBase import makeDataBase  # this needs to change to be more generic
-from dmanage.components import vsim
+from dmanage.components.vsim import vsim
 
 
 

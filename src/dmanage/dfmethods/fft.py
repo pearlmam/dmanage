@@ -5,7 +5,7 @@ import numpy as np
 
 from dmanage.dfmethods.helper import cutRange
 from dmanage.dfmethods.convert import numpy2DF,DF2Numpy,replaceBounds
-from dmanage.dfmethods import functions as func
+from dmanage.methods import functions as func
 
 def FFTphase(DF):
     cols = DF.columns

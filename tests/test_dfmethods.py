@@ -3,7 +3,7 @@ import time
 from dmanage import dfmethods as dfm
 from dmanage.dataDir import makeDataDir
 from dmanage.dfmethods.plot import Plot
-from dmanage.loaders import vsim
+from dmanage.loaders.vsim import vsim
 
 DFP = Plot(backEnd = 'qtagg')
 

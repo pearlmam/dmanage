@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 from dmanage.dfmethods.convert import numpy2DF,DF2Numpy
-from dmanage.dfmethods import functions as func
+from dmanage.methods import functions as func
 
 def curl(DF):
     if not issubclass(type(DF), pd.core.series.Series): 

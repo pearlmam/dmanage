@@ -9,7 +9,7 @@ Created on Tue Oct  7 16:22:09 2025
 from dmanage import dfmethods as dfm
 from dmanage.dataGroup import makeDataGroup 
 from dmanage.dataUnit import makeDataUnit  
-from dmanage.components import vsim
+from dmanage.components.vsim import vsim
 
 DataDir = makeDataUnit(vsim.VSim)
 class MyDataDir(DataDir):

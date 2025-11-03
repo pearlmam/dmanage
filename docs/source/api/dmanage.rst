@@ -10,6 +10,7 @@ Subpackages
    dmanage.components
    dmanage.dfmethods
    dmanage.drivers
+   dmanage.methods
    dmanage.utils
 
 Submodules
@@ -20,29 +21,29 @@ dmanage.dataBase module
 
 .. automodule:: dmanage.dataBase
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 dmanage.dataGroup module
 ------------------------
 
 .. automodule:: dmanage.dataGroup
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 dmanage.dataUnit module
 -----------------------
 
 .. automodule:: dmanage.dataUnit
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: dmanage
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

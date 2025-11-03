@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 
 import dmanage.dfmethods as dfm
 from dmanage.dataUnit import makeDataUnit
-from dmanage.components import vsim
+from dmanage.components.vsim import vsim
 from dmanage.dfmethods.fft import FFT, FFTamplitude,FFTphase
 from dmanage.dfmethods.signal import findPks,applyFilter,getSignalInfo,getPhase,getStartup,checkStability
 from dmanage.dfmethods.helper import reduce

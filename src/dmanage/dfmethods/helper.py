@@ -8,7 +8,7 @@ import matplotlib as mpl
 import copy
 
 # my package methods
-from dmanage.dfmethods import functions as func
+from dmanage.methods import functions as func
 from dmanage.dfmethods.convert import numpy2DF,DF2Numpy
 from dmanage.dfmethods.linalg import norm
 

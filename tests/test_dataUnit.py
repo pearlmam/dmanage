@@ -7,7 +7,7 @@ Created on Tue Oct 14 13:31:59 2025
 """
 
 from dmanage.dataUnit import makeDataUnit
-from dmanage.components import vsim
+from dmanage.components.vsim import vsim
 
 DataDir = makeDataUnit(vsim.VSim)
 class MyDataDir(DataDir):
@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     print('\nRead 1D Historys')
     histNames = ['Pout','Vout']
-    df = DD.Hists.readAsDF(histNames,concat=True)
+    df = DD.Hists.readAsDF(histNames,concat=False)
     print(df)
 
     print('\nRead 2D Vector History')
@@ -61,7 +61,7 @@ if __name__ == "__main__":
 
     print('\nRead All particles')
     partType = 'electronsT'
-    df = DD.Parts.readAsDF(range(500,1000),partType=partType,nc=4)
+    df = DD.Parts.readAsDF('all',partType=partType,nc=4)
     print(df)
 
     print('\nRead All Fields')

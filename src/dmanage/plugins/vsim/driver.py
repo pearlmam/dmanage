@@ -29,8 +29,8 @@ from pathlib import Path
 import natsort
 
 from dmanage.utils.utils import isIterable
-from dmanage.dataUnit import makeDataUnit
-from dmanage.components import vsim
+from dmanage.unit import makeDataUnit
+from dmanage.plugins.vsim import loader
 # possible fix for zombie creation. 
 # see https://stackoverflow.com/questions/34007194/issue-with-pythons-subprocess-popen-creating-a-zombie-and-getting-stuck
 # and https://docs.python.org/3/library/multiprocessing.html
@@ -133,7 +133,7 @@ class VSimJob():
             commands.append("%svorpalser -i %s" % \
 		                   (self.VSimInfo.VSIM_BIN_DIR,fileName))
         if resume:
-            DataDir = makeDataUnit(vsim.VSim)
+            DataDir = makeDataUnit(loader.VSim)
             DD = DataDir(jobLoc)
             steps = list(DD.Parts.stepNums.values()) + list(DD.Fields.stepNums.values())
             commonSteps = list(set.intersection(*map(set, steps)))

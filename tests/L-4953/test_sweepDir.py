@@ -11,7 +11,7 @@ import time
 from pathos.multiprocessing import Pool
 
 from test_dataDir import MyDataDir
-from dmanage.dataGroup import makeDataGroup
+from dmanage.group import makeDataGroup
 
 SweepDir = makeDataGroup(MyDataDir)
 class MySweepDir(SweepDir):

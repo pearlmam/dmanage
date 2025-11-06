@@ -51,7 +51,8 @@ dependencies = [
 #  sphinx_rtd_theme      # sphinx theme
 #  sphinx-apidoc?        # automatically generate documentation
 
-
+# for plotting interactive
+# PyQt5                  # plotting qt
 
 [project.urls]
 Homepage = "https://github.com/pearlmam/dmanage/"

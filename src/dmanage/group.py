@@ -10,9 +10,10 @@ import inspect, types
 import os
 import time
 import pandas as pd
-from multiprocessing import Pool
+#from pathos.multiprocessing import Pool
 import natsort
-import dmanage.dfmethods as dfm
+#import dmanage.dfmethods as dfm
+import dmanage.methods as methods
 
 
 
@@ -59,7 +60,7 @@ def makeDataGroup(base):
             
         def inheritanceLevel():
             """qualifer to determine the hierarchy level for wrapping methods"""
-            return 'DC'
+            return 'DG'
         
         def load(self,dataDir=None,iLevel='DG'):
             # step through inheretanceLevels
@@ -90,8 +91,8 @@ def makeDataGroup(base):
                         continue  # skip private methods
                     # elif not hasattr(method, "_component_override"):  # if you want to use decorators
                     #     continue  # skip methods without '_component_override' attribute
-                    elif not 'DF' in method_name:
-                        continue  # skip methods without 'DF' in method name
+                    # elif not 'DF' in method_name:
+                    #     continue  # skip methods without 'DF' in method name
                     original_func = method
                     wrapped = self._make_wrapper(attr_name, method_name, original_func)
                     # types.MethodType() includes self in the method call, or something like that
@@ -118,8 +119,22 @@ def makeDataGroup(base):
             return wrapper
         
         def _on_component_call(self, sweepDir,component_name, method_name, original, *args, **kwargs):
-            """iteration method: loads DD and returns result of the component method"""
-            DD = super().load(os.path.join(self.baseDir,sweepDir),iLevel='DD')  
+            """iteration method: loads DU and returns result of the component method
+            NOTE: when called from a pathos.multiprocessing.Pool and MyDataGroup Class is 
+                created in another module, the super() functionraises an exception
+                   "TypeError: super(type, obj): obj (instance of MySweepDir) is not an 
+                   instance or subtype of type (DataGroup)."
+                isinstance() does not recognize that self is an instance of DataGroup...
+                That's why the super uses its self.__class__.__bases__[0].
+                TO DO: Maybe I need to chain the inheritance better... ie not use the makeDataGroup()
+                       This self.__class__.__bases__[0] method will work even if its not a DataGroup subtype
+            """
+            print(self.__class__.__bases__)
+            print(isinstance(self,self.__class__.__bases__))
+            print(isinstance(self,DataGroup))
+            DD = super().load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
+            # DD = super(self.__class__.__bases__[0],self).load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
+            # DD = self.load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
             component = getattr(DD,component_name)
             DD_func = getattr(component,method_name)
             return DD_func( *args, **kwargs )
@@ -130,7 +145,7 @@ def makeDataGroup(base):
                 ncPass = kwargs.pop('ncPass')
             else:
                 ncPass = False
-            method = dfm.wrapper.parallelize_iterator_method(self._on_component_call,concat=False,ncPass=ncPass ) 
+            method = methods.wrapper.parallelize_iterator_method(self._on_component_call,ncPass=ncPass ) 
             DFs = method(self.sweepDirs,component_name, method_name, original, *args, **kwargs)
             #self._wrap_component_methods()                # rewrap component methods with SD equivalent
             return DFs
@@ -170,7 +185,7 @@ def makeDataGroup(base):
                 DESCRIPTION.
 
             """
-            _getDDs = dfm.wrapper.parallelize_looped_method(self._getDDs,concat=True,ncPass=False)
+            _getDDs = methods.wrapper.parallelize_looped_method(self._getDDs,ncPass=False)
             if type(baseDir) == type(None):
                 baseDir = self.baseDir
             subDirs = list(list(zip(*os.walk(baseDir,followlinks=True)))[0])

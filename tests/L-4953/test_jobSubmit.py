@@ -11,7 +11,7 @@ import time
 import itertools
  
 from dmanage.utils.parser import genSaveString
-from dmanage.drivers.vsim import VSimJob,genArgParse,mapArgs
+from dmanage.plugins.vsim.driver import VSimJob,genArgParse,mapArgs
 
 from dmanage.utils.mail import Mail
 

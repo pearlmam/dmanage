@@ -6,12 +6,12 @@ Created on Tue Oct  7 16:22:09 2025
 @author: marcus
 """
 
-from dmanage import dfmethods as dfm
-from dmanage.dataGroup import makeDataGroup 
-from dmanage.dataUnit import makeDataUnit  
-from dmanage.components.vsim import vsim
+# from dmanage import dfmethods as dfm
+from dmanage.group import makeDataGroup 
+from dmanage.unit import makeDataUnit  
+from dmanage.plugins import vsim
 
-DataDir = makeDataUnit(vsim.VSim)
+DataDir = makeDataUnit(vsim.loader.VSim)
 class MyDataDir(DataDir):
     def __init__(self,dataDir=None):
         super().__init__(dataDir)
@@ -43,12 +43,11 @@ if __name__ == "__main__":
     DF = SD.Hists.readAsDF(histName,nc=2)
     print(DF)
     
+    # partName = 'electronsT'
+    # DF = SD.Parts.readAsDF(steps=None,partType=partName,nc=4,ncPass=True)
+    # print(DF)
     
-    partName = 'electronsT'
-    DF = SD.Parts.readAsDF(steps=None,partType=partName,nc=4,ncPass=True)
-    print(DF)
-    
-    
+    SD.PreVars.read('VDC')
     
     
     

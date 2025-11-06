@@ -7,11 +7,11 @@ Created on Fri Oct 24 16:44:38 2025
 """
 import os
 
-from dmanage.dataUnit import makeDataUnit
-from dmanage.components import vsim
+from dmanage.unit import makeDataUnit
+from dmanage.plugins import vsim
 from dmanage.server.basic import Server
 
-DataDir = makeDataUnit(vsim.VSim)
+DataDir = makeDataUnit(vsim.loader.VSim)
 class MyDataDir(DataDir):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)

@@ -3,14 +3,14 @@
 
 
 from dmanage import dfmethods as dfm
-from dmanage.dataGroup import makeDataGroup # this needs to change to be more generic
-from dmanage.dataUnit import makeDataUnit  # this needs to change to be more generic
-from dmanage.dataBase import makeDataBase  # this needs to change to be more generic
-from dmanage.components.vsim import vsim
+from dmanage.group import makeDataGroup # this needs to change to be more generic
+from dmanage.unit import makeDataUnit  # this needs to change to be more generic
+from dmanage.base import makeDataBase  # this needs to change to be more generic
+from dmanage.plugins import vsim
 
 
 
-DataDir = makeDataUnit(vsim.VSim)
+DataDir = makeDataUnit(vsim.loader.VSim)
 class MyDataDir(DataDir):
     def __init__(self,dataDir=None):
         super().__init__(dataDir)

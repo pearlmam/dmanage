@@ -53,7 +53,7 @@ class PlotDefs():
             self.backEnd = 'Agg'
             self.use(self.backEnd)
         '''
-        #self.backEnd = backEnd
+        self.backEnd = mpl.get_backend()
         #self.use(self.backEnd)
         holoview = False
         if holoview:

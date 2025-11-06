@@ -15,6 +15,8 @@ This is a package for stuff
    
    usage
    tutorials
+   development/development
+   resources/resources
    api/modules
    
 

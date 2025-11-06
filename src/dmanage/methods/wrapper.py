@@ -64,6 +64,7 @@ def parallelize_looped_method(func,ncPass=False):
             stepss = np.array_split(steps, nc)
             variables = [(steps,)+bound.args[1:]+tuple(bound.kwargs.values()) for steps in stepss]
             pool = Pool(processes=nc)
+            #func(variables[0][0],variables[0][1],variables[0][2],variables[0][3],variables[0][4])
             result = pool.starmap_async(func,variables)
             result.wait()
             result = result.get()

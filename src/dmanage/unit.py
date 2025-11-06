@@ -18,6 +18,7 @@ import inspect
 # from dmanage.loaders import vsim
 # import inspect
 
+
 from dmanage.server.basic import Server
 
 
@@ -83,9 +84,6 @@ def makeDataUnit(base):
             self.summaryData = self.readSummary()
             #vsim.VSimRead(self.baseDir,self)  # ??? There should be a validity check and generic sim loader here
             
-        
-        
-        
         def testServerWrap(self):
             self.Server.connect()
             self.Server.put()

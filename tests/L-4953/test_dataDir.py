@@ -14,7 +14,6 @@ import os
 import tables
 import time
 from pathos.multiprocessing import Pool
-import multiprocessing as mp
 from multiprocessing import shared_memory
 
 import pickle
@@ -24,18 +23,14 @@ import matplotlib.pyplot as plt
 # from multiprocessing import Pool, Process, shared_memory
 
 import dmanage.dfmethods as dfm
-from dmanage.dataUnit import makeDataUnit
-from dmanage.components.vsim import vsim
-from dmanage.dfmethods.fft import FFT, FFTamplitude,FFTphase
-from dmanage.dfmethods.signal import findPks,applyFilter,getSignalInfo,getPhase,getStartup,checkStability
-from dmanage.dfmethods.helper import reduce
+from dmanage.unit import makeDataUnit
+from dmanage.plugins import vsim
 from dmanage.utils import constants as c
-from dmanage.dfmethods.wrapper import parallelize_df_method
 from dmanage.dfmethods.plot import Plot
 
 
 
-DataDir = makeDataUnit(vsim.VSim)
+DataDir = makeDataUnit(vsim.loader.VSim)
 class MyDataDir(DataDir):
     def __init__(self,dataDir=None):
         super().__init__(dataDir)
@@ -86,6 +81,8 @@ class MyDataDir(DataDir):
             varDict = [list(varDict.keys()),list(varDict.values())]
         
         return varDict
+    
+    
     
     
     def genSummary(self,varList=[],ow=False,resDir=None):
@@ -147,18 +144,18 @@ class MyDataDir(DataDir):
         if self.Hists.checkDataset(histName,output=True)[0]:
             DF = self.Hists.readAsDF(histName,concat=True)
             DF = DF.iloc[DF.index.get_level_values('t')>tStart]
-            DF = FFT(DF)
+            DF = dfm.fft.FFT(DF)
             
             DF = DF.iloc[DF.index.get_level_values(0)<maxFreq].sort_index()
-            DFA = FFTamplitude(DF)
-            DFP = FFTphase(DF)
+            DFA = dfm.fft.FFTamplitude(DF)
+            DFP = dfm.fft.FFTphase(DF)
             DFA = 20*np.log10(DFA)
             minFreqDistance = 50e6
             dFreq = DF.index.get_level_values(0)[1]-DF.index.get_level_values(0)[0]
             peakDist = round(minFreqDistance/dFreq)
             
             
-            DFpks,props = findPks(DFA[DFA.columns[0]],maxPks=maxPks,pRatio=0.08,tRatio=None,height=-50,wlen=None,distance=peakDist,width=None)
+            DFpks,props = dfm.signal.findPks(DFA[DFA.columns[0]],maxPks=maxPks,pRatio=0.08,tRatio=None,height=-50,wlen=None,distance=peakDist,width=None)
             DFpks = pd.concat([DFpks,(DFP.loc[DFpks.index]).reset_index(level=[])],axis=1)
         cutoff=[0,2.5e9]    
         stable = self.checkStability(histNamePower=histNames[1],histNameVoltage=self.Vrf[1],noiseLevel=noiseStabilityLevel,cutoff=cutoff,debug=False)
@@ -204,8 +201,8 @@ class MyDataDir(DataDir):
             self.addDataToSummary(densityMax)
             
             ###### wobble mag
-            DFA = FFT(DF)
-            DFA = FFTamplitude(DFA,normalize=False)
+            DFA = dfm.fft.FFT(DF)
+            DFA = dfm.fft.FFTamplitude(DFA,normalize=False)
             DFA = DFA.max()
             iNames = ['max %s %s'%(particle,plotVar) for plotVar in DFA.index]    
             DFA.index = iNames
@@ -215,23 +212,23 @@ class MyDataDir(DataDir):
                 ##### spoke analysis
                 phaseSpokes = self.getPhaseSpokes(DF[plotVar],refSignal='cos11',nSpokes=nSpokes,phiRange=phiRange,debug=False)
                 phaseSpokes = phaseSpokes.interpolate(axis=0)
-                phaseSpokes = applyFilter(phaseSpokes, method='low', cutoff=freq)
+                phaseSpokes = dfm.signal.applyFilter(phaseSpokes, method='low', cutoff=freq)
                 
                 #### check for phase wrap
                 locked = not (phaseSpokes.max()-phaseSpokes.min()).max()>(period*.95)
                 self.addDataToSummary({'lock':locked})
                 
                 if locked:
-                    signalInfo = getSignalInfo(phaseSpokes)
+                    signalInfo = dfm.signal.getSignalInfo(phaseSpokes)
                     signalInfoMean = signalInfo.mean()
                     signalInfoMean.index = [ i+' %s %s'%(plotVar,particle) for i in signalInfoMean.index]
                     self.addDataToSummary({'%s %s'%(plotVar,particle):signalInfo})
                     self.addDataToSummary(signalInfoMean)
                     
-                    DFmean = reduce(DF[plotVar],'t',method='mean')
+                    DFmean = dfm.helper.reduce(DF[plotVar],'t',method='mean')
                     DFmean.index = ((DFmean.index+2*np.pi)%(2*np.pi))
                     DFmean = DFmean.sort_index()
-                    phase = getPhase(DFmean,refSignal='cos11',period=period,hRatio=0.4,pRatio=0.3).iloc[0][0]
+                    phase = dfm.signal.getPhase(DFmean,refSignal='cos11',period=period,hRatio=0.4,pRatio=0.3).iloc[0][0]
                     self.addDataToSummary({'phaseSpoke %s %s'%(plotVar,particle):phase})
                     
                     ### get phase change of spokes 
@@ -287,7 +284,7 @@ class MyDataDir(DataDir):
         # histName = 'Pout'
         DF = self.Hists.readAsDF(histNamePower)
         tend = DF.index.get_level_values('t').max()
-        tStart = getStartup(DF,debug=False)
+        tStart = dfm.signal.getStartup(DF,debug=False)
         tCut = tStart + startupBuff
         ###### check minumum times
         if minStart:
@@ -317,7 +314,7 @@ class MyDataDir(DataDir):
         ######## check FFT of voltage
         DF = self.Hists.readAsDF(histNameVoltage)
         DF = DF.iloc[DF.index.get_level_values('t')>tCut]
-        stableV = checkStability(DF,method='fft',cutoff=cutoff,noiseLevel=noiseLevel,debug=False)
+        stableV = dfm.signal.checkStability(DF,method='fft',cutoff=cutoff,noiseLevel=noiseLevel,debug=False)
         
         if debug:
             print('fft check range[%s]: stable=%0.0f'%(fftRange,stableV))
@@ -406,7 +403,7 @@ class MyDataDir(DataDir):
         elif len(binCols) != len(bins): raise Exception("length of bins must be 3 for the bin columns %s"%binCols)
         else: 
             binBreaks = dfm.helper.genBinBreaks(DF,binCols,bins,phiRange=phiRange)
-        _posBinDF = parallelize_df_method(self._posBinDF)
+        _posBinDF = dfm.wrapper.parallelize_df_method(self._posBinDF)
         DF = _posBinDF(DF,info,binBreaks,binCols,phiRange,conserveMem,nc=nc)
         return DF
         
@@ -504,7 +501,7 @@ class MyDataDir(DataDir):
         else: 
             binBreaks = dfm.helper.genBinBreaks(DF,binCols,bins,phiRange=phiRange)
         
-        _velBinDF = parallelize_df_method(self._velBinDF)
+        _velBinDF = dfm.wrapper.parallelize_df_method(self._velBinDF)
         DF = _velBinDF(DF,info,binBreaks,binCols,phiRange,conserveMem,nc=nc)
         return DF
     
@@ -594,7 +591,7 @@ class MyDataDir(DataDir):
             
         DF0 = self._correlate(DF,wlock=wlock,groupVars=groupVars,tVar=tVar,signal='sin')
         DF90 = self._correlate(DF,wlock=wlock,groupVars=groupVars,tVar=tVar,signal='cos')
-        if isinstance(shm,mp.shared_memory.SharedMemory):
+        if isinstance(shm,shared_memory.SharedMemory):
             del DF 
             shm.close()
         
@@ -1001,7 +998,7 @@ if __name__ == "__main__":
     histName = 'Pout'
     DF = DD.Hists.readAsDF(histName)
     tend = DF.index.get_level_values('t').max()
-    tStart = getStartup(DF,debug=False) + 10e-9
+    tStart = dfm.signal.getStartup(DF,debug=False) + 10e-9
     
     DF1 = DFP.iloc[DFP.index.get_level_values('t')>tStart].copy()
     

@@ -6,14 +6,15 @@ Created on Tue Oct 14 13:31:59 2025
 @author: marcus
 """
 
-from dmanage.dataUnit import makeDataUnit
-from dmanage.components.vsim import vsim
+from dmanage.unit import makeDataUnit
+from dmanage.plugins import vsim
+from dmanage.dfmethods.plot import Plot
 
-DataDir = makeDataUnit(vsim.VSim)
+DataDir = makeDataUnit(vsim.loader.VSim)
 class MyDataDir(DataDir):
     def __init__(self,dataDir=None):
         super().__init__(dataDir)
-        
+        self.Plot = Plot()
         ####   add any attributes here    ####
         
     #### Add person methods here   ####
@@ -49,6 +50,7 @@ if __name__ == "__main__":
     df = DD.Hists.readAsDF(histName)
     print(df)
 
+    #DD.Plot.plot1D(df)
     print('\nRead 1D Historys')
     histNames = ['Pout','Vout']
     df = DD.Hists.readAsDF(histNames,concat=False)
@@ -76,3 +78,14 @@ if __name__ == "__main__":
     varNames = ['VDC', 'BSTATIC','PRF_AVG','undefinedVariable']
     out = DD.PreVars.read(varNames,warn=True)
     print(out)
+    
+    ##############################################################
+    ## Plotting
+    ##############################################################
+    
+    histName = 'Pout'
+    df = DD.Hists.readAsDF(histName)
+    fig,ax = DD.Plot.plot1D(df)
+    
+    
+    

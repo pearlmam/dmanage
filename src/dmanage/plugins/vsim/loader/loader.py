@@ -18,7 +18,7 @@ from multiprocessing import Pool
 import time
 import natsort
 import copy
-from dmanage.components.vsim import VsHdf5
+from dmanage.plugins.vsim.loader import VsHdf5
 from dmanage import dfmethods as dfm
 
 

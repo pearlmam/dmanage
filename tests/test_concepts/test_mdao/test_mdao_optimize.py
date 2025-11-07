@@ -22,15 +22,15 @@ if __name__ == "__main__":
     VDCs = SD.PreVars.read('VDC',nc=8)
     VDCs = np.array([VDC['VDC'] for VDC in VDCs])
     
-    # model = om.Group()
-    # model.add_subsystem('cfa', CFA(folder))
+    model = om.Group()
+    model.add_subsystem('cfa', CFA(folder))
 
-    # prob = om.Problem(model)
-    # prob.setup()
+    prob = om.Problem(model)
+    prob.setup()
     
-    # # prob.set_val('cfa.folder', folder)
-    # prob.set_val('cfa.VDC', VDCs[0])
+    # prob.set_val('cfa.folder', folder)
+    prob.set_val('cfa.VDC', VDCs[0])
     
-    # prob.run_model()
-    # print(prob['cfa.Pout'])
+    prob.run_model()
+    print(prob['cfa.Pout'])
     

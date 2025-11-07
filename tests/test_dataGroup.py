@@ -43,9 +43,9 @@ if __name__ == "__main__":
     DF = SD.Hists.readAsDF(histName,nc=2)
     print(DF)
     
-    # partName = 'electronsT'
-    # DF = SD.Parts.readAsDF(steps=None,partType=partName,nc=4,ncPass=True)
-    # print(DF)
+    partName = 'electronsT'
+    DF = SD.Parts.readAsDF(steps=None,partType=partName,nc=4,ncPass=True)
+    print(DF)
     
     SD.PreVars.read('VDC')
     

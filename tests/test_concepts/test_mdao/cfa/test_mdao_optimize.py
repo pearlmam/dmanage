@@ -22,15 +22,25 @@ if __name__ == "__main__":
     VDCs = SD.PreVars.read('VDC',nc=8)
     VDCs = np.array([VDC['VDC'] for VDC in VDCs])
     
+    
+    ##### setup optimization
     model = om.Group()
-    model.add_subsystem('cfa', CFA(folder))
+    model.add_subsystem('cfa', CFA(folder), promotes_inputs=['iVDC'])
+    
+    model.set_input_defaults('iVDC', 5)
 
     prob = om.Problem(model)
+    prob.driver = om.ScipyOptimizeDriver()
+    prob.driver.options['optimizer'] = 'SLSQP'
+    
+    prob.model.add_design_var('iVDC', lower=0, upper=len(VDCs))
+    prob.model.add_objective('cfa.Pout',scaler=-1.0)
+    # prob.model.add_constraint('cfa.noise', lower=-35)
+    
     prob.setup()
     
     # prob.set_val('cfa.folder', folder)
-    prob.set_val('cfa.VDC', VDCs[0])
-    
-    prob.run_model()
-    print(prob['cfa.Pout'])
-    
+    # prob.set_val('cfa.VDC', VDCs)
+    prob.driver.options['debug_print'] = ['desvars']
+    prob.run_driver()
+    print(prob.get_val('cfa.Pout'))

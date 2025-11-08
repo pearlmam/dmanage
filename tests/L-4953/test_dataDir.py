@@ -27,7 +27,7 @@ from dmanage.unit import makeDataUnit
 from dmanage.plugins import vsim
 from dmanage.utils import constants as c
 from dmanage.dfmethods.plot import Plot
-
+from dmanage.utils.utils import child_override
 
 
 DataDir = makeDataUnit(vsim.loader.VSim)
@@ -41,6 +41,7 @@ class MyDataDir(DataDir):
         self.Plot = Plot()
         self.cmapPhase = 'twilight'
         
+    @child_override    
     def getScalarVars(self,varList,theRange=[0.75, 1.0],dtype='Dict'):
         """
         determines if varRead is a history or a input variable in vars.py and reads the variable accordingly
@@ -84,7 +85,7 @@ class MyDataDir(DataDir):
     
     
     
-    
+    @child_override  
     def genSummary(self,varList=[],ow=False,resDir=None):
         np.seterr(divide='ignore')
         if ow:

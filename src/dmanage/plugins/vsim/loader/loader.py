@@ -20,7 +20,7 @@ import natsort
 import copy
 from dmanage.plugins.vsim.loader import VsHdf5
 from dmanage import dfmethods as dfm
-
+from dmanage.utils.utils import child_override
 
 from dmanage.dfmethods.convert import numpy2DF,createBounds
 from dmanage.methods.functions import checkExist,vrrotvec
@@ -105,7 +105,8 @@ class GeoData():
         self.files = geoFiles
         self.UNI = UniMesh(folder,file=geoFiles[0])
         self.types = [file.split('_')[-2] for file in geoFiles]
-        
+    
+    @child_override
     def readAsDF(self,geoType):
         array,bounds = self.readAsNumpy(geoType)
         DF = numpy2DF(array, bounds,colName=geoType)
@@ -148,6 +149,7 @@ class H5Hist():
         h5.close()
         return
     
+    @child_override
     def readSeriesAsDF(self, baseName,concat=True,axis=1):
         # want to include this in self.readAsDF
         histNames = [ hist for hist in self.types if baseName in hist]
@@ -161,6 +163,7 @@ class H5Hist():
             DFs = DFs.loc[:,~DFs.columns.duplicated()].copy()
         return DFs,histNames
     
+    @child_override
     def readAsDF(self,histNames,concat=True,axis=1,**kwargs):
         if not type(histNames) is list: histNames = [histNames]
         DFs = []
@@ -425,7 +428,7 @@ class H5Particles():
             self.stepNums[partType] = nums
             self.info[partType] = self._getPartInfo(partType)
     
-   
+    @child_override
     def readAsDF(self,steps=None,partType=None,relData=None,relTags=None,sampleRatio=False,nc=1):
         if partType is None:
             raise Exception("partType must be defined as one of %s"%self.types)
@@ -694,12 +697,14 @@ class H5Fields():
         if len(fieldTypes)>0: uniFile = self.files[fieldType][0]
         else: uniFile=None
         self.UNI = UniMesh(folder,file=uniFile)
-    
+        
+    @child_override
     def readAllAsDF(self,fieldType,steps=None,nc=1):
         array,bounds = self.readAllAsNumpy(fieldType,steps,nc)
         DF = numpy2DF(array, bounds)
         return DF
     
+    @child_override
     def readAsDF(self, fieldType,step):
         h5 = tables.open_file(self.files[fieldType][step])
         vcolName = 'v'
@@ -716,7 +721,7 @@ class H5Fields():
         DF.set_index('t',append=True,inplace=True)
         DF = DF.reorder_levels(['t','x','y','z','v'])
         return DF
-    
+    @child_override
     def readAllAsNumpy(self,fieldType,steps=None,nc=1):
         if type(steps) == type(None) or steps == 'all': steps = range(0,self.steps[fieldType])
         
@@ -749,7 +754,7 @@ class H5Fields():
                 bounds['t'] = bounds['t'] + [tempBounds['t']]
             bounds['t'] = np.array(bounds['t'])
         return array,bounds
-    
+    @child_override
     def readAsNumpy(self, fieldType, step):
         h5 = tables.open_file(self.files[fieldType][step])
         vcolName = 'v'
@@ -773,7 +778,8 @@ class InputVariables():
     def __init__(self,varFile):
         self.varFile = varFile
         self.preName = os.path.basename(varFile).replace('Vars.py','')
-    
+        
+    @child_override
     def read(self, varList,warn=False):
         """
         extracts variables in varList from the Vars.py file. Only the last variable 
@@ -917,4 +923,10 @@ class VSim():
    
     
 if __name__ == "__main__":
+    
+    
     pass
+
+
+
+

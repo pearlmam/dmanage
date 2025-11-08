@@ -10,6 +10,7 @@ Created on Tue Oct  7 16:22:09 2025
 from dmanage.group import makeDataGroup 
 from dmanage.unit import makeDataUnit  
 from dmanage.plugins import vsim
+from dmanage.utils.utils import child_override
 
 DataDir = makeDataUnit(vsim.loader.VSim)
 class MyDataDir(DataDir):
@@ -18,7 +19,10 @@ class MyDataDir(DataDir):
         # add personal component loader here that modifies self Obj
         # personalSimulationLoader(dataDir,self)
         
-        ####   add any attributes here    ####
+    @child_override
+    def getScalars(self,names):
+        return self.PreVars.read(names)
+    ####   add any attributes here    ####
         
     #### Add person methods here   ####
 SweepDir = makeDataGroup(MyDataDir)
@@ -43,13 +47,13 @@ if __name__ == "__main__":
     DF = SD.Hists.readAsDF(histName,nc=2)
     print(DF)
     
-    partName = 'electronsT'
-    DF = SD.Parts.readAsDF(steps=None,partType=partName,nc=4,ncPass=True)
-    print(DF)
+    # partName = 'electronsT'
+    # DF = SD.Parts.readAsDF(steps=None,partType=partName,nc=4,ncPass=True)
+    # print(DF)
     
-    SD.PreVars.read('VDC')
+    # SD.PreVars.read('VDC')
     
-    
+    scalars = SD.getScalars('VDC')
     
     
     

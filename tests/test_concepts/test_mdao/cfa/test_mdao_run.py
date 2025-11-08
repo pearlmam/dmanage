@@ -78,27 +78,31 @@ class CFA(om.ExplicitComponent):
         self.folder=sweepDir
         
     def setup(self):
-        self.add_input('VDC', val=0.0)
-        self.add_output('Pout', val=0.0)
-        self.add_output('noise', val=0.0)
+        self.add_input('VDCs', val=np.ones(16))
+        self.add_discrete_input('iVDC', val=0)
+        self.add_output('VDC',val=90500.)
+        self.add_output('Pout', val=7170204.366679185)
+        self.add_output('noise', val=-31.552592955305645)
         #self.output_file = 'CFA_History.h5'
         #self.options['external_output_files'] = [self.output_file]
+    
     def setup_partials(self):
         # Finite difference all partials.
+        # self.declare_partials('Pout', 'VDC', method='fd')
         self.declare_partials('*', '*', method='fd')
 
-    def compute(self, inputs, outputs):
+    def compute(self,inputs,outputs,discrete_inputs,discrete_outputs):
         """
-        f(x,y) = (x-3)^2 + xy + (y+4)^2 - 3
-
-        Minimum at: x = 6.6667; y = -7.3333
+        
         """
-        VDC = inputs['VDC']
-        if type(VDC) is np.ndarray:
-            VDC = VDC[0]
+        iVDC = discrete_inputs['iVDC']
+        VDCs = inputs['VDCs']
+        VDC = float(VDCs[iVDC])
+        
         DD = MyDataDir(os.path.join(self.folder,'VDC-%.1fe3'%(VDC/1e3)))
         outputs['Pout'] = DD.getPower()
         outputs['noise'] = DD.getNoiseLevel()
+        outputs['VDC'] = VDC
 
 if __name__ == "__main__":
     # I need to use previously generated data to test if openMDAO can find the max power, constrained by noise
@@ -117,14 +121,17 @@ if __name__ == "__main__":
     VDCs = SD.PreVars.read('VDC',nc=8)
     VDCs = np.array([VDC['VDC'] for VDC in VDCs])
     
+    
     model = om.Group()
     model.add_subsystem('cfa', CFA(folder))
+    
 
     prob = om.Problem(model)
     prob.setup()
     
     # prob.set_val('cfa.folder', folder)
-    prob.set_val('cfa.VDC', float(VDCs[0]))
+    prob.set_val('cfa.VDCs', VDCs)
+    prob.set_val('cfa.iVDC', 5)
     
     prob.run_model()
     print(prob['cfa.Pout'])

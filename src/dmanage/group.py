@@ -88,25 +88,29 @@ class DataGroup(Dummy):
                 continue  # skip internal attributes
             if not hasattr(attr_value, "__class__"):
                 continue  # skip primitives
-
             # Detect component-like objects (skip classes, numbers, etc.)
             if inspect.isclass(attr_value) or isinstance(attr_value, (int, float, str, dict, list, tuple)):
                 continue
+            self._wrap_target_methods(attr_value, comp_name=attr_name)
+        self._wrap_target_methods(self, comp_name=None)
+        
+    def _wrap_target_methods(self,target,comp_name=None):
+        # Wrap all public methods of the component
+        for method_name, method in inspect.getmembers(target, predicate=inspect.isroutine):
+            if method_name.startswith("_"):
+                continue  # skip private methods
+            elif not hasattr(method, "_override"):  # if you want to use decorators
+                continue  # skip methods without '_override' attribute
+            # elif not 'read' in method_name:
+            #     continue  # skip methods without 'DF' in method name
+            original_func = method
+            wrapped = self._make_wrapper(comp_name or "self", method_name, original_func)
+            # types.MethodType() includes self in the method call, or something like that
+            setattr(target, method_name, types.MethodType(wrapped, target))
+            #self._original_methods[f"{attr_name}.{method_name}"] = original_func # if you want to crate a dict of all original methods
 
-            # Wrap all public methods of the component
-            for method_name, method in inspect.getmembers(attr_value, predicate=inspect.isroutine):
-                if method_name.startswith("_"):
-                    continue  # skip private methods
-                # elif not hasattr(method, "_component_override"):  # if you want to use decorators
-                #     continue  # skip methods without '_component_override' attribute
-                # elif not 'DF' in method_name:
-                #     continue  # skip methods without 'DF' in method name
-                original_func = method
-                wrapped = self._make_wrapper(attr_name, method_name, original_func)
-                # types.MethodType() includes self in the method call, or something like that
-                setattr(attr_value, method_name, types.MethodType(wrapped, attr_value))
-                #self._original_methods[f"{attr_name}.{method_name}"] = original_func # if you want to crate a dict of all original methods
 
+       
     def _make_wrapper(self, component_name, method_name, original_func):
         """
         Private method which wraps the component method with call to
@@ -143,7 +147,13 @@ class DataGroup(Dummy):
         DD = super().load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
         # DD = super(self.__class__.__bases__[0],self).load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
         # DD = self.load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
-        component = getattr(DD,component_name)
+        if component_name == 'self':
+            # the "component" is actually self
+            component = DD
+        else: 
+            #The method is within a component
+            component = getattr(DD,component_name)
+        
         DD_func = getattr(component,method_name)
         return DD_func( *args, **kwargs )
     

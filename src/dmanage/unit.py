@@ -32,7 +32,10 @@ def makeDataUnit(Base):
     """ Creates DataUnit class
     :param path: The path of the file to wrap
     This creates the DataUnit class with the inherited components from the base class
-
+    The base class must be a pure python class because DataUnit inherits from Dummy and overwriting 
+    __bases__ might throw an error: "TypeError: __bases__ assignment: 'A' deallocator differs from 'object'"
+    If DataUnit did not inherit from Dummy, it defaultly inherits from `object` and __bases__ cant be overwritten 
+    with my python class. The some might be true if your class is not a pure python class.
     Parameters
     ----------
     base : class

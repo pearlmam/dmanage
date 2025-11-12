@@ -1,6 +1,7 @@
 import inspect
 import itertools
-from pathos.multiprocessing import Pool
+
+from multiprocess import Pool
 import functools
 import numpy as np
 from dmanage.utils.utils import isIterable

@@ -65,6 +65,26 @@ To generate the documentation, some setup is needed... I'll probably need to hav
 Autodoc
 ^^^^^^^
 
-This scans your code for packages, modules and functions for docstrings for an automatic index of the project. More to come.
+This scans your code for packages, modules and functions for docstrings for an automatic index of the project.
+
+To generate the api documentation go to the 'docs' directory and execute the following command. If module names have been renamed, but the module imports havent, errors will occur. refactorization is the term used when changing module names and all the imports. There are tools used for this. If you don't refactor correctly, import erros will occur. However, even if you refactor correctly, this command might fail. Deleting the contents of the api folder might help, and then execute this command. This is similar to the 'make clean' command for generating the documents. There is probably an equivalent for the api command. I'll figure this out later. 
+
+.. code-block:: console
+
+   $ sphinx-apidoc -f -o source/api ../src/dmanage
+   
+HTML
+^^^^
+
+To generate HTML documentation, execute the following:
+
+.. code-block:: console
+
+   $ make clean
+   $ make html
+   
+DONE!
+
+
 
 

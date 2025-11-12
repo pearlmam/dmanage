@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-
+import copy
 import numpy as np
 import pandas as pd
 import os
@@ -9,7 +9,7 @@ from dmanage.plugins import vsim
 from dmanage.unit import makeDataUnit
 from dmanage.group import makeDataGroup
 import dmanage.dfmethods as dfm
-
+from dmanage.utils.utils import child_override
 
 DataDir = makeDataUnit(vsim.loader.VSim)
 class MyDataDir(DataDir):
@@ -61,6 +61,48 @@ class MyDataDir(DataDir):
             noiseLevel = -np.inf
             sideband = np.nan
         return float(noiseLevel)
+    @child_override
+    def getScalarVars(self,varList,theRange=[0.75, 1.0],dtype='Dict'):
+        """
+        determines if varRead is a history or a input variable in vars.py and reads the variable accordingly
+        """
+        if type(varList) is not list:
+            varList = [varList]
+        
+        dictOrder = copy.deepcopy(varList)
+        varList_copy = copy.deepcopy(varList)
+        ####### check if varList element is in histories 
+        histList = []
+        i = 0
+        for var in varList:
+            if var in self.Hists.types:
+                histList.append(var)
+                varList_copy.pop(i)
+                i-=1
+            i+=1
+            
+        ##### get the values
+        varDict = self.PreVars.read(varList_copy) 
+        DF = self.Hists.readAsDF(histList,concat=True)
+        if not DF.empty: 
+            DF = dfm.helper.reduce(DF,'t',method='mean',theRange=theRange)
+            varDict.update(DF.to_dict())
+            
+        #### reorder the dictionary
+        dictOrder_copy = copy.deepcopy(dictOrder)
+        for var in dictOrder_copy:
+            if not var in varDict.keys():
+                dictOrder.remove(var)
+        varDict = {k: varDict[k] for k in dictOrder}
+        
+        ##### convert to output format
+        if dtype == 'DF':
+            varDict = pd.DataFrame(varDict,index=[0])
+        elif dtype == 'list':
+            varDict = [list(varDict.keys()),list(varDict.values())]
+        
+        return varDict
+
 
 SweepDir = makeDataGroup(MyDataDir)
 class MySweepDir(SweepDir):
@@ -69,7 +111,7 @@ class MySweepDir(SweepDir):
 
 
 
-class CFA(om.ExplicitComponent):
+class CFA1(om.ExplicitComponent):
     """
     optimizes power with voltage constrained by noise level
     """
@@ -89,7 +131,7 @@ class CFA(om.ExplicitComponent):
     def setup_partials(self):
         # Finite difference all partials.
         # self.declare_partials('Pout', 'VDC', method='fd')
-        self.declare_partials('*', '*', method='fd')
+        self.declare_partials('Pout', 'VDC', method='fd')
 
     def compute(self,inputs,outputs,discrete_inputs,discrete_outputs):
         """
@@ -103,6 +145,42 @@ class CFA(om.ExplicitComponent):
         outputs['Pout'] = DD.getPower()
         outputs['noise'] = DD.getNoiseLevel()
         outputs['VDC'] = VDC
+
+
+class CFA2(om.ExplicitComponent):
+    """
+    optimizes power with voltage constrained by noise level
+    """
+    def __init__(self,sweepDir):
+        super().__init__()
+        self.folder=sweepDir
+        
+    def setup(self):
+
+        self.add_input('VDC',val=91800.)
+        self.add_output('Pout', val=-8153265.397347919)
+        self.add_output('noise', val=-31.552592955305645)
+        #self.output_file = 'CFA_History.h5'
+        #self.options['external_output_files'] = [self.output_file]
+    
+    def setup_partials(self):
+        # Finite difference all partials.
+        # self.declare_partials('Pout', 'VDC', method='fd')
+        self.declare_partials('Pout', 'VDC', method='fd',step=0.25e3)
+
+    def compute(self,inputs,outputs):
+        """
+        
+        """
+       
+        VDC = inputs['VDC']
+        # round to the nearest 0.25
+        VDC = np.round(VDC/1e3*4)/4*1e3
+        DD = MyDataDir(os.path.join(self.folder,'VDC-%.1fe3'%(VDC/1e3)))
+        outputs['Pout'] = DD.getPower()
+        outputs['noise'] = DD.getNoiseLevel()
+
+
 
 if __name__ == "__main__":
     # I need to use previously generated data to test if openMDAO can find the max power, constrained by noise
@@ -123,15 +201,15 @@ if __name__ == "__main__":
     
     
     model = om.Group()
-    model.add_subsystem('cfa', CFA(folder))
+    model.add_subsystem('cfa', CFA2(folder))
     
 
     prob = om.Problem(model)
     prob.setup()
     
     # prob.set_val('cfa.folder', folder)
-    prob.set_val('cfa.VDCs', VDCs)
-    prob.set_val('cfa.iVDC', 5)
+    prob.set_val('cfa.VDC', VDCs[5])
+
     
     prob.run_model()
     print(prob['cfa.Pout'])

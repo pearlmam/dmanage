@@ -10,7 +10,6 @@ import inspect, types
 import os
 import time
 import pandas as pd
-#from pathos.multiprocessing import Pool
 import natsort
 #import dmanage.dfmethods as dfm
 import dmanage.methods as methods
@@ -27,20 +26,37 @@ def makeDataGroup(Base):
     
     
 class DataGroup(Dummy):
+    
     """
     opens a sweep data directory containing VSim data directories for common analysis I use. 
     Plotting relevant histories, plotting electrons, sweep data, etc
     Can generate a data managment lookup spreadsheet to visualize the availiable data directories
     
-    Inputs:
-        baseDir: <string>, path to the data directory
-        relHAPlots: <Dict>, the format must look like this: { plotTitle:{'histNames':histNames, 'movAvg':movAvg, 'ylabel':ylabel }
-                  if an entry is excluded, no error is thrown until you use that entry}
-        
-    alternate naming options: DataSweep, DataCollection,
+    
     """
     
     def __init__(self,baseDir,nc=1):
+        """
+        
+
+        Parameters
+        ----------
+        baseDir : string 
+            path to the data directory.
+        nc : int, optional
+            number of cores to search the directories for valid folders. The default is 1.
+
+        Raises
+        ------
+        Exception
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        
         # sweep data directories
         print('Opening %s...'%baseDir, end = ' ')
         startTime = time.time()

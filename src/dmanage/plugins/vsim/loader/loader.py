@@ -14,7 +14,7 @@ import tables
 import glob                     # searching files function
 import os                       # filename manipulation
 import pandas as pd
-from multiprocessing import Pool
+from multiprocess import Pool
 import time
 import natsort
 import copy

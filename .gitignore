@@ -55,6 +55,9 @@ cover/
 tests/test_data/
 tests/scratch/
 
+# deploy to server
+deploy/
+
 # Translations
 *.mo
 *.pot

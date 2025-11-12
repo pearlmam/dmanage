@@ -29,9 +29,9 @@ dependencies = [
   "numpy",             # data manipulation
   "pandas",            # data manipulation
   "matplotlib",        # for plotting
-  "pathos",            # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
+  "multiprocess"       # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
   "paramiko",           # for server implementation
-  "rpyc"               # ??? testing
+  
 ]
 
 
@@ -41,6 +41,9 @@ dependencies = [
 #  "openmdao",
 #  "hvplot", 
 #  "seaborn", 
+#  "rpyc"               # or equivalent
+
+
 
 # for documentation
 #  nbconvert[webpdf]     # notebooks
@@ -52,7 +55,13 @@ dependencies = [
 #  sphinx-apidoc?        # automatically generate documentation
 
 # for plotting interactive
-# PyQt5                  # plotting qt
+#  PyQt5                  # plotting qt
+
+
+# Depriciated
+#  "pathos",            # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
+
+
 
 [project.urls]
 Homepage = "https://github.com/pearlmam/dmanage/"

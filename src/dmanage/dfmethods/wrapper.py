@@ -3,11 +3,10 @@
 # for parallelize methods
 
 import inspect
-from pathos.multiprocessing import Pool
+from multiprocess import Pool
 import functools
 import numpy as np
 import pandas as pd
-import dask
 from dmanage.utils.utils import isIterable
 
 

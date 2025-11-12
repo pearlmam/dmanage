@@ -15,7 +15,7 @@ import argparse
 
 import subprocess as sp
 import select               # for non-block readline()
-import multiprocessing as mp
+import multiprocess as mp    # requires python <3.14
 import glob
 from threading import Timer
 from time import sleep
@@ -85,6 +85,7 @@ class VSimJob():
     def submitJob(self,jobLoc,numProcs,delayCheck=5,fudge=0,queue=None,timing=-1,resume=False):
         # source ~/Programs/VSim-11.0/VSimComposer.sh > /dev/null
         # mpiexec -np 2 ~/Programs/VSim-11.0/Contents/engine/bin/vorpal -i CFA.pre
+        print('submit Job')
         preFile = glob.glob(jobLoc + '*.pre')[0]
         fileName = os.path.basename(preFile)
         self.repVars(preFile, 'NUM_PROCS', numProcs,throwError=False)

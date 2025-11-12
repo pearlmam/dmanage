@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import gc
 import copy
-from multiprocessing import Pool
+from multiprocess import Pool
 
 
 def createBounds(array,iNames,bounds = {}):

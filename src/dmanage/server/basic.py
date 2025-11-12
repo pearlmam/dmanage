@@ -37,18 +37,54 @@ def nonBlockRead(output):
         return ''
 
 class Server():
+    """class for sending files and running scripts to a server
+    
+    In order to connect, you must setup ssh keys with the server, currently
+    no password option exists for security. 
+    to setup ssh keys
+    
+    1. on local machine: ssh-keygen -t rsa
+	$ note if one is already created, then cancel it upon overwrite prompt
+	2. from local /$home/.ssh/id_rsa.pub append key on remote machine authorized_keys file in .ssh/authorized_keys
+	$ cat ~/.ssh/id_rsa.pub | ssh mpearlman@r1.***REMOVED***.edu 'cat >> .ssh/authorized_keys'
+	create the folder and file if needed
+	3. ESURE PROPOR PERMISSIONS: ~/.ssh/authorized_keys file needs 700 permission
+	$ chmod 700 ~/.ssh/authorized_keys
+    
+    """
     def __init__(self, computer='local',user=None):
+        """instantiates a Server class for a specific server
+        
+
+        Parameters
+        ----------
+        computer : string, optional
+            name or ip address of the computer. The default is 'local'.
+        user : string, optional
+            username to connect with. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        
         if user is None:
             user = getpass.getuser()
         self.computer = computer
         self.user = user
-        self.thisScript = os.path.realpath(__file__)
-        self.thisScriptLoc = os.path.dirname(self.thisScript) + '/'
-        self.workspace = 'dmanageWorkspace/'
+        # self.thisScript = os.path.realpath(__file__)
+        # self.thisScriptLoc = os.path.dirname(self.thisScript) + '/'
+        # self.workspace = 'dmanageWorkspace/'
         # if not computer == 'local':
         #     self.connect()
     
     def connect(self):
+        """ Connect to the server
+        
+        opens ssh and sftp connections to the server
+        """
         if not self.computer == 'local':
             print('connecting...')
             self.comp = paramiko.SSHClient()	# setup the client variable
@@ -60,8 +96,8 @@ class Server():
             return self.comp
     
     def connectX(self):
-        """
-        Not working. use subprocess to ssh -X and run the command
+        """NOT WORKING. use subprocess to ssh -X and run the command
+        
         Used to pass X through ssh in paramiko sp I can plot
         
         """
@@ -103,6 +139,9 @@ class Server():
         session.close()
     
     def close(self):
+        """ close the paramiko sessions
+        
+        """
         if not self.computer == 'local':
             self.sftp.close()
             self.comp.close()
@@ -122,6 +161,27 @@ class Server():
 #            print(line)   
     
     def runScript(self, script,conda=None, args=''):
+        """ run the script using paramiko paramiko.SSHClient()
+        
+        this uses paramiko's ssh protocol to run the script
+
+        Parameters
+        ----------
+        script : string
+            path to the file.
+        conda : string, optional
+            conda environment to activate before calling the script. The default is None.
+        args : string, optional
+            args for the python script. the format is the sam as if you call 
+            'python myScript.py arg0 arg1 ...'The default is ''.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        
         print('running script: %s'%(script))
         runLoc = os.path.dirname(script)
         scriptName = os.path.basename(script)
@@ -147,6 +207,26 @@ class Server():
             
     
     def runScriptX(self, script, args=''):
+        """Run script through ssh terminal and pass X for graphics
+        
+        This uses the subprocess module to ssh into the server and execute a script
+        I dont remember if this works very well
+
+        Parameters
+        ----------
+        script : string
+            path to the file.
+        args : string, optional
+            args for the python script. the format is the sam as if you call 
+            'python myScript.py arg0 arg1 ...'The default is ''.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        
         print('running script: %s'%(script))
         workspace = os.path.join(os.path.dirname(script),'')
         scriptname = os.path.basename(script)
@@ -187,9 +267,32 @@ class Server():
         
         
     def putDir(self,source='./',target='~/', fileTypes=['all'],output=False):
-        ''' Uploads the contents of the source directory to the target path. 
-            All subdirectories in source are created under target. 
-        '''
+        """Uploads the contents of the source directory to the target path. 
+        
+        All subdirectories in source are created under target. 
+        TO DO: search through the directories and gather the file structure for
+        to implement a progress bar.
+
+        Parameters
+        ----------
+        source : string, optional
+            local source of the directory to copy. The default is './'.
+        target : string, optional
+            Destination on the server to put the directory. The default is '~/'.
+        fileTypes : list of strings, optional
+            list of the file types to copy. Generally use extensions, like '.py', 
+            but it can be any string pattern. If the string pattern is in the filename,
+            the file will be transfered. The default is ['all'].
+        output : bool, optional
+            controls whether to print terminal output. The transfer progress is 
+            not currently availiable. The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
+
         if output: print("Transfering script files: \n    Source: '%s'\n    Target: '%s'"%(source,target))
         
         if not self.computer == 'local':
@@ -223,17 +326,12 @@ class Server():
             for file in files:
                 if os.path.isfile(file):
                     shutil.copy2(file, target)
-                            
-    def put(self,source='./',target='~/'):
-        if not self.computer == 'local':
-            self.sftp.put(source, target)
-        else:
-            pass
             
 
         
     def mkdir(self, path, mode=511, ignore_existing=False):
-        ''' Augments mkdir by adding an option to not fail if the folder exists  '''
+        """ Augments mkdir by adding an option to not fail if the folder exists  
+        """
         try:
             self.sftp.mkdir(path, mode)
         except IOError:
@@ -243,7 +341,8 @@ class Server():
                 raise
     def mkdirR(self, remote_directory):
         """Change to this directory, recursively making new folders if needed.
-        Returns True if any folders were created."""
+        Returns True if any folders were created.
+        """
         if remote_directory == '/':
             # absolute path so change directory to root
             self.sftp.chdir('/')
@@ -271,9 +370,24 @@ class Server():
         
        
     def checkSubProcRealTime(self,subProc, delay):
-        # NOT WORKING
-        # Check the output of the subProcess in realtime. The output is 
-        # written to outFile periodically at time intervals defned by delay 
+        """NOT WORKING
+        
+        Check the output of the subProcess in realtime. The output is 
+        written to outFile periodically at time intervals defned by delay 
+
+        Parameters
+        ----------
+        subProc : TYPE
+            DESCRIPTION.
+        delay : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+ 
         check=None
         output = ''
 
@@ -289,6 +403,8 @@ class Server():
                 t.start()
                 check =subProc.poll()
         return
+    
+
 def dummy(): 
 	pass
 
@@ -358,7 +474,9 @@ if __name__ == "__main__":
     #######################################
     # computer='***REMOVED***.***REMOVED***.edu'
     computer='***REMOVED***.***REMOVED***.edu'
-    ECEsim = Server(computer=computer)
+    user='***REMOVED***'
+    ECEsim = Server(computer=computer,user=user)
+    ECEsim.connect()
     args = ''
     # # scriptName = 'CFAplot.py'
     # # scriptName = 'dataDir.py'

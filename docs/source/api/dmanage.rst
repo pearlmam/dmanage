@@ -7,35 +7,35 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   dmanage.components
    dmanage.dfmethods
-   dmanage.drivers
    dmanage.methods
+   dmanage.plugins
+   dmanage.server
    dmanage.utils
 
 Submodules
 ----------
 
-dmanage.dataBase module
------------------------
+dmanage.base module
+-------------------
 
-.. automodule:: dmanage.dataBase
+.. automodule:: dmanage.base
    :members:
    :undoc-members:
    :show-inheritance:
 
-dmanage.dataGroup module
-------------------------
+dmanage.group module
+--------------------
 
-.. automodule:: dmanage.dataGroup
+.. automodule:: dmanage.group
    :members:
    :undoc-members:
    :show-inheritance:
 
-dmanage.dataUnit module
------------------------
+dmanage.unit module
+-------------------
 
-.. automodule:: dmanage.dataUnit
+.. automodule:: dmanage.unit
    :members:
    :undoc-members:
    :show-inheritance:

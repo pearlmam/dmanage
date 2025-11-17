@@ -16,7 +16,6 @@ To use dmanage, first install it using pip:
 DataUnit
 ----------------
 
-To retrieve a list of random ingredients,
 you can use the ``dmanage.makeDataUnit()`` function:
 
    

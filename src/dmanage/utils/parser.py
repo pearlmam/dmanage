@@ -4,6 +4,7 @@ import numpy as np
 import ntpath
 import os
 
+from dmanage.utils.utils import isIterable
 
 def genSaveLoc(varDict):
     outString = ''
@@ -61,7 +62,8 @@ def parseFilename(files,checkVars):
         output2 = np.array([[10,100,1],[500,400,25]])
     """
     
-    if type(files) == str: files = [files]
+    if not isIterable(files): files = [files]
+    if not isIterable(checkVars): checkVars = [checkVars]
     data = np.zeros((len(files),len(checkVars)))
     for i in range(len(files)):
         file_name = ntpath.basename(files[i])
@@ -69,6 +71,7 @@ def parseFilename(files,checkVars):
         #file_name = file_name.replace('.tiff','')
         file_name = file_name.split('_') # the data looks like [randomName, L-10000mW, T-100C, exp-100ms,ND-0 ]
         for j,checkVar in enumerate(checkVars):
+            checkVar = checkVar + '-'
             for part in file_name:
                 if checkVar in part:
                     valueStr = part.replace(checkVar, '') # now the number and units remain: 10000mW

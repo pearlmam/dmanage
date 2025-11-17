@@ -13,11 +13,15 @@ This is a package for stuff
 .. toctree::
    :maxdepth: 2
    
+   intro
+   concepts/concepts
    usage
    tutorials
    development/development
    resources/resources
+   
    api/modules
+   
    
 
   

@@ -35,7 +35,7 @@ class DataGroup(Dummy):
     
     """
     
-    def __init__(self,baseDir,nc=1):
+    def __init__(self,baseDir,dataUnitType='dir',nc=1):
         """
         
 
@@ -56,27 +56,33 @@ class DataGroup(Dummy):
         None.
 
         """
-        
-        # sweep data directories
-        print('Opening %s...'%baseDir, end = ' ')
-        startTime = time.time()
-        # initial attributes required by getDDs
-        self.processedDir = 'processed'
-        self.ignoreDirs = [self.processedDir]
-        
-        self.sweepDirs = self.getDDs(baseDir,nc=nc)
-        if len(self.sweepDirs) == 0: raise Exception("There are no Data Directories in '%s'"%self.baseDir)
-        self.sweepDirs = natsort.natsorted(self.sweepDirs)
-        super().__init__(os.path.join(baseDir,self.sweepDirs[0]))
-        self._wrap_component_methods()
-        
-        
+        # NEEDS STANDARD NAME FOR ATTRIBUTES, not sweepDir, and deal with baseDir for both Unit and Group???
         # attributes
+        self.processedDir = 'processed'
         self.baseDir = os.path.join(baseDir,'')
         self.resDir = self.baseDir+self.processedDir + '/'
         self.sweepResDir = self.resDir + 'sweep/'
         self.dataLookupFile = self.baseDir + 'dataLookup.xlsx'
         self.baseNameDepth=3
+        
+        # sweep data directories
+        print('Opening %s...'%baseDir, end = ' ')
+        startTime = time.time()
+        self.ignoreDirs = [self.processedDir]
+        if dataUnitType == 'dir':
+            self.sweepDirs = self.getDDs(baseDir,nc=nc)
+        else:
+            self.sweepDirs = self.getDataFiles(baseDir)
+            
+        if len(self.sweepDirs) == 0: raise Exception("There are no Data Directories in '%s'"%self.baseDir)
+        self.sweepDirs = natsort.natsorted(self.sweepDirs)
+        super().__init__(os.path.join(baseDir,self.sweepDirs[0]))
+        self.baseDir = os.path.join(baseDir,'')   # overwrite baseDir again,
+        
+        self._wrap_component_methods()
+        
+        
+        
         
         
         executionTime = time.time()-startTime
@@ -184,7 +190,19 @@ class DataGroup(Dummy):
         #self._wrap_component_methods()                # rewrap component methods with SD equivalent
         return DFs
     
-
+    def getDataFiles(self,baseDir=None):
+        if type(baseDir) == type(None):
+            baseDir = self.baseDir
+        filenames = os.listdir(baseDir)
+        sweepDirs = []
+        for filename in filenames:
+            if self.isValid(filename): 
+                sweepDirs.append(filename)
+            else: 
+                pass
+        return sweepDirs
+    
+    
     def _getDDs(self,subDirs,baseDir):
         """looped iterator method: returns list of valid sweep directories"""
         sweepDirs = []

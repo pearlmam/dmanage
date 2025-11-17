@@ -1,7 +1,9 @@
 Standards
 =========
 
-This lists out documentation standards for this project
+This lists out the documentation standards for this project
+
+.. _Standards-docstrings:
 
 docstrings
 ----------

@@ -28,7 +28,7 @@ class Dummy:
     """
     pass
 
-def makeDataUnit(Base):
+def makeDataUnit(Base=Dummy):
     """ Creates DataUnit class
     :param path: The path of the file to wrap
     This creates the DataUnit class with the inherited components from the base class

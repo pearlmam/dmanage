@@ -7,3 +7,4 @@ This is the documentation relavent to project development
    :maxdepth: 2
    
    documentation/documentation
+   contribution/contribution

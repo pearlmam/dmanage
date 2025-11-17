@@ -51,12 +51,19 @@ coverage.xml
 .pytest_cache/
 cover/
 
-# test data
-tests/test_data/
-tests/scratch/
+# test data, ignores all directories with this name
+test_data/
+scratch/
+processed/
+
+# openMDAO output
+problem*_out/
 
 # deploy to server
 deploy/
+
+# unused code
+unused/
 
 # Translations
 *.mo

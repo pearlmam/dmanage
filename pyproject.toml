@@ -29,7 +29,7 @@ dependencies = [
   "numpy",             # data manipulation
   "pandas",            # data manipulation
   "matplotlib",        # for plotting
-  "multiprocess"       # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
+  "multiprocess",       # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
   "paramiko",           # for server implementation
   
 ]

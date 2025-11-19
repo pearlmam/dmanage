@@ -292,7 +292,7 @@ class Server():
         None.
 
         """
-
+        hiddenPrefixes = ('_','.')
         if output: print("Transfering script files: \n    Source: '%s'\n    Target: '%s'"%(source,target))
         
         if not self.computer == 'local':
@@ -301,7 +301,7 @@ class Server():
                 for item in os.listdir(source):
                     if os.path.isfile(os.path.join(source, item)):
                             self.sftp.put(os.path.join(source, item), '%s/%s' % (target, item))
-                    else:
+                    elif item[0] not in hiddenPrefixes:
                         self.mkdirR('%s/%s' % (target, item))
                         self.putDir(os.path.join(source, item), '%s/%s' % (target, item))
             else:
@@ -311,7 +311,7 @@ class Server():
                         for fileType in fileTypes:
                             if fileType in item:
                                 self.sftp.put(os.path.join(source, item), '%s/%s' % (target, item))
-                    elif copyDirs:
+                    elif copyDirs and item[0] not in hiddenPrefixes:
                         self.mkdirR('%s/%s' % (target, item))
                         self.putDir(os.path.join(source, item), '%s/%s' % (target, item))
         else:

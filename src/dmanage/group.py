@@ -59,7 +59,8 @@ class DataGroup(Dummy):
         # NEEDS STANDARD NAME FOR ATTRIBUTES, not sweepDir, and deal with baseDir for both Unit and Group???
         # attributes
         self.processedDir = 'processed'
-        self.baseDir = os.path.join(baseDir,'')
+        baseDir = os.path.join(baseDir,'')
+        self.baseDir = baseDir 
         self.resDir = self.baseDir+self.processedDir + '/'
         self.sweepResDir = self.resDir + 'sweep/'
         self.dataLookupFile = self.baseDir + 'dataLookup.xlsx'
@@ -215,6 +216,7 @@ class DataGroup(Dummy):
                     skip = True
             
             if self.isValid(subDir) and not skip: 
+                subDir = os.path.join(subDir,'')  # make sure it ends with '/' so that it knows its a directory.
                 sweepDirs.append(subDir.replace(baseDir,''))
             else: 
                 pass

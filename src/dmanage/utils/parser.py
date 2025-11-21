@@ -6,7 +6,7 @@ import os
 import pandas as pd
 import re
 
-from dmanage.utils.utils import isIterable
+from dmanage.utils.utils import is_iterable
 from dmanage.methods.wrapper import parallelize_iterator_method
 
 def genSaveLoc(varDict):
@@ -16,7 +16,7 @@ def genSaveLoc(varDict):
     return outString
 
 
-def genSaveString(dataStruct,equivStr='-',sepStr='/',order=False):
+def gen_save_string(dataStruct, equivStr='-', sepStr='/', order=False):
     outString = ''
     if type(dataStruct) is dict:
         if order: keys = natsort.natsorted(list(dataStruct.keys()))
@@ -45,7 +45,7 @@ DD = Del()
 # ??? this also can only handle number values, need to include strings.
 # ??? should return DF
 
-def parseFilename(files,checkVars=None,nc=1):
+def parse_filename(files, checkVars=None, nc=1):
     """ Description
     this parses through the filename to get variable values
 
@@ -70,15 +70,15 @@ def parseFilename(files,checkVars=None,nc=1):
         output2 = np.array([[10,100,1],[500,400,25]])
     """
     
-    if not isIterable(files): files = [files]
-    parseFileName = parallelize_iterator_method(_parseFilename)
+    if not is_iterable(files): files = [files]
+    parseFileName = parallelize_iterator_method(_parse_filename)
     DF = parseFileName(files,checkVars,nc=nc)
     if type(DF) is list:
         DF = pd.concat(DF).reset_index(drop=True)
     return DF
 
 
-def _parseFilename(file,checkVars):
+def _parse_filename(file, checkVars):
     """ Description
     this parses through the filename to get variable values
 
@@ -103,7 +103,7 @@ def _parseFilename(file,checkVars):
         output2 = np.array([[10,100,1],[500,400,25]])
     """
     
-    if (not isIterable(checkVars)) and (checkVars is not None): checkVars = [checkVars]
+    if (not is_iterable(checkVars)) and (checkVars is not None): checkVars = [checkVars]
     DF = pd.DataFrame()
     
     if os.path.basename(file) == '':
@@ -141,10 +141,10 @@ if __name__ == "__main__":
     fileName = '/path/to/file/name_L-10mW_T--100C_exp-1ms_V--100.0e-3_ND-0_target-seeds/'
     checkVars=['target','L','T','exp','ND']
     
-    DF = parseFilename(fileName,checkVars=None,nc=1)
+    DF = parse_filename(fileName, checkVars=None, nc=1)
     print(DF)
     fileNames = ['/path/to/file/name_L-10mW_T-2.0e-2_exp-1ms_V--100e-3_ND-0_target-seeds.tiff']*10
-    DF = parseFilename(fileNames,checkVars=None,nc=1)
+    DF = parse_filename(fileNames, checkVars=None, nc=1)
     print(DF)
 
     

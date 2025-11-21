@@ -6,12 +6,12 @@ import pandas as pd
 import os
 import openmdao.api as om
 from dmanage.plugins import vsim
-from dmanage.unit import makeDataUnit
-from dmanage.group import makeDataGroup
+from dmanage.unit import make_data_unit
+from dmanage.group import make_data_group
 import dmanage.dfmethods as dfm
 from dmanage.utils.utils import child_override
 
-DataDir = makeDataUnit(vsim.loader.VSim)
+DataDir = make_data_unit(vsim.loader.VSim)
 class MyDataDir(DataDir):
     def __init__(self,dataDir=None):
         super().__init__(dataDir)
@@ -19,38 +19,38 @@ class MyDataDir(DataDir):
         self.freq = self.PreVars.read('FREQ')['FREQ']
         
     def getStartup(self,histName):
-        DF = self.Hists.readAsDF(histName)
+        DF = self.Hists.read_as_df(histName)
         tBuff = 10e-9
-        tStart = dfm.signal.getStartup(DF,debug=False) + tBuff
+        tStart = dfm.signal.get_startup(DF, debug=False) + tBuff
         tend = self.Hists.tend
         if tStart>tend*0.9:
             tStart = tend*0.9
         return tStart
 
     def getPower(self,histName = 'Pout'):
-        DF = self.Hists.readAsDF(histName)
+        DF = self.Hists.read_as_df(histName)
         DF = DF.iloc[DF.index.get_level_values(0)>self.tStart]
         DF = DF.mean().tolist()[0]
         return DF
 
     def getNoiseLevel(self,histName='Vout'):
-        if self.Hists.checkDataset(histName,output=True)[0]:
+        if self.Hists.check_dataset(histName, output=True)[0]:
             maxFreq = 4.2e9
             maxPks=15
-            DF = self.Hists.readAsDF(histName,concat=True)
+            DF = self.Hists.read_as_df(histName, concat=True)
             DF = DF.iloc[DF.index.get_level_values('t')>self.tStart]
-            DF = dfm.fft.FFT(DF)
+            DF = dfm.fft.fft(DF)
             
             DF = DF.iloc[DF.index.get_level_values(0)<maxFreq].sort_index()
-            DFA = dfm.fft.FFTamplitude(DF)
-            DFP = dfm.fft.FFTphase(DF)
+            DFA = dfm.fft.fft_amplitude(DF)
+            DFP = dfm.fft.fft_phase(DF)
             DFA = 20*np.log10(DFA)
             minFreqDistance = 50e6
             dFreq = DF.index.get_level_values(0)[1]-DF.index.get_level_values(0)[0]
             peakDist = round(minFreqDistance/dFreq)
             
             
-            DFpks,props = dfm.signal.findPks(DFA[DFA.columns[0]],maxPks=maxPks,pRatio=0.08,tRatio=None,height=-50,wlen=None,distance=peakDist,width=None)
+            DFpks,props = dfm.signal.find_pks(DFA[DFA.columns[0]], maxPks=maxPks, pRatio=0.08, tRatio=None, height=-50, wlen=None, distance=peakDist, width=None)
             DFpks = pd.concat([DFpks,(DFP.loc[DFpks.index]).reset_index(level=[])],axis=1)
         cutoff=[0,2.5e9]    
         noisePks = DFpks.iloc[DFpks.index<(1.9*self.freq)][DFpks.columns[0]]
@@ -83,7 +83,7 @@ class MyDataDir(DataDir):
             
         ##### get the values
         varDict = self.PreVars.read(varList_copy) 
-        DF = self.Hists.readAsDF(histList,concat=True)
+        DF = self.Hists.read_as_df(histList, concat=True)
         if not DF.empty: 
             DF = dfm.helper.reduce(DF,'t',method='mean',theRange=theRange)
             varDict.update(DF.to_dict())
@@ -104,7 +104,7 @@ class MyDataDir(DataDir):
         return varDict
 
 
-SweepDir = makeDataGroup(MyDataDir)
+SweepDir = make_data_group(MyDataDir)
 class MySweepDir(SweepDir):
     def __init__(self,baseDir):
         super().__init__(baseDir)

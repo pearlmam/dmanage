@@ -7,7 +7,7 @@ from multiprocess import Pool
 import functools
 import numpy as np
 import pandas as pd
-from dmanage.utils.utils import isIterable
+from dmanage.utils.utils import is_iterable
 
 
 # These Double wrapped methods are slow for some reason. I want to get it dont like this though so I can have concat wrappers?
@@ -101,7 +101,7 @@ if __name__ == "__main__":
         addOne = parallelize_iterator_method(_addOne)
         startTime = time.time()
         if arg1:
-            if not isIterable(arg0): arg0 = [arg0]   # determine if it is an iterable and make it one
+            if not is_iterable(arg0): arg0 = [arg0]   # determine if it is an iterable and make it one
             nc = min(nc,len(arg0))
             print('Adding one to values using %i cores...'%(nc), end=' ')
             result = addOne(arg0,arg1,nc=nc)

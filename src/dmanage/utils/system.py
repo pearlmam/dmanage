@@ -2,7 +2,7 @@
 
 import subprocess as sp
 
-def checkActiveProcs(procName,procType=None):
+def check_active_procs(procName, procType=None):
     if procType == None:
         checkVorpalProc=sp.Popen('ps aux | grep ' + procName, shell=True, executable='/bin/bash', stdout=sp.PIPE, stderr=sp.PIPE)
     else:

@@ -15,18 +15,18 @@ DD = DataDir(folder)
 
 # Testing convert
 histName = 'Pout'
-df0 = DD.Hists.readAsDF(histName)
-df1 = dfm.signal.applyFilter(df0, method='low', cutoff=100e6)
+df0 = DD.Hists.read_as_df(histName)
+df1 = dfm.signal.apply_filter(df0, method='low', cutoff=100e6)
 
 fignum = 1
-fig,ax = DFP.plot1D(df0,fig=fignum)
-fig,ax = DFP.plot1D(df1,fig=fignum,clear=False)
+fig,ax = DFP.plot1d(df0, fig=fignum)
+fig,ax = DFP.plot1d(df1, fig=fignum, clear=False)
 
 partName = 'electronsT'
-df0 = DD.Parts.readAsDF(steps='all',partType=partName,nc=4)
+df0 = DD.Parts.read_as_df(steps='all', partType=partName, nc=4)
 #mem_usage = memory_usage(dfm.convert.cart2Cyl(df0,xyCols=['x','y'],uxyCols = ['ux','uy'],rphiCols=['r','phi'],phiRange='2pi',inplace=False,nc=1))
 startTime = time.time()
-df1 = dfm.convert.cart2Cyl(df0,xyCols=['x','y'],uxyCols = ['ux','uy'],rphiCols=['r','phi'],phiRange='2pi',nc=1)
+df1 = dfm.convert.cart_to_cyl(df0, xyCols=['x', 'y'], uxyCols = ['ux', 'uy'], rphiCols=['r', 'phi'], phiRange='2pi', nc=1)
 exectutionTime = time.time() - startTime
 print('dfm.convert.cart2Cyl() took %0.3f seconds'%exectutionTime)
 

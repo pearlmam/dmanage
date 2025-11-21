@@ -15,7 +15,7 @@ import subprocess as sp
 import shutil
 
 
-from dmanage.dfmethods.convert import multiIndex2Index,numpy2DF,DF2Numpy,rotateCart
+from dmanage.dfmethods.convert import mi_to_index,numpy_to_df,df_to_numpy,rotate_cart
 
 class PlotDefs():
     def __init__(self,backEnd='TkAgg'):
@@ -30,7 +30,7 @@ class PlotDefs():
         self.saveType = 'png'
         self.axisUnits = {'t':'[ns]','x':'[cm]','y':'[cm]','z':'[cm]','phi':'[rad]','r':'[cm]','freq':'[GHz]','amp':'[arb]'}
         self.unitFactors = {'[ns]':1e9,'[cm]':1e2,'[GHz]':1e-9}
-        self.setParameters()
+        self.set_parameters()
         
         # This doesnt work for some reason 
         '''
@@ -59,7 +59,7 @@ class PlotDefs():
         if holoview:
             self.setup_holoview()
     
-    def setParameters(self):
+    def set_parameters(self):
         # reset the font parameters here. or in __init__
         mpl.rc('axes',titleweight=self.fw,labelweight=self.fw, labelsize=self.labelfs,titlesize=self.labelfs)
         mpl.rc('font',size=self.tickfs, weight='normal')
@@ -79,7 +79,7 @@ class PlotDefs():
         if backEnd == None: backEnd = self.backEnd
         mpl.use(backEnd)
     
-    def convertAxis(self,name,value,unit=''):
+    def convert_axis(self, name, value, unit=''):
         if name == None: name = 'point'
         if name in self.axisUnits.keys():
             unit = self.axisUnits[name]
@@ -88,7 +88,7 @@ class PlotDefs():
         return value,'%s %s'%(name,unit) 
     
         
-    def fixEPS(self,fileName):
+    def fix_eps(self, fileName):
         # there is a boundingbox error in the eps files. the %%BoundingBox parameters are saved as floats, which epspdf doesnt like
         # this code fixes that
         
@@ -116,13 +116,13 @@ class Plot():
         #self.err = DFErrorMessages()
         #print('loading DFPlotter')
     
-    def drawFig(self,fig=1,option='no options availiable'):
+    def draw_fig(self, fig=1, option='no options availiable'):
         if not mpl.get_backend().lower() == 'agg':
             # canvas draw slows stuff down and is not needed for agg backend?
             fig.canvas.draw()
         return fig
     
-    def checkFig(self,fig,figsize,clear,projection='rectilinear',subplots=(1,1)):
+    def check_fig(self, fig, figsize, clear, projection='rectilinear', subplots=(1, 1)):
         # get the proper figure ref
         if type(fig) == type(None): fig = plt.figure(self.P.fig, figsize=figsize)
         elif type(fig) is int: fig = plt.figure(fig, figsize=figsize)
@@ -164,13 +164,13 @@ class Plot():
         return fig,ax
     
         
-    def plot1D(self,DF,fig=None,figsize=(12, 5),clear=True,subplots=(1,1),subplot=0,axType='linear',drawFig=True,convertAxis=True,**line2Dkwargs):
-        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = multiIndex2Index(DF)
+    def plot1d(self, DF, fig=None, figsize=(12, 5), clear=True, subplots=(1, 1), subplot=0, axType='linear', drawFig=True, convertAxis=True, **line2Dkwargs):
+        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = mi_to_index(DF)
         if issubclass(type(DF), pd.core.series.Series): DF = DF.to_frame()
         
 
         projection = 'rectilinear'
-        fig,axs = self.checkFig(fig,figsize,clear,projection,subplots=subplots)
+        fig,axs = self.check_fig(fig, figsize, clear, projection, subplots=subplots)
         if isinstance(axs, (list,tuple)):
             ax = axs[subplot]
         else:
@@ -180,7 +180,7 @@ class Plot():
         xlabel = DF.index.name
 
         if convertAxis:
-            x,xlabel = self.P.convertAxis(DF.index.name,x)
+            x,xlabel = self.P.convert_axis(DF.index.name, x)
         
         for i,col in enumerate(DF.columns):
             if 'label' in line2Dkwargs.keys():
@@ -205,10 +205,10 @@ class Plot():
             ax.grid(True)
             ax.legend(loc='best')
             ax.set(xlabel=xlabel)
-            fig = self.drawFig(fig)
+            fig = self.draw_fig(fig)
         return fig,ax
     
-    def plot1Ds(self,DF,fig=None,figsize=(12, 5),clear=True,drawFig=False,**line2Dkwargs):
+    def plot1ds(self, DF, fig=None, figsize=(12, 5), clear=True, drawFig=False, **line2Dkwargs):
         if type(DF.index) == pd.core.indexes.multi.MultiIndex:
             iNames = DF.index.names
             if len(iNames)!=2: raise Exception('MultiIndex must have 2 levels to plot multiple lines')
@@ -217,80 +217,80 @@ class Plot():
         if issubclass(type(DF), pd.core.series.Series): DF = DF.to_frame()
         if len(DF.columns)>1: raise Exception("DF must be of type Series or of type DataFrame with one column.")
         colName = DF.columns[0]
-        fig,ax = self.checkFig(fig,figsize,clear)
+        fig,ax = self.check_fig(fig, figsize, clear)
         
         DF = DF.unstack(iNames[0])[colName]
-        fig,ax = self.plot1D(DF,fig=fig,figsize=figsize,clear=clear,drawFig=False,**line2Dkwargs)
+        fig,ax = self.plot1d(DF, fig=fig, figsize=figsize, clear=clear, drawFig=False, **line2Dkwargs)
         ax.set(title=colName)
         xlabel = DF.index.name
         if drawFig:
             ax.grid(True)
             ax.legend(loc='best')
             ax.set(xlabel=xlabel)
-            fig = self.drawFig(fig)
+            fig = self.draw_fig(fig)
         return fig,ax
         
     
     
     def bar(self,DF,fig=None,figsize=(12, 5),clear=True,convertAxis=True,**line2Dkwargs):
-        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = multiIndex2Index(DF)
+        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = mi_to_index(DF)
         if issubclass(type(DF), pd.core.series.Series): DF = DF.to_frame()
         if len(DF.columns)>1: raise Exception("DF must be of type Series or of type DataFrame with one column.")
         
-        fig,ax = self.checkFig(fig,figsize,clear)
+        fig,ax = self.check_fig(fig, figsize, clear)
         
         x = DF.index.values
         xlabel = DF.index.name
 
         if convertAxis:
-            x,xlabel = self.P.convertAxis(DF.index.name,x)
+            x,xlabel = self.P.convert_axis(DF.index.name, x)
         y = DF[DF.columns[0]]
         # width = (x[1]-x[0])
         width = np.mean(np.diff(x))
         ax.bar(x, y,**line2Dkwargs,width=width,edgecolor='k',linewidth=1)
-        fig = self.drawFig(fig)
+        fig = self.draw_fig(fig)
         return fig,ax
     
     
-    def plot1DWPks(self,DF,fig=None,figsize=(12,5),subplots=(1,1),subplot=0,maxPks=10,hRatio=None,pRatio=None,height=None,xlim=None):
-        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = multiIndex2Index(DF)
+    def plot1d_pks(self, DF, fig=None, figsize=(12, 5), subplots=(1, 1), subplot=0, maxPks=10, hRatio=None, pRatio=None, height=None, xlim=None):
+        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = mi_to_index(DF)
         if issubclass(type(DF), pd.core.series.Series): DF = DF.to_frame()
         if len(DF.columns)>1: raise Exception("DF must be of type Series or of type DataFrame with one column.")
         
         clear = True
         projection = 'rectilinear'
-        fig,axs = self.checkFig(fig,figsize,clear,projection,subplots=subplots)
+        fig,axs = self.check_fig(fig, figsize, clear, projection, subplots=subplots)
         if isinstance(axs, (list,tuple)):
             ax = axs[subplot]
         else:
              ax = axs
         
         DFpks,props = self.findPks(DF,maxPks=maxPks,hRatio=hRatio,pRatio=pRatio,height=height)
-        fig,ax = self.plot1D(DF,fig=fig)
+        fig,ax = self.plot1d(DF, fig=fig)
         ax.set(xlim=xlim)
-        fig,ax = self.numScatterWChart(DFpks,fig=fig,clear=False)
-        fig = self.drawFig(fig)
+        fig,ax = self.num_scatter_chart(DFpks, fig=fig, clear=False)
+        fig = self.draw_fig(fig)
         return fig,axs
         
     
-    def numScatter(self,DF,fig=None,figsize=(12, 5),clear=True,convertAxis=True,**line2Dkwargs):
-        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = multiIndex2Index(DF)
+    def num_scatter(self, DF, fig=None, figsize=(12, 5), clear=True, convertAxis=True, **line2Dkwargs):
+        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = mi_to_index(DF)
         if issubclass(type(DF), pd.core.series.Series): DF = DF.to_frame()
         
-        fig,ax = self.checkFig(fig,figsize,clear)
+        fig,ax = self.check_fig(fig, figsize, clear)
         
         x = DF.index.values
         xlabel = DF.index.name
         if convertAxis:
-            x,xlabel = self.P.convertAxis(DF.index.name,x)
+            x,xlabel = self.P.convert_axis(DF.index.name, x)
         for i,col in enumerate(DF.columns):
             y = DF[col].to_numpy()
             for j in range(0,len(y)):
                 plt.text(x[j],y[j],j,fontsize=self.P.tickfs,horizontalalignment='center', verticalalignment='bottom' )
         return fig,ax
                 
-    def labeledScatter(self,DF,labelCol=None,fig=None,figsize=(12, 5),clear=True,subplots=(1,1),subplot=0,convertAxis=True,axType='linear',**line2Dkwargs):
-        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = multiIndex2Index(DF)
+    def labeled_scatter(self, DF, labelCol=None, fig=None, figsize=(12, 5), clear=True, subplots=(1, 1), subplot=0, convertAxis=True, axType='linear', **line2Dkwargs):
+        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = mi_to_index(DF)
         if issubclass(type(DF), pd.core.series.Series): DF = DF.to_frame()
         
         columns = list(DF.columns)
@@ -301,7 +301,7 @@ class Plot():
         x = DF.index.values
         xlabel = DF.index.name
         if convertAxis:
-            x,xlabel = self.P.convertAxis(DF.index.name,x)
+            x,xlabel = self.P.convert_axis(DF.index.name, x)
         columns = list(DF.columns)
         columns.remove(labelCol)
         
@@ -311,7 +311,7 @@ class Plot():
                 plt.text(x[j],y[j],label,fontsize=self.P.tickfs,horizontalalignment='center', verticalalignment='bottom' )
         return fig,ax 
     
-    def prepTextChart(self,DF,fmt=".2f"):
+    def prep_text_chart(self, DF, fmt=".2f"):
         # if not type(fmt) is list:
         #     fmt = [fmt]*2
         # if type(fmt) is list:
@@ -335,36 +335,36 @@ class Plot():
         
         return output
     
-    def numScatterWChart(self,DF,fmt=[".0f",'.2f','.1f'],textPos=None,fontsize=14,fig=None,figsize=(12, 5),clear=True):
-        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = multiIndex2Index(DF)
+    def num_scatter_chart(self, DF, fmt=[".0f", '.2f', '.1f'], textPos=None, fontsize=14, fig=None, figsize=(12, 5), clear=True):
+        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = mi_to_index(DF)
         if issubclass(type(DF), pd.core.series.Series): DF = DF.to_frame()
         if len(DF.columns)>1: raise Exception("DF must be of type Series or of type DataFrame with one column.")
 
-        fig,ax = self.checkFig(fig,figsize,clear)
+        fig,ax = self.check_fig(fig, figsize, clear)
         
         xlim = ax.get_xlim()
         ylim = ax.get_ylim()
         
         DF.columns=['amp']
-        fig,ax = self.numScatter(DF,fig=fig,figsize=(12,5),clear=False)
+        fig,ax = self.num_scatter(DF, fig=fig, figsize=(12, 5), clear=False)
         if not ax.get_legend() is None:
             ax.get_legend().remove()
         # DF = DF.reset_index()['freq']   # remove the amplitude from the chart
         
-        output = self.prepTextChart(DF,fmt=fmt)
+        output = self.prep_text_chart(DF, fmt=fmt)
         if textPos is None:
             textPos = [ (xlim[1])*.82, ylim[1]*.95]
         ax.text(textPos[0], textPos[1],output,fontsize=fontsize,horizontalalignment='left', verticalalignment='top' )
-        fig = self.drawFig(fig)
+        fig = self.draw_fig(fig)
         return fig,ax
     
     def scatter(self,DF,fig=None,figsize=(12, 5),clear=True,subplots=(1,1),subplot=0,drawFig=True,convertAxis=True,axType='linear',**line2Dkwargs):
         # need to add colorbar option, what should the data look like? 2D data?? probably.
-        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = multiIndex2Index(DF)
+        if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = mi_to_index(DF)
         if issubclass(type(DF), pd.core.series.Series): DF = DF.to_frame()
         
         projection = 'rectilinear'
-        fig,axs = self.checkFig(fig,figsize,clear,projection,subplots=subplots)
+        fig,axs = self.check_fig(fig, figsize, clear, projection, subplots=subplots)
         if isinstance(axs, (list,tuple)):
             ax = axs[subplot]
         else:
@@ -375,7 +375,7 @@ class Plot():
         xlabel = DF.index.name
 
         if convertAxis:
-            x,xlabel = self.P.convertAxis(DF.index.name,x)
+            x,xlabel = self.P.convert_axis(DF.index.name, x)
         for i,col in enumerate(DF.columns):
             if 'label' in line2Dkwargs.keys():
                 pass
@@ -406,10 +406,10 @@ class Plot():
             ax.grid(True)
             ax.legend(loc='best')
             ax.set(xlabel=xlabel)
-            fig = self.drawFig(fig)
+            fig = self.draw_fig(fig)
         return fig,ax
    
-    def scatterColor(self,DF,fig=None,figsize=(12, 5),clear=True,cbar=True,subplots=(1,1),subplot=0,drawFig=True,convertAxis=True,**line2Dkwargs): 
+    def scatter_color(self, DF, fig=None, figsize=(12, 5), clear=True, cbar=True, subplots=(1, 1), subplot=0, drawFig=True, convertAxis=True, **line2Dkwargs):
         """
         DF has 2 indicies for xy and intensity values for the column. Similar to pcolor
         """
@@ -424,7 +424,7 @@ class Plot():
         ylabel = iNames[1]
         clabel = title
         projection = 'rectilinear'
-        fig,axs = self.checkFig(fig,figsize,clear,projection,subplots=subplots)
+        fig,axs = self.check_fig(fig, figsize, clear, projection, subplots=subplots)
         if isinstance(axs, (list,tuple)):
             ax = axs[subplot]
         else:
@@ -438,8 +438,8 @@ class Plot():
         label = list(iNames)
         
         if convertAxis:
-            x,label[0] = self.P.convertAxis(iNames[0],x)
-            y,label[1] = self.P.convertAxis(iNames[1],y)
+            x,label[0] = self.P.convert_axis(iNames[0], x)
+            y,label[1] = self.P.convert_axis(iNames[1], y)
         
         cax = ax.scatter(x, y, c=c,label=ylabel,**line2Dkwargs)
         if cbar:
@@ -456,7 +456,7 @@ class Plot():
             ax.grid(True)
             ax.legend(loc='best')
             ax.set(xlabel=xlabel)
-            fig = self.drawFig(fig)
+            fig = self.draw_fig(fig)
         return fig,ax,cbar
         
         
@@ -473,7 +473,7 @@ class Plot():
             if len(iNames)!=2: raise Exception('MultiIndex must have 2 levels for a 2D plot')
         else: raise Exception("Index be of type MultiIndex with two levels. Use DF.set_index(['iName1','iName2'])")
         
-        fig,ax = self.checkFig(fig,figsize,clear)
+        fig,ax = self.check_fig(fig, figsize, clear)
         
         DF = DF.reset_index()
         x = DF[iNames[0]]
@@ -482,8 +482,8 @@ class Plot():
         
         label = list(iNames)
         if convertAxis:
-            x,label[0] = self.P.convertAxis(iNames[0],x)
-            y,label[1] = self.P.convertAxis(iNames[1],y)
+            x,label[0] = self.P.convert_axis(iNames[0], x)
+            y,label[1] = self.P.convert_axis(iNames[1], y)
         
         plot = ax.tricontourf(x, y, z,cmap=cmap)
 
@@ -492,7 +492,7 @@ class Plot():
         ax.grid(True)
         if not mpl.get_backend().lower() == 'agg':
             fig.subplots_adjust(bottom=0.15)
-        fig = self.drawFig(fig)
+        fig = self.draw_fig(fig)
         return fig,ax,plot,cbar
 
     def contourf(self,DF,fig=None,figsize=(12, 5),clear=True,polar=False,cmap='viridis',convertAxis=True):
@@ -549,16 +549,16 @@ class Plot():
         if polar: projection='polar'
         else: projection='rectilinear'
         
-        fig,ax = self.checkFig(fig,figsize,clear,projection)
+        fig,ax = self.check_fig(fig, figsize, clear, projection)
         
-        array,bounds = DF2Numpy(DF,sort_index=False)
+        array,bounds = df_to_numpy(DF, sort_index=False)
         x = bounds[iNames[0]]
         y = bounds[iNames[1]]
         
         label = list(iNames)
         if convertAxis:
-            x,label[0] = self.P.convertAxis(iNames[0],x)
-            y,label[1] = self.P.convertAxis(iNames[1],y)
+            x,label[0] = self.P.convert_axis(iNames[0], x)
+            y,label[1] = self.P.convert_axis(iNames[1], y)
         if polar: 
             ax.set(title=title,ylim=[0,max(y)])
             x = np.concatenate([x,x[[0]]])
@@ -571,7 +571,7 @@ class Plot():
         ax.grid(True)
         if not mpl.get_backend().lower() == 'agg':
             fig.subplots_adjust(bottom=0.15)
-        fig = self.drawFig(fig)
+        fig = self.draw_fig(fig)
         return fig,ax,plot,cbar
    
     def pcolor(self,DF,fig=None,figsize=(12, 5),clear=True,polar=False,subplots=(1,1),subplot=0,cmap='viridis',cbarOrientation='vertical',convertAxis=True):
@@ -597,20 +597,20 @@ class Plot():
         if polar: projection='polar'
         else: projection='rectilinear'
         
-        fig,axs = self.checkFig(fig,figsize,clear,projection,subplots=subplots)
+        fig,axs = self.check_fig(fig, figsize, clear, projection, subplots=subplots)
         if isinstance(axs, (list,tuple)):
             ax = axs[subplot]
         else:
              ax = axs
              
-        array,bounds = DF2Numpy(DF,sort_index=True)
+        array,bounds = df_to_numpy(DF, sort_index=True)
         x = bounds[iNames[0]]
         y = bounds[iNames[1]]
         
         label = list(iNames)
         if convertAxis:
-            x,label[0] = self.P.convertAxis(iNames[0],x)
-            y,label[1] = self.P.convertAxis(iNames[1],y)
+            x,label[0] = self.P.convert_axis(iNames[0], x)
+            y,label[1] = self.P.convert_axis(iNames[1], y)
         # used to be np.object
         if array.dtype == object: array = array.astype(float)
          
@@ -642,17 +642,17 @@ class Plot():
         #plt.show()
         if not mpl.get_backend().lower() == 'agg':
             fig.subplots_adjust(bottom=0.15)
-        fig = self.drawFig(fig)
+        fig = self.draw_fig(fig)
         return fig,axs,plot,cbar
     
     
-    def plot1DSlider(self,DF,fig=1,clear=True):
+    def plot1d_slider(self, DF, fig=1, clear=True):
         if not issubclass(type(DF), pd.core.series.Series): 
             if len(DF.columns)>1: raise Exception("DF must be of type Series or of type DataFrame with one column.")
             else: title = DF.columns[0]
         else: title = DF.name
         
-        array,bounds = DF2Numpy(DF)
+        array,bounds = df_to_numpy(DF)
         z = bounds[list(bounds.keys())[0]]
         dz=z[1]-z[0]
         x = bounds[list(bounds.keys())[1]]
@@ -663,7 +663,7 @@ class Plot():
             return array[N,:]
 
         # Create the figure and the line that we will manipulate
-        fig,ax = self.checkFig(fig=fig,figsize=(12,5),clear=clear)
+        fig,ax = self.check_fig(fig=fig, figsize=(12, 5), clear=clear)
         
         line, = ax.plot(x, f(z[0],dz,array), lw=2)
         ax.set_xlabel(list(bounds.keys())[1])
@@ -714,7 +714,7 @@ class Plot():
         # buttons must be returned so that they dont get garbage collected
         return fig,ax,buttons
     
-    def plot1DSlider2(self,DF,plotVar=False,fig=1,fmt='#e',clear=True):
+    def plot1d_slider2(self, DF, plotVar=False, fig=1, fmt='#e', clear=True):
         if not issubclass(type(DF), pd.core.series.Series): 
             if len(DF.columns)>1 and not plotVar: 
                 raise Exception("DF must be of type Series or of type DataFrame with one column.")
@@ -745,7 +745,7 @@ class Plot():
             return out
             
         # Create the figure and the line that we will manipulate
-        fig,ax = self.checkFig(fig=fig,figsize=(12,5),clear=clear)
+        fig,ax = self.check_fig(fig=fig, figsize=(12, 5), clear=clear)
         
         line, = ax.plot(fx(DF[[plotVar]],0), fy(DF[[plotVar]],0), lw=2)
         ax.set_xlabel(DF.index.names[1])
@@ -809,13 +809,13 @@ class Plot():
         return fig,ax,buttons
     
     
-    def interactSweepData(self,DF,):
+    def interact_sweep_data(self, DF, ):
         pass
     
-    def interactTaggedParicles(self,DF,tags=None,fig=None,figsize=(8,8),clear=True,freq=None):
+    def interact_tagged_paricles(self, DF, tags=None, fig=None, figsize=(8, 8), clear=True, freq=None):
         xy = ['x','y']
         projection='rectilinear'
-        fig,ax = self.checkFig(fig,figsize,clear,projection)
+        fig,ax = self.check_fig(fig, figsize, clear, projection)
         if tags is None:
             nums = list(DF.index.get_level_values('tag').unique())
         else:
@@ -827,7 +827,7 @@ class Plot():
             t = DF.index.values
             if rot:
                 theta = -2*np.pi/3*freq*(t)
-                DF = rotateCart(DF,theta,xyCols=xy)  
+                DF = rotate_cart(DF, theta, xyCols=xy)
             # info = [xs, ys, ts, tag]
             info = [DF[xy[0]].to_numpy(),DF[xy[1]].to_numpy(),DF.index.values,nums[num]]
             return info
@@ -837,7 +837,7 @@ class Plot():
             # print(DF)
             if rot:
                 theta = -2*np.pi/3*freq*(t)
-                DF = rotateCart(DF,theta,xyCols=xy)
+                DF = rotate_cart(DF, theta, xyCols=xy)
             info = [DF[xy[0]].to_numpy(),DF[xy[1]].to_numpy()]
             return info
             
@@ -901,23 +901,23 @@ class Plot():
         #     line.set(ydata=info[0],xdata=info[1])
         #     fig.canvas.draw_idle()
             
-        def updateNum(num):
+        def update_num(num):
             # print(bprot.get_status())
             info = f(DF,int(num),bprot.get_status()[0])
             line.set(xdata=info[0],ydata=info[1])
             line1.set(xdata=info[0][0],ydata=info[1][0])
             text.set(text='temit=%0.2e\ntag=%i'%(info[2][0],info[3]))
-            toggleParts(bparts.get_status()[0])
+            toggle_parts(bparts.get_status()[0])
             fig.canvas.draw_idle()
             
             
-        def nextNum(val):
+        def next_num(val):
             value = int(num_slider.val)+1
             if value > num_slider.valmax: 
                 value = num_slider.valmax
             num_slider.set_val(value)
 
-        def prevNum(val):
+        def prev_num(val):
             value = int(num_slider.val)-1
             if value < num_slider.valmin: 
                 value = num_slider.valmin
@@ -926,7 +926,7 @@ class Plot():
         def rotate(value):
             num_slider.set_val(int(num_slider.val))
 
-        def toggleParts(value):
+        def toggle_parts(value):
             num = int(num_slider.val)
             # print(num)
             # print(nums[num])
@@ -944,11 +944,11 @@ class Plot():
             
         ax.set(title='trajectories')    
         # register the update function with each slider
-        num_slider.on_changed(updateNum)
-        bnext.on_clicked(nextNum)
-        bprev.on_clicked(prevNum)
+        num_slider.on_changed(update_num)
+        bnext.on_clicked(next_num)
+        bprev.on_clicked(prev_num)
         bprot.on_clicked(rotate)
-        bparts.on_clicked(toggleParts)
+        bparts.on_clicked(toggle_parts)
         buttons = [num_slider,bnext,bprev,bprot,bparts]
         # buttons must be returned so that they dont get garbage collected
         return fig,ax,buttons

@@ -8,7 +8,7 @@ This Opens H5 files
 """
 import collections
 import numpy as np              # array functions and manipulation 
-import numpy.matlib
+
 # import h5py                     # H5 file package
 import tables
 import glob                     # searching files function
@@ -22,8 +22,8 @@ from dmanage.plugins.vsim.loader import VsHdf5
 from dmanage import dfmethods as dfm
 from dmanage.utils.utils import child_override
 
-from dmanage.dfmethods.convert import numpy2DF,createBounds
-from dmanage.methods.functions import checkExist,vrrotvec
+from dmanage.dfmethods.convert import numpy_to_df,create_bounds
+from dmanage.methods.functions import check_exist,vrrotvec
 
 class UniMesh():
     """
@@ -46,19 +46,19 @@ class UniMesh():
         self.NC = self.M.getNumCells()
         self.dim = len(self.NC)
         self.kind = self.M.getKind()
-        self.axes = self._getAxes()
+        self.axes = self._get_axes()
         self.d = (self.UB-self.LB)/self.NC
 
     
     
-    def getMesh(self):
-        bounds = self.getBounds()
+    def get_mesh(self):
+        bounds = self.get_bounds()
         if len(bounds) == 3: mesh = np.meshgrid(bounds[0],bounds[1],bounds[2])[0]
         elif len(bounds) == 3: mesh = np.meshgrid(bounds[0],bounds[1])[0]
         elif len(bounds) == 3: mesh = np.meshgrid(bounds[0])[0]
         return mesh
         
-    def getBounds(self):
+    def get_bounds(self):
         bounds = []
         if (self.kind == 'uniform') or (self.kind == 'Cartesian'):
             for i in range(len(self.NC)): 
@@ -73,14 +73,14 @@ class UniMesh():
             raise Exception('getBounds() is not implemented for vsKind=%s'%self.kind)
         return bounds
     
-    def getBoundsDict(self):
-        bounds = self.getBounds()
+    def get_bounds_dict(self):
+        bounds = self.get_bounds()
         boundsDict = {}
         for i,axis in enumerate(self.axes):
             boundsDict[axis] = bounds[i]
         return boundsDict
     
-    def _getAxes(self):
+    def _get_axes(self):
         h5 = tables.open_file(self.file)
         nodeName = '/'+ self.fileSuffix
         if nodeName[1:] in h5.get_node('/')._v_children.keys():
@@ -107,9 +107,9 @@ class GeoData():
         self.types = [file.split('_')[-2] for file in geoFiles]
     
     @child_override
-    def readAsDF(self,geoType):
+    def read_as_df(self, geoType):
         array,bounds = self.readAsNumpy(geoType)
-        DF = numpy2DF(array, bounds,colName=geoType)
+        DF = numpy_to_df(array, bounds, colName=geoType)
         return DF
         
     def readAsNumpy(self, geoType):
@@ -118,7 +118,7 @@ class GeoData():
         file = self.files[i]
         h5 = tables.open_file(file)
         array = h5.get_node('/'+geoType).read()            # the array has a fourth dimension
-        bounds = self.UNI.getBoundsDict()        # bounds incomplete if 4th dim is kept
+        bounds = self.UNI.get_bounds_dict()        # bounds incomplete if 4th dim is kept
         # bounds['labels'] = ['node','center']   # add the fourth dimension
         # array = array[:,:,:,0]                   # 4th dim is removed by selecting center
         array = np.take(array,indices=0,axis=-1)   # remove last dim
@@ -126,7 +126,7 @@ class GeoData():
         return array,bounds
 
     
-class H5Hist():
+class History():
     """
     History component for VSim data
     """
@@ -143,18 +143,18 @@ class H5Hist():
         for theType in copy.deepcopy(self.types):
             if 'timeSeries' in theType:
                 self.types.remove(theType)
-        self.tend,self.TSTEPS,self.dt = self._readTimeInfo(h5)
+        self.tend,self.TSTEPS,self.dt = self._read_time_info(h5)
         self.UNI = UniMesh(folder,file=uniFile)
         self.folder = folder
         h5.close()
         return
     
     @child_override
-    def readSeriesAsDF(self, baseName,concat=True,axis=1):
+    def read_series_as_df(self, baseName, concat=True, axis=1):
         # want to include this in self.readAsDF
         histNames = [ hist for hist in self.types if baseName in hist]
         histNames = natsort.natsorted(histNames)
-        DFs = self.readAsDF(histNames,concat=False,axis=axis)
+        DFs = self.read_as_df(histNames, concat=False, axis=axis)
         if concat:
             if axis == 0:
                 for histName,DF in zip(histNames,DFs):
@@ -164,11 +164,11 @@ class H5Hist():
         return DFs,histNames
     
     @child_override
-    def readAsDF(self,histNames,concat=True,axis=1,**kwargs):
+    def read_as_df(self, histNames, concat=True, axis=1, **kwargs):
         if not type(histNames) is list: histNames = [histNames]
         DFs = []
         for histName in histNames:
-            DFs = DFs + [self._readAsDF(histName,**kwargs)]
+            DFs = DFs + [self._read_as_df(histName, **kwargs)]
         if concat and DFs:
             DFs = pd.concat(DFs,axis=axis,verify_integrity=False)
             DFs = DFs.loc[:,~DFs.columns.duplicated()].copy()
@@ -176,11 +176,11 @@ class H5Hist():
             DFs = pd.DataFrame([])
         return DFs
  
-    def _readAsDF(self, histName,**kwargs):
+    def _read_as_df(self, histName, **kwargs):
         if type(histName) is list: 
             histName = histName[0]
         
-        if checkExist(histName,self.types,output=False):
+        if check_exist(histName, self.types, output=False):
             h5 = tables.open_file(self.histFile)
             node = h5.get_node('/'+ histName) 
             attrs = node._v_attrs._v_attrnames
@@ -228,8 +228,8 @@ class H5Hist():
                     # dataNames = ['x','y','z','ux','uy','uz']
                 
                     dataNames = self.UNI.axes + ['u' + axisName for axisName in self.UNI.axes]
-                    bounds = createBounds(array,iNames,bounds = {'t':t,'data':dataNames})
-                    DF = numpy2DF(array,bounds,colName,inplace=True)
+                    bounds = create_bounds(array, iNames, bounds = {'t':t, 'data':dataNames})
+                    DF = numpy_to_df(array, bounds, colName, inplace=True)
                     #DF = DF['trajectory'].unstack(level='data') # to unstack that data to a list format
                     
                     # this gets rid of zero values where the particle doesnt exist
@@ -246,13 +246,13 @@ class H5Hist():
                     # convert from 3D array to pandas dataframe
                     iNames = ['t','point','v']
                     colName = histName
-                    bounds = createBounds(array,iNames,bounds = {'t':t})
-                    DF = numpy2DF(array,bounds,colName,inplace=True)
+                    bounds = create_bounds(array, iNames, bounds = {'t':t})
+                    DF = numpy_to_df(array, bounds, colName, inplace=True)
     
                     # add position columns
                     for i,label in enumerate(self.UNI.axes):
                         colName = label
-                        bounds = self.UNI.getBounds()
+                        bounds = self.UNI.get_bounds()
                         if histType == 'fieldOnLine': pos = bounds[i][node.get_attr(label)]
                         else: pos = node.get_attr(label)
                         vecLength = array.shape[2]
@@ -293,7 +293,7 @@ class H5Hist():
                 DF.name = histName
                 DF = DF.to_frame()
             elif len(s) == 1:          # it's a scaler History
-                DF = numpy2DF(array,{'t':t},histName,inplace=True)
+                DF = numpy_to_df(array, {'t':t}, histName, inplace=True)
             else: raise Exception('This history has no method to read yet')
             h5.close()
         else:
@@ -301,8 +301,8 @@ class H5Hist():
             DF = None
         return DF
     
-    def readAsNumpy(self, histName):
-        if checkExist(histName,self.types,output=False):
+    def read_as_numpy(self, histName):
+        if check_exist(histName, self.types, output=False):
             h5 = tables.open_file(self.histFile)
             node = h5.get_node('/'+ histName) 
             attrs = node._v_attrs._v_attrnames
@@ -354,13 +354,13 @@ class H5Hist():
             bounds = None
         return array,bounds
     
-    def checkDataset(self,histNames,output=False):
+    def check_dataset(self, histNames, output=False):
         if not type(histNames) is list: histNames = [histNames]
         h5 = tables.open_file(self.histFile)
         check = True
         histNamesOut = []
         for histName in histNames:
-            if checkExist(histName,self.types,output=False):
+            if check_exist(histName, self.types, output=False):
                 node = h5.get_node('/'+histName)
                 s = node.shape
                 if len(s) == 0:
@@ -376,7 +376,7 @@ class H5Hist():
     ###########################################
     #       private methods
     ###########################################
-    def _readTimeInfo(self,h5):
+    def _read_time_info(self, h5):
         if 'timeSeries' in h5.root._v_children.keys():
             node = h5.get_node('/timeSeries')
             attrs = node._v_attrs._v_attrnames
@@ -408,7 +408,7 @@ class H5Hist():
     
     
 
-class H5Particles():
+class Particles():
     def __init__(self, folder,partTypes=None,uniFile=None):
         self.types = partTypes
         self.files = {}
@@ -426,10 +426,10 @@ class H5Particles():
                 basename = os.path.splitext(basename)[0]
                 nums = nums + [int(basename.split('_')[-1])]
             self.stepNums[partType] = nums
-            self.info[partType] = self._getPartInfo(partType)
+            self.info[partType] = self._get_part_info(partType)
     
     @child_override
-    def readAsDF(self,steps=None,partType=None,relData=None,relTags=None,sampleRatio=False,nc=1):
+    def read_as_df(self, steps=None, partType=None, relData=None, relTags=None, sampleRatio=False, nc=1):
         if partType is None:
             raise Exception("partType must be defined as one of %s"%self.types)
             
@@ -437,8 +437,8 @@ class H5Particles():
         print('  Reading particle dumps with %i cores...'%(nc), end=' ')
         
         if steps is None or type(steps) is str: steps = range(0,self.steps[partType])
-        readAsDF_ = dfm.wrapper.parallelize_iterator_method(self._readAsDF,concat=True)
-        DF = readAsDF_(steps,partType=partType,relData=relData,relTags=relTags,sampleRatio=sampleRatio,nc=nc)
+        read_as_df_ = dfm.wrapper.parallelize_iterator_method(self._read_as_df, concat=True)
+        DF = read_as_df_(steps,partType=partType,relData=relData,relTags=relTags,sampleRatio=sampleRatio,nc=nc)
         
         executionTime = (time.time()-startTime)
         print(' Done in %0.2f seconds'%(executionTime))
@@ -446,7 +446,7 @@ class H5Particles():
         return DF
     
     
-    def _readAsDF(self,step,partType,relData=None,relTags=None,sampleRatio=False,nc=1):
+    def _read_as_df(self, step, partType, relData=None, relTags=None, sampleRatio=False, nc=1):
         """
         
         """
@@ -455,7 +455,7 @@ class H5Particles():
         
         h5 = tables.open_file(self.files[partType][step])
         
-        colNames = self._getColumnNames(h5)
+        colNames = self._get_column_names(h5)
         if 'tags' in colNames: colNames[colNames.index('tags')] = 'tag'
         node = h5.get_node('/'+partType)
         array = node.read()
@@ -491,7 +491,7 @@ class H5Particles():
         h5.close()
         return DF 
     
-    def array2DF(self,array,t,colNames,partType):      
+    def array_to_df(self, array, t, colNames, partType):
         DF = pd.DataFrame(array,columns=colNames)
         DF.index.name = 'num'
         DF.insert(0,'t',t)
@@ -506,14 +506,14 @@ class H5Particles():
             DF['weight'] = self.info[partType]['ppm']
         return DF
 
-    def readAsNumpy(self,partType,step):
+    def read_as_numpy(self, partType, step):
         h5 = tables.open_file(self.files[partType][step])
         node = h5.get_node('/'+partType)
         array = node.read()
         t = node._v_attrs.time
-        dataNames = self._getColumnNames(h5)
+        dataNames = self._get_column_names(h5)
         iNames = ['num','data']
-        bounds = createBounds(array,iNames,bounds={'data':dataNames})
+        bounds = create_bounds(array, iNames, bounds={'data':dataNames})
         bounds['t'] = t
         h5.close()
         return array,bounds
@@ -522,7 +522,7 @@ class H5Particles():
     #   private methods
     ##########################
     
-    def _getColumnNames(self,h5):
+    def _get_column_names(self, h5):
         keys = list(h5.root._v_children.keys())
         remKeys = ['globalGridGlobalLimits', 'runInfo', 'time']
         for remKey in remKeys:
@@ -534,7 +534,7 @@ class H5Particles():
         colNames = [colName.split('_')[-1] for colName in colNames]
         return colNames
     
-    def _getPartInfo(self,partType):
+    def _get_part_info(self, partType):
         i = 0
         tFirstFound = False
         while (i < self.steps[partType]) and not tFirstFound:
@@ -565,7 +565,7 @@ class H5Particles():
     #   Possibly OBSOLETE CODE BELOW
     ##########################
     
-    def getUnique(self,partType,steps=None,col='tag',nc=1):
+    def get_unique(self, partType, steps=None, col='tag', nc=1):
         if steps is None or type(steps) is str: steps = range(0,self.steps[partType])
         if not isinstance(steps,collections.abc.Iterable): steps = [steps]
         nc = min(nc,len(steps))
@@ -575,7 +575,7 @@ class H5Particles():
             stepss = np.array_split(np.array(steps),nc)
             variables = [(partType,steps,col,1) for steps in stepss]
             pool = Pool(processes=nc)
-            F =  pool.starmap_async(self.getUnique,variables)
+            F =  pool.starmap_async(self.get_unique, variables)
             
             arraylist = F.get()
             pool.close()
@@ -584,15 +584,15 @@ class H5Particles():
             # DF = dm.PerfectDataFrame()
             arrayList = []
             for step in steps:
-                arrayList = arrayList + [ self._getUnique(partType,step,col) ]
+                arrayList = arrayList + [self._get_unique(partType, step, col)]
 
             array = np.unique(np.concatenate(arrayList))
 
         return array
     
-    def _getUnique(self,partType,step,col='tag'):
+    def _get_unique(self, partType, step, col='tag'):
         # if not type(col) is list: col = [col]
-        DF = self._readAsDF(partType,steps=step,relData=col)
+        DF = self._read_as_df(partType, steps=step, relData=col)
         if col in DF.columns:
             if not issubclass(type(DF), pd.core.series.Series): 
                 DF = DF[col].unique()
@@ -607,8 +607,8 @@ class H5Particles():
     ##########################
     #   OBSOLETE CODE BELOW
     ##########################
-    def ___getMaxMinStep(self,partType,step,coords='cyl',phiRange='2pi'):
-        DF = self.readAsDF(partType,step)
+    def ___get_max_min_step(self, partType, step, coords='cyl', phiRange='2pi'):
+        DF = self.read_as_df(partType, step)
         if not DF.empty:
             if coords == 'cyl':
                 DF = self.cart2Cyl(DF,phiRange=phiRange)
@@ -617,7 +617,7 @@ class H5Particles():
             DF=None
         return DF
     
-    def ___getMaxMinSteps(self,partTypes,steps=None,coords='cyl',phiRange='2pi',nc=1):
+    def ___get_max_min_steps(self, partTypes, steps=None, coords='cyl', phiRange='2pi', nc=1):
         """
         Gets max and min of all dumps of the columns in the particle steps
         """
@@ -652,28 +652,28 @@ class H5Particles():
     
     
     
-    def ___readAllAsNumpy(self,partType,steps=None):
+    def ___read_all_as_numpy(self, partType, steps=None):
         # UNAVAILABLE because it is non-uniform array in time
         pass
      
-    def ___readAsDF(self,partType,steps=None,relData=None,tagRatio=None,nc=1):
+    def ___read_as_df(self, partType, steps=None, relData=None, tagRatio=None, nc=1):
         startTime = time.time()
         relTags = None
         
         if type(tagRatio) != type(None):
             
             print('  Getting unique tags for decimation...', end=' ')
-            relTags = self.getUnique(partType,steps=steps,col='tag',nc=nc)
+            relTags = self.get_unique(partType, steps=steps, col='tag', nc=nc)
             relTags = np.random.choice(relTags,int(len(relTags)*tagRatio),replace=False)
             relTags.sort()
             print(' Done')
         print('  Reading particle dumps with %i cores...'%(nc), end=' ')
-        DF = self._readAsDF(partType,steps,relData,relTags,nc)
+        DF = self._read_as_df(partType, steps, relData, relTags, nc)
         executionTime = (time.time()-startTime)
         print(' Done in %0.2f seconds'%(executionTime))
         return DF
         
-class H5Fields():
+class Fields():
     """
     This class gets info about the set of vector? fields
     """
@@ -699,41 +699,42 @@ class H5Fields():
         self.UNI = UniMesh(folder,file=uniFile)
         
     @child_override
-    def readAllAsDF(self,fieldType,steps=None,nc=1):
-        array,bounds = self.readAllAsNumpy(fieldType,steps,nc)
-        DF = numpy2DF(array, bounds)
+    def read_all_as_df(self, fieldType, steps=None, nc=1):
+        array,bounds = self.read_all_as_numpy(fieldType, steps, nc)
+        DF = numpy_to_df(array, bounds)
         return DF
     
     @child_override
-    def readAsDF(self, fieldType,step):
+    def read_as_df(self, fieldType, step):
         h5 = tables.open_file(self.files[fieldType][step])
         vcolName = 'v'
         node = h5.get_node('/'+fieldType)
         array = node.read()
         t = node._v_attrs.time
-        bounds = self.UNI.getBoundsDict()
+        bounds = self.UNI.get_bounds_dict()
         iNames = self.UNI.axes + [vcolName]
         colName = fieldType
-        bounds = createBounds(array,iNames,bounds = bounds)
-        DF = numpy2DF(array,bounds,colName,inplace=True)
+        bounds = create_bounds(array, iNames, bounds = bounds)
+        DF = numpy_to_df(array, bounds, colName, inplace=True)
 
         DF.insert(0,'t',t)
         DF.set_index('t',append=True,inplace=True)
         DF = DF.reorder_levels(['t','x','y','z','v'])
+        h5.close()
         return DF
     @child_override
-    def readAllAsNumpy(self,fieldType,steps=None,nc=1):
+    def read_all_as_numpy(self, fieldType, steps=None, nc=1):
         if type(steps) == type(None) or steps == 'all': steps = range(0,self.steps[fieldType])
         
         
-        array,bounds = self.readAsNumpy(fieldType,steps[0])
+        array,bounds = self.read_as_numpy(fieldType, steps[0])
         s = len(array.shape)
         array = np.expand_dims(array,axis=s)
         if nc>1:
             theArgs = [(fieldType,i) for i in steps[1:]]
             if len(theArgs)>0:
                 pool = Pool(processes=nc)
-                F =  pool.starmap_async(self.readAsNumpy,theArgs)
+                F =  pool.starmap_async(self.read_as_numpy, theArgs)
                 #(arrayList,boundsList) = F.get()
                 tupleList = F.get()
                 arrayList,boundsList = list(zip(*tupleList))
@@ -748,30 +749,31 @@ class H5Fields():
         else:
             bounds['t'] = [bounds['t']]
             for step in steps[1:]:
-                tempArray,tempBounds = self.readAsNumpy(fieldType,step)
+                tempArray,tempBounds = self.read_as_numpy(fieldType, step)
                 tempArray = np.expand_dims(tempArray,axis=s)
                 array = np.concatenate([array,tempArray],axis=s)
                 bounds['t'] = bounds['t'] + [tempBounds['t']]
             bounds['t'] = np.array(bounds['t'])
         return array,bounds
     @child_override
-    def readAsNumpy(self, fieldType, step):
+    def read_as_numpy(self, fieldType, step):
         h5 = tables.open_file(self.files[fieldType][step])
         vcolName = 'v'
         node = h5.get_node('/'+fieldType)
         array = node.read()
         t = node._v_attrs.time
-        bounds = self.UNI.getBoundsDict()
+        bounds = self.UNI.get_bounds_dict()
         bounds[vcolName] = [i for i in range(array.shape[-1])]
         bounds['t'] = t
+        h5.close()
         return array,bounds
     
-    def ___readAllAsDF(self,fieldType,steps=None):
+    def ___read_all_as_df(self, fieldType, steps=None):
         # slower than reading as numpy
         if type(steps) == type(None): steps = self.steps[fieldType]
         DF = pd.DataFrame()
         for step in range(steps):
-            DF = pd.concat([DF,self.readAsDF(fieldType,step)])
+            DF = pd.concat([DF, self.read_as_df(fieldType, step)])
         return DF
         
 class InputVariables():
@@ -791,7 +793,7 @@ class InputVariables():
         source = open(self.varFile, 'r')
         variables = {}
         if 'date' in varList_copy: 
-            variables['date']=self.getDate()
+            variables['date']=self.get_date()
             varList_copy.remove('date')
             
         for line in reversed(list(source)):
@@ -808,7 +810,7 @@ class InputVariables():
             print('Variables Not Found: %s'%varList_copy)
         return variables
     
-    def getDate(self):
+    def get_date(self):
         source = open(self.varFile, 'r')
         for line in list(source):
             if '### Translation: ' in line:
@@ -818,16 +820,16 @@ class InputVariables():
 class VSim():
     def __init__(self,folder):
 
-        if not self.isValid(folder):
+        if not self.is_valid(folder):
             print('Not a valid VSim folder')
             
         else:
             self.sim = 'VSim'
             self.PreVars = InputVariables(self.varFile)
-            self.Hists, self.Parts,self.Fields,self.Geos = self.loadComponents(folder)
+            self.Hists, self.Parts,self.Fields,self.Geos = self.load_components(folder)
             self.components = ['Hist','Parts','Fields','Geos','PreVars']
    
-    def isValid(self,folder):
+    def is_valid(self, folder):
         folder = os.path.join(folder,'')
         varFile = glob.glob(folder + '/*Vars.py')
         if len(varFile) == 0:
@@ -838,7 +840,7 @@ class VSim():
             valid=True
         return valid
     
-    def loadComponents(self,folder):
+    def load_components(self, folder):
         ignores = ['Globals', 'universe','History']
         files = np.array(glob.glob(folder + '/*.h5'))
         types = []
@@ -870,14 +872,14 @@ class VSim():
                     #os.path.basename(file)
                     print("Cannot open '%s', it my be corrupt, this file should be deleted"%os.path.basename(file))
         if histExist:
-            Hists = H5Hist(folder,uniFile=geoFiles[0])
+            hists = History(folder, uniFile=geoFiles[0])
         
-        Geos = GeoData(folder,geoFiles)
-        Parts = H5Particles(folder,particleTypes,uniFile=geoFiles[0])
-        Fields = H5Fields(folder,fieldTypes)
-        return Hists,Parts,Fields,Geos
+        geos = GeoData(folder,geoFiles)
+        parts = Particles(folder, particleTypes, uniFile=geoFiles[0])
+        fields = Fields(folder, fieldTypes)
+        return hists,parts,fields,geos
         
-    def _loadComponents(self,folder,DDobj=None):
+    def _load_components(self, folder, DDobj=None):
         DDobj.PreVars = InputVariables(self.varFile) # ???
         ignores = ['Globals', 'universe','History']
         files = np.array(glob.glob(folder + '/*.h5'))
@@ -912,12 +914,12 @@ class VSim():
         
         DDobj.PreVars = InputVariables(self.varFile)
         if histExist:
-            DDobj.Hists = H5Hist(folder,uniFile=geoFiles[0])
+            DDobj.Hists = History(folder, uniFile=geoFiles[0])
         
         
         DDobj.Geos = GeoData(folder,geoFiles)
-        DDobj.Parts = H5Particles(folder,particleTypes,uniFile=geoFiles[0])
-        DDobj.Fields = H5Fields(folder,fieldTypes)
+        DDobj.Parts = Particles(folder, particleTypes, uniFile=geoFiles[0])
+        DDobj.Fields = Fields(folder, fieldTypes)
         return None    
     
    

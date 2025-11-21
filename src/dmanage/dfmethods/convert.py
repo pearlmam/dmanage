@@ -8,7 +8,7 @@ import copy
 from multiprocess import Pool
 
 
-def createBounds(array,iNames,bounds = {}):
+def create_bounds(array, iNames, bounds = {}):
     s = array.shape
     if len(iNames) != len(s):
         raise Exception('Length of iNames should be the same as the array dimension')
@@ -24,7 +24,7 @@ def createBounds(array,iNames,bounds = {}):
     newBounds = {iName:index[i] for i,iName in enumerate(iNames)}
     return newBounds
 
-def replaceBound(bounds,oldKey,newKey,val=None):
+def replace_bound(bounds, oldKey, newKey, val=None):
     # sets the index of oldIname to newIName with iVals
     bounds = {newKey if key==oldKey else key:value for key,value in bounds.items()}
     if type(val) != type(None):
@@ -32,7 +32,7 @@ def replaceBound(bounds,oldKey,newKey,val=None):
     return bounds
 
 
-def replaceBounds(bounds,oldKeys,newKeys,vals=None):
+def replace_bounds(bounds, oldKeys, newKeys, vals=None):
     if type(oldKeys) != list: oldKeys = [oldKeys]
     if type(newKeys) != list: newKeys = [newKeys]
     if (type(vals) == None) or (type(vals) != list): vals = [vals]*len(oldKeys)
@@ -49,7 +49,7 @@ def replaceBounds(bounds,oldKeys,newKeys,vals=None):
     return newBounds
 
 
-def numpy2DF(array,bounds,colName='value',inplace=False):
+def numpy_to_df(array, bounds, colName='value', inplace=False):
     """
     Convert from numpy array to pandas dataframe. each dimension is an index with the values representing the data.
     
@@ -89,7 +89,7 @@ def numpy2DF(array,bounds,colName='value',inplace=False):
         gc.collect()
     return DF
 
-def DF2Numpy(DF,sort_index=False,inplace=False):
+def df_to_numpy(DF, sort_index=False, inplace=False):
     """
     Convert from  pandas dataframe to numpy array.
 
@@ -129,7 +129,7 @@ def DF2Numpy(DF,sort_index=False,inplace=False):
         gc.collect()    
     return array,bounds
 
-def cart2CylVector(DF,vecIndex='v',phiIndex='phi',phiRange='2pi'):
+def cart_to_cyl_vector(DF, vecIndex='v', phiIndex='phi', phiRange='2pi'):
     # v=0 is rho v=1 is phi
     DF.columns.name = 'data'
     if vecIndex in DF.index.names:
@@ -187,7 +187,7 @@ def cart2CylVector(DF,vecIndex='v',phiIndex='phi',phiRange='2pi'):
     
     return DF
 
-def multiIndex2Index(DF,inplace=False):
+def mi_to_index(DF, inplace=False):
     if type(DF.index) == pd.core.indexes.multi.MultiIndex:
         if len(DF.index.names)==1:
             iName = DF.index.names[0]
@@ -200,7 +200,7 @@ def multiIndex2Index(DF,inplace=False):
         else: raise Exception('MultiIndex has more than 1 level and cannot be converted to a single index')
     return DF
 
-def intervalIndex2Num(DF):
+def interval_to_num_index(DF):
     """
     This converts a pd.series of pd.intervals object to one with floats. 
     Usefull for storing as H5 or plotting 
@@ -230,7 +230,7 @@ def intervalIndex2Num(DF):
     DF = DF.set_index(index)
     return DF
 
-def makeStructured(DF,cols,bins=50):
+def make_structured(DF, cols, bins=50):
     if type(cols) != list:
         cols = [cols]
     if not type(bins) is list:
@@ -246,12 +246,12 @@ def makeStructured(DF,cols,bins=50):
         DF[col] = pd.cut(DF[col],bins[i])
         
     DF = DF.groupby(iNames).mean()
-    DF = intervalIndex2Num(DF)
+    DF = interval_to_num_index(DF)
     DF = DF.sort_index()
     return DF
 
 
-def cyl2Cart(DF,xyCols=['r','phi'],uxyCols = ['ur','uphi']):
+def cyl_to_cart(DF, xyCols=['r', 'phi'], uxyCols = ['ur', 'uphi']):
     """
     converts a datalist from cartesian to cylindrical coordinates
     needs implementation for converting multiIndex from cart to cyl
@@ -302,7 +302,7 @@ def cyl2Cart(DF,xyCols=['r','phi'],uxyCols = ['ur','uphi']):
     return DF
 
 
-def cart2Cyl(DF,xyCols=['x','y'],uxyCols = ['ux','uy'],rphiCols=['r','phi'],phiRange='2pi',nc=1):
+def cart_to_cyl(DF, xyCols=['x', 'y'], uxyCols = ['ux', 'uy'], rphiCols=['r', 'phi'], phiRange='2pi', nc=1):
     '''
     paralell process often takes longer.
     '''
@@ -310,16 +310,16 @@ def cart2Cyl(DF,xyCols=['x','y'],uxyCols = ['ux','uy'],rphiCols=['r','phi'],phiR
         DFs = np.array_split(DF,nc)
         variables = [(DF,xyCols,uxyCols,rphiCols,phiRange) for DF in DFs]
         pool = Pool(processes=nc)
-        F =  pool.starmap_async(_cart2Cyl,variables)
+        F =  pool.starmap_async(_cart_to_cyl, variables)
         DFs = F.get()
         pool.close()
         DF = pd.concat(DFs,axis=0)
     else:
-        DF = _cart2Cyl(DF,xyCols=xyCols,uxyCols=uxyCols,rphiCols=rphiCols,phiRange=phiRange)
+        DF = _cart_to_cyl(DF, xyCols=xyCols, uxyCols=uxyCols, rphiCols=rphiCols, phiRange=phiRange)
     return DF
         
 
-def _cart2Cyl(DF,xyCols=['x','y'],uxyCols = ['ux','uy'],rphiCols=['r','phi'],phiRange='2pi'):
+def _cart_to_cyl(DF, xyCols=['x', 'y'], uxyCols = ['ux', 'uy'], rphiCols=['r', 'phi'], phiRange='2pi'):
     """
     converts a dataFrame from cartesian to cylindrical coordinates
     needs implementation for converting multiIndex from cart to cyl
@@ -362,27 +362,27 @@ def _cart2Cyl(DF,xyCols=['x','y'],uxyCols = ['ux','uy'],rphiCols=['r','phi'],phi
     DFout = pd.concat([DFout,DF],axis=1)
     if iNames:
         DFout = DFout.set_index(list(newCols.values()),append=True).reorder_levels(iNames).sort_index()
-    DFout = convertPhiRange(DFout,phiRange=phiRange,phiCol=phiCol)
+    DFout = convert_phi_range(DFout, phiRange=phiRange, phiCol=phiCol)
     return DFout
     
 
-def rotateCyl(DF,theta=0,phiCol='phi',discretePhi=False,phiRange='2pi',interpolate=True,nc=1):
+def rotate_cyl(DF, theta=0, phiCol='phi', discretePhi=False, phiRange='2pi', interpolate=True, nc=1):
     
     if nc > 1:
         DFs = np.array_split(DF,nc)
         thetas = np.array_split(theta,nc)
         variables = [(DF,theta,phiCol,discretePhi,phiRange,interpolate) for DF,theta in zip(DFs,thetas)]
         pool = Pool(processes=nc)
-        F =  pool.starmap_async(_rotateCyl,variables)
+        F =  pool.starmap_async(_rotate_cyl, variables)
         DFs = F.get()
         pool.close()
         DF = pd.concat(DFs)
     else:
-        DF = _rotateCyl(DF,theta=theta,phiCol=phiCol,discretePhi=discretePhi,phiRange=phiRange,interpolate=interpolate)
+        DF = _rotate_cyl(DF, theta=theta, phiCol=phiCol, discretePhi=discretePhi, phiRange=phiRange, interpolate=interpolate)
     
     return DF
 
-def _rotateCyl(DF,theta=0,phiCol='phi',discretePhi=False,phiRange='2pi',interpolate=True):
+def _rotate_cyl(DF, theta=0, phiCol='phi', discretePhi=False, phiRange='2pi', interpolate=True):
     iNames = False
     if not issubclass(type(DF), pd.core.series.Series):
         if not phiCol in DF.columns:
@@ -410,7 +410,7 @@ def _rotateCyl(DF,theta=0,phiCol='phi',discretePhi=False,phiRange='2pi',interpol
         # DF = DF.drop_duplicates('phi')   # need to drop duplicate values in order to unstack
         # will need to make uniform if plotting
         DF = DF.set_index(phiCol,append=True)
-        DF = makeUniformDF(DF,interpolate=interpolate)   # with rotating grid fields, this operation takes a lot of memory, I may need to shrink dataset, ie: bin, group, and average
+        DF = make_uniform_df(DF, interpolate=interpolate)   # with rotating grid fields, this operation takes a lot of memory, I may need to shrink dataset, ie: bin, group, and average
         DF = DF.reset_index(phiCol)
         
     if phiRange == '2pi':
@@ -424,7 +424,7 @@ def _rotateCyl(DF,theta=0,phiCol='phi',discretePhi=False,phiRange='2pi',interpol
         DF = DF.set_index(phiCol,append=True).reorder_levels(iNames).sort_index()
     return DF
 
-def convertPhiRange(DF,phiRange='2pi',phiCol='phi'):
+def convert_phi_range(DF, phiRange='2pi', phiCol='phi'):
     if not phiCol is None:
         if phiCol in DF.columns:
             if phiRange == '2pi':
@@ -456,7 +456,7 @@ def convertPhiRange(DF,phiRange='2pi',phiCol='phi'):
     return DF.sort_index()
 
 
-def rotateCart(DF,theta=0,xyCols = ['x','y'],discretePos=False):
+def rotate_cart(DF, theta=0, xyCols = ['x', 'y'], discretePos=False):
     iNames = False
     if len([(True) for xyCol in xyCols if xyCol in DF.columns]) != 2: 
         if len([(True) for xyCol in xyCols if xyCol in DF.index.names]) == 2: 
@@ -486,7 +486,7 @@ def rotateCart(DF,theta=0,xyCols = ['x','y'],discretePos=False):
     
     return DF
 
-def makeUniformDF(DF,method=None,fill_value=np.nan,interpolate=True,limit_area='inside'):
+def make_uniform_df(DF, method=None, fill_value=np.nan, interpolate=True, limit_area='inside'):
     # this will make the data uniform and interpolate inside nan values, igonres end nan values
     vector = False
     
@@ -523,7 +523,7 @@ def makeUniformDF(DF,method=None,fill_value=np.nan,interpolate=True,limit_area='
     return DF
 
 
-def intervalColumns2Num(DF,inplace=True):
+def interval_to_num_columns(DF, inplace=True):
     """
     This converts a pd.series of pd.intervals object to one with floats. 
     Usefull for storing as H5 or plotting 

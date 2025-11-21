@@ -9,7 +9,7 @@ import copy
 
 # my package methods
 from dmanage.methods import functions as func
-from dmanage.dfmethods.convert import numpy2DF,DF2Numpy
+from dmanage.dfmethods.convert import numpy_to_df,df_to_numpy
 from dmanage.dfmethods.linalg import norm
 
 
@@ -26,7 +26,7 @@ def mi_iloc(DF,indices):
 
 
 ##### might noet be needed in preference for np.array_split()?
-def splitBy(DF,N,indices=[],axis=0):
+def split_by(DF, N, indices=[], axis=0):
     if not type(indices) is list:
         indices = [indices]
     if len(indices)==0:
@@ -55,7 +55,7 @@ def splitBy(DF,N,indices=[],axis=0):
                     DFs = DFs + [ DF.loc[splitIndice[0]:splitIndice[-1]] ]
     return DFs
 
-def splitByOld(DF,index,N):
+def split_by_old(DF, index, N):
     if type(DF.index) == pd.core.indexes.multi.MultiIndex:
         index = DF.index.get_level_values(index)
     else:
@@ -76,7 +76,7 @@ def splitByOld(DF,index,N):
     return DFs
 
 
-def cutRange(DF,theRange,iName=None,inplace=True):
+def cut_range(DF, theRange, iName=None, inplace=True):
     if type(DF.index) == pd.core.indexes.base.Index: iNames = [DF.index.name]
     if type(DF.index) == pd.core.indexes.multi.MultiIndex: iNames = DF.index.names
     if type(iName)==type(None): iName = iNames[-1]
@@ -171,7 +171,7 @@ def _reduce(DF,iName=None,method='mean',iApply=False,inplace=False,block=False,*
         iNames.insert(0,iName)  # reorder the iNames so it's easy to take a slice
         if 'value' in kwargs: value = kwargs['value'] 
         else: raise Exception("With method='value', an additional arge 'value' must be specified")
-        value = getClosestValue(DF,iName,value)
+        value = get_closest_value(DF, iName, value)
         DF = DF.reorder_levels(iNames).loc[value]
     
     elif method == 'wmean':
@@ -230,19 +230,19 @@ def _reduce(DF,iName=None,method='mean',iApply=False,inplace=False,block=False,*
     
     return DF
 
-def weightedConcat(DFlist,col='weight',nc=1):
+def weighted_concat(DFlist, col='weight', nc=1):
     if len(DFlist)==1:
         DF = DFlist[0]
     elif len(DFlist)>1:
         if nc>1:
             DF = None
         else:
-            DF = _weightedConcat(DFlist,col)
+            DF = _weighted_concat(DFlist, col)
     else:
         DF = None
     return DF
         
-def _weightedConcat(DFlist,col='weight'):
+def _weighted_concat(DFlist, col='weight'):
     """
     requires column named 'weight'
     """
@@ -256,7 +256,7 @@ def _weightedConcat(DFlist,col='weight'):
     DF = DF.groupby(iNames).sum() 
     return DF
 
-def getClosestValue(DF,iName,value):
+def get_closest_value(DF, iName, value):
     iLevel = [i for i in range(len(DF.index.names)) if DF.index.names[i] == iName][0]
     values = DF.index.get_level_values(iLevel).unique().to_numpy()
     if not value in values:
@@ -284,22 +284,22 @@ def getSlice(DF,iName,value,drop=True):
 
     """
     iLevel = [i for i in range(len(DF.index.names)) if DF.index.names[i] == iName][0]
-    value = getClosestValue(DF,iName,value)
+    value = get_closest_value(DF, iName, value)
     indices = DF.index.get_level_values(iLevel)==value    
     DF = DF.iloc[indices]
     if drop: DF = DF.reset_index(iName,drop=True)
     
     return DF
 
-def windowedInfo(DF,win=None,overlap=0.5,info='period',window='hanning',**kwargs):
-    array,bounds = DF2Numpy(DF)
+def windowed_info(DF, win=None, overlap=0.5, info='period', window='hanning', **kwargs):
+    array,bounds = df_to_numpy(DF)
     iName = list(bounds.keys())[len(array.shape)-1]
     x = bounds[iName]
-    Is,xs = func.getWindowedInfo(array,x,win=win,overlap=overlap,info=info,window=window)
+    Is,xs = func.get_windowed_info(array, x, win=win, overlap=overlap, info=info, window=window)
     return Is,xs
 
 
-def getStableWidth(DF,iSweep,checkCols=[],stableCol='stable'):
+def get_stable_width(DF, iSweep, checkCols=[], stableCol='stable'):
     iNames = []
 
     if iSweep in DF.index.names:
@@ -323,7 +323,7 @@ def getStableWidth(DF,iSweep,checkCols=[],stableCol='stable'):
         DF = DF.set_index(iNames)
     return DF
 
-def getStableData(DF,method,iSweep,checkCols=[],stableCol='stable'):
+def get_stable_data(DF, method, iSweep, checkCols=[], stableCol='stable'):
     # iNames = list(DF.index.names)
     iNames = []
     if iSweep in DF.index.names:
@@ -355,7 +355,7 @@ def getStableData(DF,method,iSweep,checkCols=[],stableCol='stable'):
         DF = DF.set_index(iNames,append=True)
     return DF
 
-def binDF(DF,binVars,bins,inplace=False):
+def bin_df(DF, binVars, bins, inplace=False):
     """
     This bins the DataFrame by the column labeled <var> by the <bins> and the agregation in methods
     bins can be an integer representing the number of bins, or a list of the bin breaks
@@ -403,7 +403,7 @@ def binDF(DF,binVars,bins,inplace=False):
 
 
 
-def genBinBreaks(DF,binCols,bins,phiRange='2pi'):
+def gen_bin_breaks(DF, binCols, bins, phiRange='2pi'):
     """generate bin breaks using the min and max"""
     if type(binCols) is not list: binCols = [binCols]
     if type(bins) is not list: bins = [bins]*len(binCols)

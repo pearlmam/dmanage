@@ -23,14 +23,14 @@ import matplotlib.pyplot as plt
 # from multiprocessing import Pool, Process, shared_memory
 
 import dmanage.dfmethods as dfm
-from dmanage.unit import makeDataUnit
+from dmanage.unit import make_data_unit
 from dmanage.plugins import vsim
 from dmanage.utils import constants as c
 from dmanage.dfmethods.plot import Plot
 from dmanage.utils.utils import child_override
 
 
-DataDir = makeDataUnit(vsim.loader.VSim)
+DataDir = make_data_unit(vsim.loader.VSim)
 class MyDataDir(DataDir):
     def __init__(self,dataDir=None):
         super().__init__(dataDir)
@@ -42,7 +42,7 @@ class MyDataDir(DataDir):
         self.cmapPhase = 'twilight'
         
     @child_override    
-    def getScalarVars(self,varList,theRange=[0.75, 1.0],dtype='Dict'):
+    def get_scalar_vars(self, varList, theRange=[0.75, 1.0], dtype='Dict'):
         """
         determines if varRead is a history or a input variable in vars.py and reads the variable accordingly
         """
@@ -63,7 +63,7 @@ class MyDataDir(DataDir):
             
         ##### get the values
         varDict = self.PreVars.read(varList_copy) 
-        DF = self.Hists.readAsDF(histList,concat=True)
+        DF = self.Hists.read_as_df(histList, concat=True)
         if not DF.empty: 
             DF = dfm.helper.reduce(DF,'t',method='mean',theRange=theRange)
             varDict.update(DF.to_dict())
@@ -86,29 +86,29 @@ class MyDataDir(DataDir):
     
     
     @child_override  
-    def genSummary(self,varList=[],ow=False,resDir=None):
+    def gen_summary(self, varList=[], ow=False, resDir=None):
         np.seterr(divide='ignore')
         if ow:
             # self.summaryData = pd.Series()
             self.summaryData = pd.DataFrame()
         #### get start and end times
         histName = 'Pout'
-        DF = self.Hists.readAsDF(histName)
+        DF = self.Hists.read_as_df(histName)
         tBuff = 10e-9
-        tStart = dfm.signal.getStartup(DF,debug=False) + tBuff
+        tStart = dfm.signal.get_startup(DF, debug=False) + tBuff
         tend = self.Hists.tend
         if tStart>tend*0.9:
             tStart = tend*0.9
-        self.addDataToSummary({'tStart':tStart,'tend':tend})
+        self.add_to_summary({'tStart':tStart,'tend':tend})
         
         ##### get powers
         histNames = copy.deepcopy(self.rfPowers)
-        powerAvgs = self.getScalarVars([histNames[1],'PRF_AVG','VDC'])
-        self.addDataToSummary(powerAvgs)
+        powerAvgs = self.get_scalar_vars([histNames[1], 'PRF_AVG', 'VDC'])
+        self.add_to_summary(powerAvgs)
         
         ##### get voltage and mag
-        inputParams = self.getScalarVars(['BSTATIC','VDC'])
-        self.addDataToSummary(inputParams)
+        inputParams = self.get_scalar_vars(['BSTATIC', 'VDC'])
+        self.add_to_summary(inputParams)
         
         #### currents
         currentNames = []
@@ -116,16 +116,16 @@ class MyDataDir(DataDir):
         for partType in self.Parts.types:
             if not partType[-1] == 'T':
                 currentNames = currentNames + [partType + relevantCurrent for relevantCurrent in relevantCurrents]
-        currentAvgs = self.getScalarVars(currentNames)
-        self.addDataToSummary(currentAvgs)
+        currentAvgs = self.get_scalar_vars(currentNames)
+        self.add_to_summary(currentAvgs)
         
         iAnodeTotal = 0
         for key,value in currentAvgs.items():
             if 'Ianode' in key:
                 iAnodeTotal = iAnodeTotal + value
         iAnodeTotal = abs(iAnodeTotal)
-        iEmit = self.getScalarVars('iCathode')['iCathode']
-        self.addDataToSummary({'iEmit':iEmit,'iAnodeTotal':iAnodeTotal})
+        iEmit = self.get_scalar_vars('iCathode')['iCathode']
+        self.add_to_summary({'iEmit':iEmit,'iAnodeTotal':iAnodeTotal})
         
         #### calculate efficiency, gain 
         PoutAvg = powerAvgs[histNames[1]]
@@ -133,33 +133,33 @@ class MyDataDir(DataDir):
         VdcAvg = powerAvgs['VDC']
         gain = 10*np.log10(np.float64(np.divide(PoutAvg,PinAvg)))
         eff = PoutAvg/(PinAvg + VdcAvg*iAnodeTotal)*100
-        self.addDataToSummary({'eff':eff,'gain':gain})
+        self.add_to_summary({'eff':eff,'gain':gain})
         
         ##### spectral analysis
-        freq = self.getScalarVars('FREQ')['FREQ']
-        self.addDataToSummary({'freq':freq})
+        freq = self.get_scalar_vars('FREQ')['FREQ']
+        self.add_to_summary({'freq':freq})
         noiseStabilityLevel=-35
         maxFreq = 4.2e9
         maxPks=15
         histName = copy.deepcopy(self.Vrf[1])
-        if self.Hists.checkDataset(histName,output=True)[0]:
-            DF = self.Hists.readAsDF(histName,concat=True)
+        if self.Hists.check_dataset(histName, output=True)[0]:
+            DF = self.Hists.read_as_df(histName, concat=True)
             DF = DF.iloc[DF.index.get_level_values('t')>tStart]
-            DF = dfm.fft.FFT(DF)
+            DF = dfm.fft.fft(DF)
             
             DF = DF.iloc[DF.index.get_level_values(0)<maxFreq].sort_index()
-            DFA = dfm.fft.FFTamplitude(DF)
-            DFP = dfm.fft.FFTphase(DF)
+            DFA = dfm.fft.fft_amplitude(DF)
+            DFP = dfm.fft.fft_phase(DF)
             DFA = 20*np.log10(DFA)
             minFreqDistance = 50e6
             dFreq = DF.index.get_level_values(0)[1]-DF.index.get_level_values(0)[0]
             peakDist = round(minFreqDistance/dFreq)
             
             
-            DFpks,props = dfm.signal.findPks(DFA[DFA.columns[0]],maxPks=maxPks,pRatio=0.08,tRatio=None,height=-50,wlen=None,distance=peakDist,width=None)
+            DFpks,props = dfm.signal.find_pks(DFA[DFA.columns[0]], maxPks=maxPks, pRatio=0.08, tRatio=None, height=-50, wlen=None, distance=peakDist, width=None)
             DFpks = pd.concat([DFpks,(DFP.loc[DFpks.index]).reset_index(level=[])],axis=1)
         cutoff=[0,2.5e9]    
-        stable = self.checkStability(histNamePower=histNames[1],histNameVoltage=self.Vrf[1],noiseLevel=noiseStabilityLevel,cutoff=cutoff,debug=False)
+        stable = self.check_stability(histNamePower=histNames[1], histNameVoltage=self.Vrf[1], noiseLevel=noiseStabilityLevel, cutoff=cutoff, debug=False)
         noisePks = DFpks.iloc[DFpks.index<(1.9*freq)][DFpks.columns[0]]
         if len(noisePks) > 1:
             twoPks = noisePks.nlargest(2)
@@ -169,10 +169,10 @@ class MyDataDir(DataDir):
             noiseLevel = -np.inf
             sideband = np.nan
         DFpks.index = freq-DFpks.index
-        self.addDataToSummary({'stable':stable,'noiseLevel':noiseLevel,'sideband':sideband})
-        self.addDataToSummary({'sidebands':DFpks})
-        DF = self.genLookupEntry(varList=varList)
-        self.addDataToSummary(DF)
+        self.add_to_summary({'stable':stable,'noiseLevel':noiseLevel,'sideband':sideband})
+        self.add_to_summary({'sidebands':DFpks})
+        DF = self.gen_lookup_entry(varList=varList)
+        self.add_to_summary(DF)
         
         
         ##### check for processed files
@@ -199,38 +199,38 @@ class MyDataDir(DataDir):
             densityMax = DF.max()
             iNames = ['max %s %s'%(particle,plotVar) for plotVar in densityMax.index]
             densityMax.index = iNames
-            self.addDataToSummary(densityMax)
+            self.add_to_summary(densityMax)
             
             ###### wobble mag
-            DFA = dfm.fft.FFT(DF)
-            DFA = dfm.fft.FFTamplitude(DFA,normalize=False)
+            DFA = dfm.fft.fft(DF)
+            DFA = dfm.fft.fft_amplitude(DFA, normalize=False)
             DFA = DFA.max()
             iNames = ['max %s %s'%(particle,plotVar) for plotVar in DFA.index]    
             DFA.index = iNames
-            self.addDataToSummary(DFA)
+            self.add_to_summary(DFA)
             for plotVar in plotVars:
 
                 ##### spoke analysis
                 phaseSpokes = self.getPhaseSpokes(DF[plotVar],refSignal='cos11',nSpokes=nSpokes,phiRange=phiRange,debug=False)
                 phaseSpokes = phaseSpokes.interpolate(axis=0)
-                phaseSpokes = dfm.signal.applyFilter(phaseSpokes, method='low', cutoff=freq)
+                phaseSpokes = dfm.signal.apply_filter(phaseSpokes, method='low', cutoff=freq)
                 
                 #### check for phase wrap
                 locked = not (phaseSpokes.max()-phaseSpokes.min()).max()>(period*.95)
-                self.addDataToSummary({'lock':locked})
+                self.add_to_summary({'lock':locked})
                 
                 if locked:
-                    signalInfo = dfm.signal.getSignalInfo(phaseSpokes)
+                    signalInfo = dfm.signal.get_signal_info(phaseSpokes)
                     signalInfoMean = signalInfo.mean()
                     signalInfoMean.index = [ i+' %s %s'%(plotVar,particle) for i in signalInfoMean.index]
-                    self.addDataToSummary({'%s %s'%(plotVar,particle):signalInfo})
-                    self.addDataToSummary(signalInfoMean)
+                    self.add_to_summary({'%s %s'%(plotVar,particle):signalInfo})
+                    self.add_to_summary(signalInfoMean)
                     
                     DFmean = dfm.helper.reduce(DF[plotVar],'t',method='mean')
                     DFmean.index = ((DFmean.index+2*np.pi)%(2*np.pi))
                     DFmean = DFmean.sort_index()
-                    phase = dfm.signal.getPhase(DFmean,refSignal='cos11',period=period,hRatio=0.4,pRatio=0.3).iloc[0][0]
-                    self.addDataToSummary({'phaseSpoke %s %s'%(plotVar,particle):phase})
+                    phase = dfm.signal.get_phase(DFmean, refSignal='cos11', period=period, hRatio=0.4, pRatio=0.3).iloc[0][0]
+                    self.add_to_summary({'phaseSpoke %s %s'%(plotVar,particle):phase})
                     
                     ### get phase change of spokes 
                     # nRollPhaseChange = 10
@@ -241,12 +241,12 @@ class MyDataDir(DataDir):
                     # phaseChanges = phaseChanges.rolling(nRollPhaseChange).mean()
                     phaseChangeRms = phaseChanges.pow(2).mean().pow(0.5)
                     phaseChangeRms = phaseChangeRms.mean()
-                    self.addDataToSummary({'dphi/dt %s %s'%(plotVar,particle):phaseChangeRms})
+                    self.add_to_summary({'dphi/dt %s %s'%(plotVar,particle):phaseChangeRms})
                     
                     
                     phaseWobble = self.getPhaseWobble(phaseSpokes,refPhase=0,refSignal='sin')
                     phaseWobble = phaseWobble.mean()[0]
-                    self.addDataToSummary({'phaseWobble %s %s'%(plotVar,particle):phaseWobble})
+                    self.add_to_summary({'phaseWobble %s %s'%(plotVar,particle):phaseWobble})
                 else:
                     break
                 h5.close()
@@ -273,7 +273,7 @@ class MyDataDir(DataDir):
         np.seterr(divide='warn')
         return self.summaryData
     
-    def checkStability(self,histNamePower='Pout',histNameVoltage='Vout',noiseLevel=-35,cutoff=[0,2.5e9],debug=False):
+    def check_stability(self, histNamePower='Pout', histNameVoltage='Vout', noiseLevel=-35, cutoff=[0, 2.5e9], debug=False):
         
         startupBuff = 10e-9
         fftRange = [0.0,1.0]
@@ -283,9 +283,9 @@ class MyDataDir(DataDir):
         
         
         # histName = 'Pout'
-        DF = self.Hists.readAsDF(histNamePower)
+        DF = self.Hists.read_as_df(histNamePower)
         tend = DF.index.get_level_values('t').max()
-        tStart = dfm.signal.getStartup(DF,debug=False)
+        tStart = dfm.signal.get_startup(DF, debug=False)
         tCut = tStart + startupBuff
         ###### check minumum times
         if minStart:
@@ -303,7 +303,7 @@ class MyDataDir(DataDir):
                 stable = False
                 return stable
         ###### check output power is not equal to input
-        powerAvgs = self.getScalarVars(['PRF_AVG'])
+        powerAvgs = self.get_scalar_vars(['PRF_AVG'])
         PoutAvg = DF.mean()[0]
         PinAvg = powerAvgs['PRF_AVG']
         if PoutAvg < 2*PinAvg:
@@ -313,17 +313,17 @@ class MyDataDir(DataDir):
             return stableP
         
         ######## check FFT of voltage
-        DF = self.Hists.readAsDF(histNameVoltage)
+        DF = self.Hists.read_as_df(histNameVoltage)
         DF = DF.iloc[DF.index.get_level_values('t')>tCut]
-        stableV = dfm.signal.checkStability(DF,method='fft',cutoff=cutoff,noiseLevel=noiseLevel,debug=False)
+        stableV = dfm.signal.check_stability(DF, method='fft', cutoff=cutoff, noiseLevel=noiseLevel, debug=False)
         
         if debug:
             print('fft check range[%s]: stable=%0.0f'%(fftRange,stableV))
         return stableV
     
-    def genLookupEntry(self,varList=None):
+    def gen_lookup_entry(self, varList=None):
         if type(varList)==type(None): varList=self.relVars
-        entryDict = self.getScalarVars(varList)
+        entryDict = self.get_scalar_vars(varList)
         #self.DFentries['runLoc']="'" + self.baseDir + "'"
         entryDict['runLoc']=self.baseDir
         DF = pd.DataFrame(entryDict,columns=['runLoc']+varList,index=[0])
@@ -332,7 +332,7 @@ class MyDataDir(DataDir):
     #        PARTICLE BINNING STUFF
     #######################################################
     
-    def genPosVelDF(self,partTypes,binType='pos',steps=None,posBins=50,posCols=['r','phi','z'],velBins=50,velCols=['ur','uphi','uz'],freq=False,phiRange='2pi',ow=False,nc=1):
+    def gen_pos_vel_df(self, partTypes, binType='pos', steps=None, posBins=50, posCols=['r', 'phi', 'z'], velBins=50, velCols=['ur', 'uphi', 'uz'], freq=False, phiRange='2pi', ow=False, nc=1):
         conserveMem=True
         if not type(partTypes) is list:
             partTypes = [partTypes]
@@ -344,7 +344,7 @@ class MyDataDir(DataDir):
         DFVlist = []
         for partType in partTypes:
             info = self.Parts.info[partType]
-            DF = self.Parts.readAsDF(steps=steps,partType=partType,nc=nc)
+            DF = self.Parts.read_as_df(steps=steps, partType=partType, nc=nc)
             
             if not DF.empty:
                 startTime = time.time()
@@ -354,7 +354,7 @@ class MyDataDir(DataDir):
                 ncConvert = int(np.floor(memDF/memConvertThresh))+1
                 
                 print('  Converting Coordinates with %i cores...'%(ncConvert), end=' ')
-                DF = dfm.convert.cart2Cyl(DF,phiRange=phiRange,nc=ncConvert)
+                DF = dfm.convert.cart_to_cyl(DF, phiRange=phiRange, nc=ncConvert)
                 if (type(freq) is bool):
                     if freq: freq = self.PreVars.read('FREQ')['FREQ']
                 if freq !=0:
@@ -366,7 +366,7 @@ class MyDataDir(DataDir):
                 if binType.lower()=='pos' or binType.lower()=='both':
                     print('  Binning Position with %i Cores...'%nc, end=' ')
                     startTime = time.time()
-                    DFP = self.posBinDF(DF,info,posBins,posCols,phiRange=phiRange,conserveMem=conserveMem,nc=nc)
+                    DFP = self.pos_bin_df(DF, info, posBins, posCols, phiRange=phiRange, conserveMem=conserveMem, nc=nc)
                     executionTime = (time.time()-startTime)
                     print(' Done in %0.2f seconds'%(executionTime))
                     DFPlist = DFPlist + [DFP]
@@ -374,7 +374,7 @@ class MyDataDir(DataDir):
                 if binType.lower()=='vel' or binType.lower()=='both':
                     print('  Binning Velocity with %i Cores...'%nc, end=' ')
                     startTime = time.time()
-                    DFV = self.velBinDF(DF,info,velBins,velCols,phiRange=phiRange,conserveMem=conserveMem,nc=nc)
+                    DFV = self.vel_bin_df(DF, info, velBins, velCols, phiRange=phiRange, conserveMem=conserveMem, nc=nc)
                     # DF1 = self.DFM.intervalIndex2Num(DF1)
                     executionTime = (time.time()-startTime)
                     print(' Done in %0.2f seconds'%(executionTime))
@@ -384,8 +384,8 @@ class MyDataDir(DataDir):
         if len(partTypes) > 1: print('  weighted concat with %i Cores...'%ncConcat, end=' ')
         startTime = time.time()
         
-        DFP = dfm.helper.weightedConcat(DFPlist,nc=ncConcat)
-        DFV = dfm.helper.weightedConcat(DFVlist,nc=ncConcat)
+        DFP = dfm.helper.weighted_concat(DFPlist, nc=ncConcat)
+        DFV = dfm.helper.weighted_concat(DFVlist, nc=ncConcat)
         
         executionTime = (time.time()-startTime)    
         if len(partTypes) > 1: print(' Done in %0.2f seconds'%(executionTime))
@@ -398,19 +398,19 @@ class MyDataDir(DataDir):
             return DFP,DFV
 
 
-    def posBinDF(self,DF,info,bins=50,binCols=['r','phi','z'],phiRange='2pi',conserveMem=True,nc=1):
+    def pos_bin_df(self, DF, info, bins=50, binCols=['r', 'phi', 'z'], phiRange='2pi', conserveMem=True, nc=1):
         if not type(bins) is list: bins = [bins]*len(binCols)
         if type(bins[0]) is list: binBreaks = bins
         elif len(binCols) != len(bins): raise Exception("length of bins must be 3 for the bin columns %s"%binCols)
         else: 
-            binBreaks = dfm.helper.genBinBreaks(DF,binCols,bins,phiRange=phiRange)
-        _posBinDF = dfm.wrapper.parallelize_df_method(self._posBinDF)
+            binBreaks = dfm.helper.gen_bin_breaks(DF, binCols, bins, phiRange=phiRange)
+        _posBinDF = dfm.wrapper.parallelize_df_method(self._pos_bin_df)
         DF = _posBinDF(DF,info,binBreaks,binCols,phiRange,conserveMem,nc=nc)
         return DF
         
         
     
-    def _posBinDF(self,DF,info,bins=50,binCols=['r','phi','z'],phiRange='2pi',conserveMem=True):
+    def _pos_bin_df(self, DF, info, bins=50, binCols=['r', 'phi', 'z'], phiRange='2pi', conserveMem=True):
 
         """
         keeping interval columns created by cut will remember the levels and keep zero values around. 
@@ -436,7 +436,7 @@ class MyDataDir(DataDir):
         if type(bins[0]) is list: binBreaks = bins
         elif len(binCols) != len(bins): raise Exception("length of bins must be 3 for the bin columns %s"%binCols)
         else: 
-            binBreaks = dfm.helper.genBinBreaks(DF,binCols,bins,phiRange=phiRange)
+            binBreaks = dfm.helper.gen_bin_breaks(DF, binCols, bins, phiRange=phiRange)
 
         # binBreaks = dfm.helper.genBinBreaks(self,DF,binCols,bins)
         ###### get relevant info
@@ -454,7 +454,7 @@ class MyDataDir(DataDir):
         DF['ux'] = DF['r']*DF['uphi']
         
         uMag = np.sqrt(DF['ur']**2 + (DF['r']*DF['uphi'])**2) # for use in keTot and uMagMean
-        DFB = dfm.helper.binDF(DF,binCols,binBreaks)
+        DFB = dfm.helper.bin_df(DF, binCols, binBreaks)
         
         for i,binCol in enumerate(binCols):
             if DFB[binCol].isnull().values.all():
@@ -492,29 +492,29 @@ class MyDataDir(DataDir):
         # DF['uMagMean'] = uMag*DFB['weight']/wSum
         DF.drop('tag',inplace=True,axis=1)
         DF = DF.groupby(['t']+binCols).sum() 
-        DF = dfm.convert.intervalIndex2Num(DF)
+        DF = dfm.convert.interval_to_num_index(DF)
         return DF
     
-    def velBinDF(self,DF,info,bins=50,binCols=['ur','uphi','uz'],phiRange='2pi',conserveMem=True,nc=1):
+    def vel_bin_df(self, DF, info, bins=50, binCols=['ur', 'uphi', 'uz'], phiRange='2pi', conserveMem=True, nc=1):
         if not type(bins) is list: bins = [bins]*len(binCols)
         if type(bins[0]) is list: binBreaks = bins
         elif len(binCols) != len(bins): raise Exception("length of bins must be 3 for the bin columns %s"%binCols)
         else: 
-            binBreaks = dfm.helper.genBinBreaks(DF,binCols,bins,phiRange=phiRange)
+            binBreaks = dfm.helper.gen_bin_breaks(DF, binCols, bins, phiRange=phiRange)
         
-        _velBinDF = dfm.wrapper.parallelize_df_method(self._velBinDF)
+        _velBinDF = dfm.wrapper.parallelize_df_method(self._vel_bin_df)
         DF = _velBinDF(DF,info,binBreaks,binCols,phiRange,conserveMem,nc=nc)
         return DF
     
-    def _velBinDF(self,DF,info,bins=50,binCols=['ur','uphi','uz'],phiRange='2pi',conserveMem=True):
+    def _vel_bin_df(self, DF, info, bins=50, binCols=['ur', 'uphi', 'uz'], phiRange='2pi', conserveMem=True):
         if not type(bins) is list: bins = [bins]*len(binCols)
         if type(bins[0]) is list: binBreaks = bins
         else: 
-            binBreaks = dfm.helper.genBinBreaks(DF,binCols,bins,phiRange)
+            binBreaks = dfm.helper.gen_bin_breaks(DF, binCols, bins, phiRange)
 
         DF = DF.reset_index()
         if 'num' in DF.columns: DF.drop(columns=['num'])
-        DFB = dfm.helper.binDF(DF,binCols,binBreaks)
+        DFB = dfm.helper.bin_df(DF, binCols, binBreaks)
         
         # # check for uneeded bins
         # for i,binCol in enumerate(binCols):
@@ -531,10 +531,10 @@ class MyDataDir(DataDir):
         if conserveMem: DFB.drop('phi',inplace=True,axis=1)
         # DF['weight']=copy.deepcopy(DFB['weight'])          # will be count when summed
         DF = DF.groupby(['t']+binCols).sum()
-        DF = dfm.convert.intervalIndex2Num(DF)
+        DF = dfm.convert.interval_to_num_index(DF)
         return DF     
     
-    def getCorrelatedImages(self,DF,wlock,groupVars,tVar='t',filt=True,tRange=(None,None),nc=1):
+    def get_correlated_images(self, DF, wlock, groupVars, tVar='t', filt=True, tRange=(None, None), nc=1):
         if not isinstance(wlock,(tuple, list,np.ndarray)):
             wlocks = [wlock]
         else:
@@ -544,7 +544,7 @@ class MyDataDir(DataDir):
             DFs = np.array_split(DF,nc)
             variables = [(DF,wlock,groupVars,tVar,filt,tRange,1) for DF in DFs]
             pool = Pool(processes=nc)
-            F =  pool.starmap_async(self.getCorrelatedImages,variables) 
+            F =  pool.starmap_async(self.get_correlated_images, variables)
             DFTupleList = F.get()
             pool.close()
             DF0s,DF90s = list(zip(*DFTupleList))
@@ -556,7 +556,7 @@ class MyDataDir(DataDir):
             DF0s = []
             DF90s = []
             for wlock in wlocks:
-                DF0,DF90 = self._getCorrelatedImages(DF,wlock,groupVars,tVar=tVar,filt=filt,tRange=tRange)
+                DF0,DF90 = self._get_correlated_images(DF, wlock, groupVars, tVar=tVar, filt=filt, tRange=tRange)
                 DF0s = DF0s + [DF0]
                 DF90s = DF90s + [DF90]
             DF0s = pd.concat(DF0s)
@@ -564,7 +564,7 @@ class MyDataDir(DataDir):
         
         return DF0s,DF90s
     
-    def _getCorrelatedImages(self,DF,wlock,groupVars,tVar='t',filt=True,tRange=(None,None)):
+    def _get_correlated_images(self, DF, wlock, groupVars, tVar='t', filt=True, tRange=(None, None)):
         
         if isinstance(DF,str):
             shm = shared_memory.SharedMemory(name=DF)
@@ -615,31 +615,31 @@ class MyDataDir(DataDir):
         return DF
         
     
-    def _getLockInAmpPhase(self,DF0,DF90):
+    def _get_lockin_amp_phase(self, DF0, DF90):
         A = (DF0.pow(2) + DF90.pow(2)).pow(0.5)
         # P = np.arctan(DF0.divide(DF90))
         P = np.arctan2(DF0,DF90)
         return A,P
     
-    def getLockInAmpPhase(self,DF0,DF90,nc=1):
+    def get_lockin_amp_phase(self, DF0, DF90, nc=1):
         if nc>1:
             DF0s = np.array_split(DF0,nc)
             DF90s = np.array_split(DF90,nc)
             theArgs = [(DF0,DF90) for DF0,DF90 in zip(DF0s,DF90s)]
             pool = Pool(processes=nc)
-            F =  pool.starmap_async(self._getLockInAmpPhase,theArgs) 
+            F =  pool.starmap_async(self._get_lockin_amp_phase, theArgs)
             DFTupleList = F.get()
             pool.close()
             As,Ps = list(zip(*DFTupleList))
             A = pd.concat(As)
             P = pd.concat(Ps)
         else:
-            A,P = self._getLockInAmpPhase(DF0,DF90)
+            A,P = self._get_lockin_amp_phase(DF0, DF90)
         
         return A,P
     
     
-    def getLockInImages(self,DF,flocks,posVars=['phi','r'],tVar='t',wCol='weight',cutoffWeight=0.03,parallelMethod='time',memLimit=128e9,nc=1):
+    def get_lockin_images(self, DF, flocks, posVars=['phi', 'r'], tVar='t', wCol='weight', cutoffWeight=0.03, parallelMethod='time', memLimit=128e9, nc=1):
         
         # parallelMethod = 'multiple' # uses multiple cores on each flock, low memory
         # parallelMethod = 'single' # uses single core on each flock, higher memory
@@ -691,7 +691,7 @@ class MyDataDir(DataDir):
                 
                 # variables = [(DF,flock,posVars,cutRegion,filt,False,1) for flock in flocks]
                 pool = Pool(processes=nc)
-                F =  pool.starmap_async(self._getLockInImages,variables)
+                F =  pool.starmap_async(self._get_lockin_images, variables)
                 DFTupleList = F.get()
                 pool.close()
                 As,Ps = list(zip(*DFTupleList))
@@ -699,10 +699,10 @@ class MyDataDir(DataDir):
                 Ps = pd.concat(Ps)
             elif parallelMethod.lower() == 'spatial':
                 # splitSpatial
-                DFs = dfm.helper.splitBy(DF,nc,posVars)  # spatial Split
+                DFs = dfm.helper.split_by(DF, nc, posVars)  # spatial Split
                 variables = [(DF,flocks,posVars,tVar,filt,tRange,1) for DF in DFs]
                 pool = Pool(processes=nc)
-                F =  pool.starmap_async(self._getLockInImages,variables)
+                F =  pool.starmap_async(self._get_lockin_images, variables)
                 DFTupleList = F.get()
                 pool.close()
                 As,Ps = list(zip(*DFTupleList))
@@ -712,9 +712,9 @@ class MyDataDir(DataDir):
 
             elif parallelMethod.lower() == 'time':
                 # splitTime
-                As,Ps = self._getLockInImages(DF=DF,flocks=flocks,posVars=posVars,tVar=tVar,filt=filt,tRange=tRange,nc=nc)
+                As,Ps = self._get_lockin_images(DF=DF, flocks=flocks, posVars=posVars, tVar=tVar, filt=filt, tRange=tRange, nc=nc)
         else:
-            As,Ps = self._getLockInImages(DF=DF,flocks=flocks,posVars=posVars,tVar=tVar,filt=filt,tRange=tRange,nc=1)
+            As,Ps = self._get_lockin_images(DF=DF, flocks=flocks, posVars=posVars, tVar=tVar, filt=filt, tRange=tRange, nc=1)
         flocksProcessed = As.index.get_level_values('freq').unique()
         flocksUnprocessed = set(flocksProcessed) ^ set(flocks)
         if len(flocksUnprocessed)>0:
@@ -727,7 +727,7 @@ class MyDataDir(DataDir):
         # Ps.loc[cutRegion]=np.nan
         return As,Ps
     
-    def _getLockInImages(self,DF,flocks,posVars=['phi','r'],tVar='t',filt=True,tRange=(None,None),nc=1):
+    def _get_lockin_images(self, DF, flocks, posVars=['phi', 'r'], tVar='t', filt=True, tRange=(None, None), nc=1):
         
         nSpokes = 3
         freqName = 'freq'
@@ -743,16 +743,16 @@ class MyDataDir(DataDir):
         
         
         wlocks = 2*np.pi*np.array(flocks)
-        DF0,DF90 = self.getCorrelatedImages(DF,wlock=wlocks,groupVars=posVars,filt=filt,tRange=tRange,nc=nc)
+        DF0,DF90 = self.get_correlated_images(DF, wlock=wlocks, groupVars=posVars, filt=filt, tRange=tRange, nc=nc)
 
         
         flocks = DF0.index.get_level_values(0).unique()
-        As,Ps = self.getLockInAmpPhase(DF0,DF90,nc=nc)
+        As,Ps = self.get_lockin_amp_phase(DF0, DF90, nc=nc)
        
         
         return As,Ps
     
-    def prepPolarFig(self, ax,cbar,cbarRemove=False):
+    def prep_polar_fig(self, ax, cbar, cbarRemove=False):
         ax.set_yticks([2.0,3.0])
         ax.set_yticklabels([])
         ax.xaxis.set_major_formatter(mpl.ticker.FormatStrFormatter('%.2f'))
@@ -773,7 +773,7 @@ class MyDataDir(DataDir):
             cbar.remove()
         return ax,cbar
     
-    def plotLockInImage(self,A,P,saveName,saveLoc=None,saveTag='',cbar=True,clim=None,bbox='tight',fig=1):
+    def plot_lockin_image(self, A, P, saveName, saveLoc=None, saveTag='', cbar=True, clim=None, bbox='tight', fig=1):
         cbarRemove = not cbar
         cbarOrientation='horizontal'
         figsize = (16,8)# for paired
@@ -870,7 +870,7 @@ class MyDataDir(DataDir):
             #ax.set(title='%s(%s)'%(variable,baseName))
             ax.set_title("")
             
-            ax,cbar = self.prepPolarFig(ax,cbar,cbarRemove)
+            ax,cbar = self.prep_polar_fig(ax, cbar, cbarRemove)
             cbar.mappable.set_clim(clim[0], clim[1])
             #cbar.set_label('(arb.)', rotation=270,labelpad=30)
             bboxA = getbbox(bbox,ax=ax,cbar=cbar,minShift=minShift)
@@ -884,7 +884,7 @@ class MyDataDir(DataDir):
             #ax.set(title='%s(%s)'%(variable,baseName))
             ax.set_title("")
             
-            ax,cbar = self.prepPolarFig(ax,cbar,cbarRemove)
+            ax,cbar = self.prep_polar_fig(ax, cbar, cbarRemove)
             if not cbarRemove:
                 cbar.set_ticks([-3.14, -np.pi/2, 0,np.pi/2, 3.14])
                 if cbarOrientation=='horizontal':
@@ -905,7 +905,7 @@ class MyDataDir(DataDir):
             #figNum = figNum+1
         return fig,axs,plot,cbar
         
-    def plotLockInImages(self,A,P,saveLoc=None,saveTag='',cbar=True,clim=None,bbox='tight',fig=1,nc=1):
+    def plot_lockin_images(self, A, P, saveLoc=None, saveTag='', cbar=True, clim=None, bbox='tight', fig=1, nc=1):
         if issubclass(type(A), pd.core.series.Series):
             A = pd.DataFrame(A)
         if issubclass(type(P), pd.core.series.Series):
@@ -950,7 +950,7 @@ class MyDataDir(DataDir):
             
             variables = [(A.loc[flock],P.loc[flock],'f-%0.3fGHz'%(flock/1e9),baseLoc,saveTag,cbar,clim,bbox,i+fig) for i,flock in enumerate(flocks)]
             pool = Pool(processes=nc)
-            F =  pool.starmap_async(self.plotLockInImage,variables)
+            F =  pool.starmap_async(self.plot_lockin_image, variables)
             F.get()
             pool.close()
             self.Plot.P.use(backend)
@@ -959,7 +959,7 @@ class MyDataDir(DataDir):
             for i,flock in enumerate(flocks):
                 
                 saveName = 'f-%0.3fGHz'%(flock/1e9)
-                fig,ax,plot,cbar = self.plotLockInImage(A.loc[flock],P.loc[flock],saveName=saveName,saveLoc=baseLoc,saveTag=saveTag,cbar=cbar,clim=clim,bbox=bbox)
+                fig,ax,plot,cbar = self.plot_lockin_image(A.loc[flock], P.loc[flock], saveName=saveName, saveLoc=baseLoc, saveTag=saveTag, cbar=cbar, clim=clim, bbox=bbox)
                 if outputProgress: 
                     print('\r    Progess: %i/%i'%(i+1, Nflocks),end='')
                 
@@ -974,10 +974,10 @@ if __name__ == "__main__":
     
     ##### test the summary generation
     names = ['Pout', 'VDC', 'electronsIanode']
-    scalarVars = DD.getScalarVars(names)
+    scalarVars = DD.get_scalar_vars(names)
     
     
-    summaryData = DD.genSummary(names)
+    summaryData = DD.gen_summary(names)
     
     
     ##### test the particle binning
@@ -990,23 +990,23 @@ if __name__ == "__main__":
     cutoffWeight = 0.01     # for plotting, set values below to NaN
     
     
-    DFP = DD.genPosVelDF(partType,binType='pos',steps=None,posBins=posBins,posCols=posCols,velBins=velBins,velCols=velCols,freq=False,phiRange='2pi',ow=False,nc=nc)
+    DFP = DD.gen_pos_vel_df(partType, binType='pos', steps=None, posBins=posBins, posCols=posCols, velBins=velBins, velCols=velCols, freq=False, phiRange='2pi', ow=False, nc=nc)
         
     ##### test the lock in ploting
     flocks = []
     
     # get steady state
     histName = 'Pout'
-    DF = DD.Hists.readAsDF(histName)
+    DF = DD.Hists.read_as_df(histName)
     tend = DF.index.get_level_values('t').max()
-    tStart = dfm.signal.getStartup(DF,debug=False) + 10e-9
+    tStart = dfm.signal.get_startup(DF, debug=False) + 10e-9
     
     DF1 = DFP.iloc[DFP.index.get_level_values('t')>tStart].copy()
     
-    freq = DD.getScalarVars('FREQ')['FREQ']
+    freq = DD.get_scalar_vars('FREQ')['FREQ']
     flocks = [freq,freq/2,freq/3,freq/4]
     plotVars = ['weight', 'keTot','urMean','uphiMean','energyTransfer','power']         
-    A,P = DD.getLockInImages(DF1[plotVars],flocks,posVars=['phi','r'],cutoffWeight=cutoffWeight,nc=nc)
+    A,P = DD.get_lockin_images(DF1[plotVars], flocks, posVars=['phi', 'r'], cutoffWeight=cutoffWeight, nc=nc)
     maxA = A.max()
     np.seterr(divide='ignore')
     A = 20*np.log10(A/maxA)
@@ -1015,7 +1015,7 @@ if __name__ == "__main__":
     # clim = (None,None)
     baseLoc = './processed/'
     saveTag = ''
-    DD.plotLockInImages(A,P,saveLoc=baseLoc,saveTag=saveTag,clim=clim,nc=nc)
+    DD.plot_lockin_images(A, P, saveLoc=baseLoc, saveTag=saveTag, clim=clim, nc=nc)
     pass
     
     

@@ -28,7 +28,7 @@ class Dummy:
     """
     pass
 
-def makeDataUnit(Base=Dummy):
+def make_data_unit(Base=Dummy):
     """ Creates DataUnit class
     :param path: The path of the file to wrap
     This creates the DataUnit class with the inherited components from the base class
@@ -92,30 +92,30 @@ class DataUnit(Dummy):
         self.resDir = self.baseDir+'processed/'
         self.summaryFile = self.baseDir + 'summary.csv'
         # self.summaryData = pd.Series() # 
-        self.summaryData = self.readSummary()
+        self.summaryData = self.read_summary()
         #vsim.VSimRead(self.baseDir,self)  # ??? There should be a validity check and generic sim loader here
         
-    def testServerWrap(self):
+    def test_server_wrap(self):
         self.Server.connect()
         self.Server.put()
-        self.Hists.readAsDF('Pout')
+        self.Hists.read_as_df('Pout')
     
     
-    def inheritanceLevel():
+    def inheritance_level():
         return 'DU'
     
     def load(self,dataPath=None,iLevel='DU'):
         # step through inheretanceLevels
         base = self.__class__
-        level = base.inheritanceLevel()
+        level = base.inheritance_level()
         while not (level.lower() == 'du'):
             if len(base.__bases__) < 1:
                 raise Exception("Inheritance chain does not include level '%s'"%level)
             base = base.__bases__[0]
-            level = base.inheritanceLevel() 
+            level = base.inheritance_level()
         return base(dataPath)
     
-    def addDataToSummary(self,data,summaryData=None,internalSummary=True):
+    def add_to_summary(self, data, summaryData=None, internalSummary=True):
         
         if summaryData is None:
             summaryData = self.summaryData
@@ -149,7 +149,7 @@ class DataUnit(Dummy):
                 self.summaryData = summaryData
         return summaryData
     
-    def saveSummary(self,saveType = 'csv'):
+    def save_summary(self, saveType ='csv'):
         #### put all DataFrame data at the end
         self.summaryData = self.summaryData[self.summaryData.dtypes.sort_values().index]
         
@@ -158,7 +158,7 @@ class DataUnit(Dummy):
         else:
             self.summaryData.to_csv(self.summaryFile) 
         
-    def readSummary(self,ow=False,debug=False):
+    def read_summary(self, ow=False, debug=False):
         if os.path.exists(self.summaryFile) and not ow:
             self.summaryData = pd.read_csv(self.summaryFile)
             self.summaryData = self.summaryData.drop(self.summaryData.columns[0],axis=1)

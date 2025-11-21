@@ -20,7 +20,7 @@ class Dummy:
     """
     pass
 
-def makeDataGroup(Base):
+def make_data_group(Base):
     DataGroup.__bases__ = (Base,)
     return DataGroup
     
@@ -71,9 +71,9 @@ class DataGroup(Dummy):
         startTime = time.time()
         self.ignoreDirs = [self.processedDir]
         if dataUnitType == 'dir':
-            self.sweepDirs = self.getDDs(baseDir,nc=nc)
+            self.sweepDirs = self.get_units(baseDir, nc=nc)
         else:
-            self.sweepDirs = self.getDataFiles(baseDir)
+            self.sweepDirs = self.get_data_files(baseDir)
             
         if len(self.sweepDirs) == 0: raise Exception("There are no Data Directories in '%s'"%self.baseDir)
         self.sweepDirs = natsort.natsorted(self.sweepDirs)
@@ -89,14 +89,14 @@ class DataGroup(Dummy):
         executionTime = time.time()-startTime
         print('Done in %0.3f Seconds'%executionTime)
         
-    def inheritanceLevel():
+    def inheritance_level():
         """qualifer to determine the hierarchy level for wrapping methods"""
         return 'DG'
     
     def load(self,dataDir=None,iLevel='DG'):
         # step through inheretanceLevels
         base = self.__class__
-        level = base.inheritanceLevel()
+        level = base.inheritance_level()
         while not (level.lower() == 'dg'):
             if len(base.__bases__) < 1:
                 raise Exception("Inheritance chain does not include level '%s'"%level)
@@ -191,7 +191,7 @@ class DataGroup(Dummy):
         #self._wrap_component_methods()                # rewrap component methods with SD equivalent
         return DFs
     
-    def getDataFiles(self,baseDir=None):
+    def get_data_files(self, baseDir=None):
         if type(baseDir) == type(None):
             baseDir = self.baseDir
         filenames = os.listdir(baseDir)
@@ -204,7 +204,7 @@ class DataGroup(Dummy):
         return sweepDirs
     
     
-    def _getDDs(self,subDirs,baseDir):
+    def _get_units(self, subDirs, baseDir):
         """looped iterator method: returns list of valid sweep directories"""
         sweepDirs = []
         if type(subDirs) != list: subDirs = [subDirs]
@@ -215,14 +215,14 @@ class DataGroup(Dummy):
                 if ignoreDir in subDir:
                     skip = True
             
-            if self.isValid(subDir) and not skip: 
+            if self.is_valid(subDir) and not skip:
                 subDir = os.path.join(subDir,'')  # make sure it ends with '/' so that it knows its a directory.
                 sweepDirs.append(subDir.replace(baseDir,''))
             else: 
                 pass
         return sweepDirs
        
-    def getDDs(self,baseDir=None,nc=1):
+    def get_units(self, baseDir=None, nc=1):
         """
         parallel iterator method: returns list of valid sweep directories
 
@@ -239,7 +239,7 @@ class DataGroup(Dummy):
             DESCRIPTION.
 
         """
-        _getDDs = methods.wrapper.parallelize_looped_method(self._getDDs,ncPass=False)
+        _getDDs = methods.wrapper.parallelize_looped_method(self._get_units, ncPass=False)
         if type(baseDir) == type(None):
             baseDir = self.baseDir
         subDirs = list(list(zip(*os.walk(baseDir,followlinks=True)))[0])
@@ -247,7 +247,7 @@ class DataGroup(Dummy):
 
         return sweepDirs
         
-    def genBaseName(self,theInput,depth=10):
+    def gen_basename(self, theInput, depth=10):
         """
         theInput can be of type string or dict
         """
@@ -269,7 +269,7 @@ class DataGroup(Dummy):
             
         return baseName
     
-    def getVarsFromDir(self,folder,dtype='DataFrame',Nrepeat=1,depth=10):
+    def _get_vars_from_dir(self, folder, dtype='DataFrame', Nrepeat=1, depth=10):
         if self.baseDir in folder: folder=folder.replace(self.baseDir,'')
         folder = folder.rstrip('/')
         varNames = folder.split('/')[-depth:]
@@ -291,7 +291,7 @@ class DataGroup(Dummy):
         else:
             return pd.DataFrame(Dict)
     
-    def getVarsFromMI(self,mi,dtype='DataFrame'):
+    def get_vars_from_index(self, mi, dtype='DataFrame'):
         iNames = mi.names
         Dict = {} 
         for iName in iNames:
@@ -305,7 +305,7 @@ class DataGroup(Dummy):
             return pd.DataFrame(Dict)
         
         
-    def combineDicts(self,dictList):
+    def combine_dicts(self, dictList):
         for i,dictionary in enumerate(dictList):
             if i == 0:
                 outDict = dictionary
@@ -316,10 +316,10 @@ class DataGroup(Dummy):
                     outDict[key] = outDict[key] + dictionary[key]
         return outDict
     
-    def getVarsFromDirs(self,folders):
+    def get_vars_from_dir(self, folders):
         DFList = []
         for folder in folders:
-            DFList = DFList + [self.getVarsFromDir(folder)]
+            DFList = DFList + [self._get_vars_from_dir(folder)]
         DF = pd.concat(DFList)
         return DF    
         
@@ -335,7 +335,7 @@ class DataGroup(Dummy):
     #     DF = DF.set_index('sweepDir')
     #     return DF
     
-    def getRelSweepDirs(self,relVarsConds, logic='and'):
+    def get_sweep_dirs(self, relVarsConds, logic='and'):
         
         DF = self.getRelVars(relVarsConds.keys())
         for key,value in relVarsConds.items():

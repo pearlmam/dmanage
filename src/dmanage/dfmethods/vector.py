@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
-from dmanage.dfmethods.convert import numpy2DF,DF2Numpy
+from dmanage.dfmethods.convert import numpy_to_df,df_to_numpy
 from dmanage.methods import functions as func
 
 def curl(DF):
@@ -12,11 +12,11 @@ def curl(DF):
     else:
         name = DF.name
         
-    array,bounds = DF2Numpy(DF)
+    array,bounds = df_to_numpy(DF)
     s = array.shape
     keys = list(bounds.keys())
     dsteps = [bounds[key][1] - bounds[key][0] for key in keys[:len(s)-1]]
     array = func.curl(array,dsteps)
-    DF = numpy2DF(array,bounds,colName='curl(%s)'%name)
+    DF = numpy_to_df(array, bounds, colName='curl(%s)' % name)
     
     return DF

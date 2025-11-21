@@ -20,7 +20,7 @@ class Mail():
         server.quit()
         return result
     
-    def sendDone(self,sendtoMail,subject='', content='',outputFile=None):
+    def send_done(self, sendtoMail, subject='', content='', outputFile=None):
         if subject == '':
             subject = '%s: Simulation Complete'%self.hostname
 

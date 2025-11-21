@@ -34,11 +34,11 @@ class MySlaveService(rpyc.ClassicService):
         pass
 
 
-def myService():
+def my_service():
     # t = ThreadedServer(MySlaveService, port=18861)
     # t.start()
     main()
 
 
 if __name__ == "__main__":
-    t = myService()
+    t = my_service()

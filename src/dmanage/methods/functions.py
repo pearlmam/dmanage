@@ -7,7 +7,7 @@ Created on Thu Aug  4 12:16:40 2022
 """
 
 
-def checkExist(diaNames,types,output=False):
+def check_exist(diaNames, types, output=False):
     if not type(diaNames) is list: diaNames = [diaNames]
     for diaName in diaNames:
         if not diaName in types:
@@ -23,11 +23,11 @@ import os
 import matplotlib.pyplot as plt
 import shutil
 
-def getTags(fileName):
+def get_tags(fileName):
     pass
 
 
-def saveMp4(directory,saveName=None,saveLoc=None,picType='png',overwrite=False):
+def save_mp4(directory, saveName=None, saveLoc=None, picType='png', overwrite=False):
         if saveLoc==None: saveLoc=directory
         
         # check if ffmpeg exists, and then try loading it
@@ -80,7 +80,7 @@ def saveMp4(directory,saveName=None,saveLoc=None,picType='png',overwrite=False):
         else: print('No %s files exist in %s'%(picType,directory))
         return 0
             
-def fixEPS(fileName):
+def fix_eps(fileName):
     # there is a boundingbox error in the eps files. the %%BoundingBox parameters are saved as floats, which epspdf doesnt like
     # this code fixes that
     
@@ -118,7 +118,7 @@ def vrrotvec(a,b):
     return r
 
 
-def movAvg(array,n=3):
+def mov_avg(array, n=3):
     # old 1D method
     # ret = np.cumsum(array, dtype=float)
     # ret[n:] = ret[n:] - ret[:-n]
@@ -131,10 +131,10 @@ def movAvg(array,n=3):
 
 
 
-def getPhase(y,x=None,refSignal='cos',period=None,hRatio=0.4,pRatio=0.3,debug=False,fignum=1):
+def get_phase(y, x=None, refSignal='cos', period=None, hRatio=0.4, pRatio=0.3, debug=False, fignum=1):
 
     if type(period) == type(None):
-        period = getPeriod(y=y,x=x,hRatio=hRatio,pRatio=pRatio)
+        period = get_period(y=y, x=x, hRatio=hRatio, pRatio=pRatio)
     if type(x) == type(None):
         x = np.arange(0,len(y))
         
@@ -240,7 +240,7 @@ def getPhase(y,x=None,refSignal='cos',period=None,hRatio=0.4,pRatio=0.3,debug=Fa
     
     
 
-def getPeriod(y,x=None,hRatio=0.5,pRatio=0.5,window=None,periodicPad=False,method='xcorr',strictCheck=False,debug=False,fignum=1):
+def get_period(y, x=None, hRatio=0.5, pRatio=0.5, window=None, periodicPad=False, method='xcorr', strictCheck=False, debug=False, fignum=1):
     """
     get the period of a signal y
 
@@ -371,7 +371,7 @@ def getPeriod(y,x=None,hRatio=0.5,pRatio=0.5,window=None,periodicPad=False,metho
             
     return T 
 
-def getWindowedFFT(y,x,win=None,overlap = 0.5):
+def get_windowed_fft(y, x, win=None, overlap = 0.5):
     if type(x) == type(None):
         pass
     dx = x[1]-x[0]
@@ -410,7 +410,7 @@ def getWindowedFFT(y,x,win=None,overlap = 0.5):
     return result,freq,x
 
 
-def getWindowedInfo(y,x,win=None,overlap = 0.5,info='period',**kwargs):
+def get_windowed_info(y, x, win=None, overlap = 0.5, info='period', **kwargs):
     """
     Parameters
     ----------
@@ -452,9 +452,9 @@ def getWindowedInfo(y,x,win=None,overlap = 0.5,info='period',**kwargs):
         Ysegment = y[current_hop:current_hop+win]  # get the current segment
         
         if info == 'period':
-            Is[i] = getPeriod(Ysegment,Isegment,**kwargs)
+            Is[i] = get_period(Ysegment, Isegment, **kwargs)
         elif info == 'phase':
-            Is[i] = getPhase(Ysegment,Isegment,**kwargs)
+            Is[i] = get_phase(Ysegment, Isegment, **kwargs)
         xs[i] = x[current_hop + hop_size]
         
     # copy the first and last elements to fill the entire range
@@ -466,7 +466,7 @@ def getWindowedInfo(y,x,win=None,overlap = 0.5,info='period',**kwargs):
         Is = None
     return Is,xs
     
-def getWindowedPeriod(y,x,win=None,overlap = 0.5,window='hanning'):
+def get_windowed_period(y, x, win=None, overlap = 0.5, window='hanning'):
     """
     Parameters
     ----------
@@ -507,7 +507,7 @@ def getWindowedPeriod(y,x,win=None,overlap = 0.5,window='hanning'):
         current_hop = hop_size * i                        # figure out the current segment offset
         Ysegment = y[current_hop:current_hop+win]  # get the current segment
         
-        Ts[i] = getPeriod(Ysegment,Tsegment,window=window)
+        Ts[i] = get_period(Ysegment, Tsegment, window=window)
         xs[i] = x[current_hop + hop_size]
         
     # copy the first and last elements to fill the entire range
@@ -519,7 +519,7 @@ def getWindowedPeriod(y,x,win=None,overlap = 0.5,window='hanning'):
         Ts = None
     return Ts,xs
 
-def findPeaks(x,y,hRatio=None,pRatio=None,tRatio=None,height=None,**kwargs):
+def find_peaks(x, y, hRatio=None, pRatio=None, tRatio=None, height=None, **kwargs):
     # find peaks
     if hRatio: height = hRatio*(np.nanmax(y) - np.nanmin(y)) + np.nanmin(y)
     else: height = height
@@ -540,7 +540,7 @@ def findPeaks(x,y,hRatio=None,pRatio=None,tRatio=None,height=None,**kwargs):
     xpks = xpks[I]
     return xpks, ypks, props
 
-def FFT(y,x,axis=-1,upsample=False,window='hanning'):
+def fft(y, x, axis=-1, upsample=False, window='hanning'):
     """
     Applies the FFT along the last axis
 
@@ -631,7 +631,7 @@ def FFT(y,x,axis=-1,upsample=False,window='hanning'):
     return freq,FFT
     # return freq,A,P
 
-def FFT2D(a,dxy=None):
+def fft2d(a, dxy=None):
     a = a-np.mean(a) # remove DC offset
     ft = np.fft.ifftshift(a)
     ft = np.fft.fft2(ft)
@@ -664,37 +664,37 @@ def split(a, n):
     return (a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n))
 
 
-def butterHighpass(cutoff, fs, order=5):
+def butter_highpass(cutoff, fs, order=5):
     nyq = 0.5 * fs
     normal_cutoff = cutoff / nyq
     b, a = signal.butter(order, normal_cutoff, btype = "high", analog = False)
     return b, a
 
-def butterHighpassFilter(data, cutoff, fs, order=5):
-    b, a = butterHighpass(cutoff, fs, order=order)
+def butter_highpass_filter(data, cutoff, fs, order=5):
+    b, a = butter_highpass(cutoff, fs, order=order)
     y = signal.filtfilt(b, a, data)
     return y
 
-def butterLowpass(cutoff, fs, order=5):
+def butter_lowpass(cutoff, fs, order=5):
     nyq = 0.5 * fs
     normal_cutoff = cutoff / nyq
     b, a = signal.butter(order, normal_cutoff, btype = "low", analog = False)
     return b, a
 
-def butterLowpassFilter(data, cutoff, fs, order=5):
-    b, a = butterLowpass(cutoff, fs, order=order)
+def butter_lowpass_filter(data, cutoff, fs, order=5):
+    b, a = butter_lowpass(cutoff, fs, order=order)
     y = signal.filtfilt(b, a, data)
     return y
 
-def butterBandpass(lowcut, highcut, fs, order=5):
+def butter_bandpass(lowcut, highcut, fs, order=5):
         nyq = 0.5 * fs
         low = lowcut / nyq
         high = highcut / nyq
         sos = signal.butter(order, [low, high], analog=False, btype='band', output='sos')
         return sos
 
-def butterBandpassFilter(data, lowcut, highcut, fs, order=5):
-        sos = butterBandpass(lowcut, highcut, fs, order=order)
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+        sos = butter_bandpass(lowcut, highcut, fs, order=order)
         y = signal.sosfilt(sos, data)
         return y
 
@@ -726,9 +726,9 @@ if __name__ == "__main__":
     import dataDir
     folder = '/home***REMOVED***Documents/data/CFAdata/testData/'
     DD = dataDir.DataDir(folder)
-    DF = DD.Fields.readAsDF('E',1)
+    DF = DD.Fields.read_as_df('E', 1)
     DF = DD.DFM.getSlice(DF,'t',0)
-    array,bounds = DD.DFM.DF2Numpy(DF)
+    array,bounds = DD.DFM.df_to_numpy(DF)
     
     theCurl = curl(array)
     

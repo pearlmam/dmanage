@@ -5,10 +5,10 @@ import shutil
 import os
 import matplotlib.pyplot as plt
 
-from dmanage.group import makeDataGroup
-from dmanage.unit import makeDataUnit
+from dmanage.group import make_data_group
+from dmanage.unit import make_data_unit
 from dmanage.utils.utils import child_override
-from dmanage.utils.parser import parseFilename
+from dmanage.utils.parser import parse_filename
 
 def generateData(saveLoc):
     # waveform parameters
@@ -36,7 +36,7 @@ def generateData(saveLoc):
         waveform.to_csv(saveLoc+saveName,index=False)              # save to a file
     return 
 
-DataUnit = makeDataUnit()
+DataUnit = make_data_unit()
 class DataFile(DataUnit):
     def __init__(self,filepath):
         self.dataFile = filepath
@@ -50,7 +50,7 @@ class DataFile(DataUnit):
         
     @child_override    
     def parseFilename(self):
-        return parseFilename(self.dataFile,'Vin')
+        return parse_filename(self.dataFile, 'Vin')
         
     @child_override
     def getWaveformRMS(self):
@@ -58,11 +58,11 @@ class DataFile(DataUnit):
         return np.sqrt((df['Voltage']**2).mean())
 
 
-DataDir = makeDataGroup(DataFile)
+DataDir = make_data_group(DataFile)
 class DataDirectory(DataDir):
     pass
 
-DataDir = makeDataGroup(DataFile)
+DataDir = make_data_group(DataFile)
 class DataDirectory(DataDir):
     pass
 

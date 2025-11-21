@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     DF = pd.DataFrame(np.vstack([VDCs,Pouts]).T,columns=['VDC','Pout'])
     DF = DF.set_index('VDC')
-    fig,ax = plot.plot1D(DF)
+    fig,ax = plot.plot1d(DF)
     
     
     gradCheck = (Pouts[6]-Pouts[5])/(VDCs[6]-VDCs[5])

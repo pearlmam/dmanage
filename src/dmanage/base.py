@@ -5,7 +5,7 @@
 import dmanage.dfmethods as dfm
 from dmanage.server.basic import Server
 
-def makeDataBase(base):
+def make_database(base):
     class DataBase(base):
         """
         dataBases is a dict containing server and folder entries
@@ -22,17 +22,17 @@ def makeDataBase(base):
             servers = []
             for computer,info in computers.items():
                 servers = servers + [Server(computer=computer,user=info['user'])]
-            # then I need setup the components
+            # then I need set up the components
             # super().__init__()
             self.servers = servers
         
-        def inheritanceLevel():
+        def inheritance_level():
             """qualifer to determine the hierarchy level for wrapping methods"""
             return 'DB'
         
         
         
-        def setupConnection():
+        def connection_setup(self):
             pass
         
     return DataBase

@@ -26,27 +26,27 @@ print(DD.Geos.files)
 ##############################################################
 print('\nRead 1D History')
 histName = 'Pout'
-df = DD.Hists.readAsDF(histName)
+df = DD.Hists.read_as_df(histName)
 print(df)
 
 print('\nRead 1D Historys')
 histNames = ['Pout','Vout']
-df = DD.Hists.readAsDF(histNames,concat=True)
+df = DD.Hists.read_as_df(histNames, concat=True)
 print(df)
 
 print('\nRead 2D Vector History')
 histName = 'EedgeCircleR200'
-df = DD.Hists.readAsDF(histName)
+df = DD.Hists.read_as_df(histName)
 print(df)
 
 print('\nRead All particles')
 partType = 'electronsT'
-df = DD.Parts.readAsDF(steps=None,partType=partType,nc=4)
+df = DD.Parts.read_as_df(steps=None, partType=partType, nc=4)
 print(df)
 
 print('\nRead All Fields')
 fieldName = 'E'
-df = DD.Fields.readAllAsDF(fieldName,nc=4)
+df = DD.Fields.read_all_as_df(fieldName, nc=4)
 print(df)
 
 ##############################################################

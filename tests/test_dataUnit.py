@@ -6,11 +6,11 @@ Created on Tue Oct 14 13:31:59 2025
 @author: marcus
 """
 
-from dmanage.unit import makeDataUnit
+from dmanage.unit import make_data_unit
 from dmanage.plugins import vsim
 from dmanage.dfmethods.plot import Plot
 
-DataDir = makeDataUnit(vsim.loader.VSim)
+DataDir = make_data_unit(vsim.loader.VSim)
 class MyDataDir(DataDir):
     def __init__(self,dataDir=None):
         super().__init__(dataDir)
@@ -47,28 +47,28 @@ if __name__ == "__main__":
     ##############################################################
     print('\nRead 1D History')
     histName = 'Pout'
-    df = DD.Hists.readAsDF(histName)
+    df = DD.Hists.read_as_df(histName)
     print(df)
 
     #DD.Plot.plot1D(df)
     print('\nRead 1D Historys')
     histNames = ['Pout','Vout']
-    df = DD.Hists.readAsDF(histNames,concat=False)
+    df = DD.Hists.read_as_df(histNames, concat=False)
     print(df)
 
     print('\nRead 2D Vector History')
     histName = 'EedgeCircleR200'
-    df = DD.Hists.readAsDF(histName)
+    df = DD.Hists.read_as_df(histName)
     print(df)
 
     print('\nRead All particles')
     partType = 'electronsT'
-    df = DD.Parts.readAsDF('all',partType=partType,nc=4)
+    df = DD.Parts.read_as_df('all', partType=partType, nc=4)
     print(df)
 
     print('\nRead All Fields')
     fieldName = 'E'
-    df = DD.Fields.readAllAsDF(fieldName,nc=4)
+    df = DD.Fields.read_all_as_df(fieldName, nc=4)
     print(df)
 
     ##############################################################
@@ -84,8 +84,8 @@ if __name__ == "__main__":
     ##############################################################
     
     histName = 'Pout'
-    df = DD.Hists.readAsDF(histName)
-    fig,ax = DD.Plot.plot1D(df)
+    df = DD.Hists.read_as_df(histName)
+    fig,ax = DD.Plot.plot1d(df)
     
     
     

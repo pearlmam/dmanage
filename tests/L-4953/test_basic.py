@@ -7,11 +7,11 @@ Created on Fri Oct 24 16:44:38 2025
 """
 import os
 
-from dmanage.unit import makeDataUnit
+from dmanage.unit import make_data_unit
 from dmanage.plugins import vsim
 from dmanage.server.basic import Server
 
-DataDir = makeDataUnit(vsim.loader.VSim)
+DataDir = make_data_unit(vsim.loader.VSim)
 class MyDataDir(DataDir):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     maxProcs=8
     
     server.connect()
-    server.putDir(sourcePreDir,destPreDir,['.mac','.pre'],output=True)
+    server.put_dir(sourcePreDir, destPreDir, ['.mac', '.pre'], output=True)
     args = ' --preLoc %s --runBaseLoc %s --maxProcs %s'%(destPreDir, runBaseLoc,maxProcs)
     
     ##### send job submit script and run
@@ -51,9 +51,9 @@ if __name__ == "__main__":
     script = './' + scriptName
     sourceDir = './'
     # ECEsim.putDir(sourceDir,workspace,['.py'],output=True)
-    server.putDir(sourceDir,workspace,['all'],output=True)
+    server.put_dir(sourceDir, workspace, ['all'], output=True)
     
-    server.runScript(workspace+scriptName,conda='dmanage',args=args) 
+    server.run_script(workspace + scriptName, conda='dmanage', args=args)
     server.close() 
     
     

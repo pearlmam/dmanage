@@ -3,14 +3,14 @@
 
 
 from dmanage import dfmethods as dfm
-from dmanage.group import makeDataGroup # this needs to change to be more generic
-from dmanage.unit import makeDataUnit  # this needs to change to be more generic
-from dmanage.base import makeDataBase  # this needs to change to be more generic
+from dmanage.group import make_data_group # this needs to change to be more generic
+from dmanage.unit import make_data_unit  # this needs to change to be more generic
+from dmanage.base import make_database  # this needs to change to be more generic
 from dmanage.plugins import vsim
 
 
 
-DataDir = makeDataUnit(vsim.loader.VSim)
+DataDir = make_data_unit(vsim.loader.VSim)
 class MyDataDir(DataDir):
     def __init__(self,dataDir=None):
         super().__init__(dataDir)
@@ -20,14 +20,14 @@ class MyDataDir(DataDir):
         ####   add any attributes here    ####
         
     #### Add person methods here   ####
-SweepDir = makeDataGroup(MyDataDir)
+SweepDir = make_data_group(MyDataDir)
 class MySweepDir(SweepDir):
     # def __init__(self,dataDir=None):
     #     #super().__init__(dataDir
     #     pass
     pass
 
-DataBase = makeDataBase(MySweepDir)
+DataBase = make_database(MySweepDir)
 class MyDataBase(DataBase):
     # def __init__(self,dataDir=None):
     #     #super().__init__(dataDir

@@ -11,9 +11,9 @@ import time
 from pathos.multiprocessing import Pool
 
 from test_dataDir import MyDataDir
-from dmanage.group import makeDataGroup
+from dmanage.group import make_data_group
 
-SweepDir = makeDataGroup(MyDataDir)
+SweepDir = make_data_group(MyDataDir)
 class MySweepDir(SweepDir):
     # def __init__(self,dataDir=None):
     #     #super().__init__(dataDir
@@ -50,7 +50,7 @@ class MySweepDir(SweepDir):
         DFs = []
         for sweepDir in sweepDirs:
             DD = MyDataDir(self.baseDir + sweepDir)
-            DF = DD.Hists.readAsDF(histNames)
+            DF = DD.Hists.read_as_df(histNames)
             sweepVars = self.getVarsFromDir(sweepDir,dtype='dataframe',Nrepeat=1,depth=varDepth)
             histNameI = pd.DataFrame({'histName':histNames})
             I = pd.concat([histNameI,sweepVars],axis=1).fillna(method='ffill')

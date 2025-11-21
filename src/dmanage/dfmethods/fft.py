@@ -3,18 +3,18 @@
 import pandas as pd
 import numpy as np
 
-from dmanage.dfmethods.helper import cutRange
-from dmanage.dfmethods.convert import numpy2DF,DF2Numpy,replaceBounds
+from dmanage.dfmethods.helper import cut_range
+from dmanage.dfmethods.convert import numpy_to_df,df_to_numpy,replace_bounds
 from dmanage.methods import functions as func
 
-def FFTphase(DF):
+def fft_phase(DF):
     cols = DF.columns
     theCols = ['ang(%s)'%(col) for col in cols]
     DF = pd.DataFrame(np.angle(DF),columns=theCols,index=DF.index)
     # DF.columns = theCols
     return DF
 
-def FFTamplitude(DF,normalize=True):
+def fft_amplitude(DF, normalize=True):
     DF = DF.abs()
     if normalize:
         DF = DF/DF.max()
@@ -23,7 +23,7 @@ def FFTamplitude(DF,normalize=True):
     DF.columns = theCols
     return DF
 
-def FFT(DF,theRange=[0.0,1.0],axis=-1,window='hanning',ang=False,upsample=False):
+def fft(DF, theRange=[0.0, 1.0], axis=-1, window='hanning', ang=False, upsample=False):
     # if not issubclass(type(DF), pd.core.series.Series): 
     #     if len(DF.columns)>1:
     #         raise Exception("DF must be of type Series or of type DataFrame with one column.")
@@ -31,7 +31,7 @@ def FFT(DF,theRange=[0.0,1.0],axis=-1,window='hanning',ang=False,upsample=False)
     #         varName = DF.columns[0]
     # else:
     #     varName = DF.name
-    DF = cutRange(DF,theRange,iName=None,inplace=True)    
+    DF = cut_range(DF, theRange, iName=None, inplace=True)
     if not issubclass(type(DF), pd.core.series.Series): 
         cols = DF.columns
         if len(cols)>1:
@@ -47,13 +47,13 @@ def FFT(DF,theRange=[0.0,1.0],axis=-1,window='hanning',ang=False,upsample=False)
         cols = [DF.name]
     theCols = ['FFT(%s)'%(col) for col in cols]
  
-    array,bounds = DF2Numpy(DF)
+    array,bounds = df_to_numpy(DF)
     iName = list(bounds.keys())[axis]
     x = bounds[iName]
-    freq,FFT = func.FFT(array,x,axis=axis,upsample=upsample,window=window)
+    freq,FFT = func.fft(array, x, axis=axis, upsample=upsample, window=window)
 
-    bounds = replaceBounds(bounds,iName,'freq',vals=freq)
-    FFT = numpy2DF(FFT,bounds,0)
+    bounds = replace_bounds(bounds, iName, 'freq', vals=freq)
+    FFT = numpy_to_df(FFT, bounds, 0)
     
     if len(cols)>1:
         FFT = FFT.unstack()[0]
@@ -62,14 +62,14 @@ def FFT(DF,theRange=[0.0,1.0],axis=-1,window='hanning',ang=False,upsample=False)
     return FFT
     
 
-def FFT2D(DF):
+def fft2d(DF):
     colName = DF.columns[0]
     colName = 'FFT2(%s)'%colName
-    array,bounds = DF2Numpy(DF)
+    array,bounds = df_to_numpy(DF)
     dxy = []
     for value in bounds.values():
         dxy = dxy + [value[1]-value[0]]
-    ft,x,y = func.FFT2D(array,dxy=dxy)
+    ft,x,y = func.fft2d(array, dxy=dxy)
     mi = pd.MultiIndex.from_product([x,y],names=['fx','fy'])
     # mi = pd.MultiIndex.from_product([y,x],names=['fy','fx'])
     DF = pd.DataFrame(ft.flatten(),index=mi,columns=[colName])
@@ -78,7 +78,7 @@ def FFT2D(DF):
     return DF 
 
 
-def windowedFFT(DF,win=None,overlap = 0.5):
+def windowed_fft(DF, win=None, overlap = 0.5):
     if not issubclass(type(DF), pd.core.series.Series): 
         if len(DF.columns)>1:
             raise Exception("DF must be of type Series or of type DataFrame with one column.")
@@ -91,11 +91,11 @@ def windowedFFT(DF,win=None,overlap = 0.5):
         raise Exception("DF must be 1D (only have 1 index level)")
     
     iName = DF.index.names[0]
-    array,bounds = DF2Numpy(DF)
+    array,bounds = df_to_numpy(DF)
     x = bounds[iName]
-    array,freq,x = func.getWindowedFFT(array,x,win=win,overlap=overlap)
+    array,freq,x = func.get_windowed_fft(array, x, win=win, overlap=overlap)
     bounds = {iName:x,'freq':freq}
-    DF = numpy2DF(array,bounds,colName='amp')
+    DF = numpy_to_df(array, bounds, colName='amp')
     return DF
 
 

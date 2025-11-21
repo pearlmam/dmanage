@@ -28,8 +28,8 @@ import time
 from pathlib import Path
 import natsort
 
-from dmanage.utils.utils import isIterable
-from dmanage.unit import makeDataUnit
+from dmanage.utils.utils import is_iterable
+from dmanage.unit import make_data_unit
 from dmanage.plugins.vsim import loader
 # possible fix for zombie creation. 
 # see https://stackoverflow.com/questions/34007194/issue-with-pythons-subprocess-popen-creating-a-zombie-and-getting-stuck
@@ -117,7 +117,7 @@ class VSimJob():
             if runInFile:
                 fileName = fileName.replace('.pre','.in')
         if fudge:
-            commands.append(self.df)
+            commands.append(self.VSimInfo.df)
         
         if numProcs > 1:
             bindToCore = False
@@ -133,7 +133,7 @@ class VSimJob():
             commands.append("%svorpalser -i %s" % \
 		                   (self.VSimInfo.VSIM_BIN_DIR,fileName))
         if resume:
-            DataDir = makeDataUnit(loader.VSim)
+            DataDir = make_data_unit(loader.VSim)
             DD = DataDir(jobLoc)
             steps = list(DD.Parts.stepNums.values()) + list(DD.Fields.stepNums.values())
             commonSteps = list(set.intersection(*map(set, steps)))
@@ -364,9 +364,9 @@ class VSimJob():
     
     def spawnSweepDirs(self,preLoc,variables,values,jobLoc=None,protect=True):
         # make both list of lists
-        if not isIterable(variables): variables = [variables]
-        if not isIterable(values): values = [values]
-        if not isIterable(values[0]): values = [values]
+        if not is_iterable(variables): variables = [variables]
+        if not is_iterable(values): values = [values]
+        if not is_iterable(values[0]): values = [values]
         if jobLoc==None: jobLoc=preLoc
         varLengths = len(variables)
         valueLengths = np.array([len(value) for value in values])    
@@ -445,8 +445,8 @@ class VSimJob():
             raise ValueError('varDict must be defined or both params and values')
         elif (varDict is None):
             # check if params and values are a list
-            if not isIterable(variables): variables = [variables]
-            if not isIterable(values): values = [values]
+            if not is_iterable(variables): variables = [variables]
+            if not is_iterable(values): values = [values]
             if len(variables) != len(values):
                 raise ValueError('len(variables) != len(values), make the list lengths equal')
             varDict = dict(zip(variables, values))

@@ -27,7 +27,7 @@ with warnings.catch_warnings():
     import paramiko
 
 
-def nonBlockRead(output):
+def non_block_read(output):
     fd = output.fileno()
     fl = fcntl.fcntl(fd, fcntl.F_GETFL)
     fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
@@ -160,7 +160,7 @@ class Server():
 #        for line in stderr.readlines():
 #            print(line)   
     
-    def runScript(self, script,conda=None, args=''):
+    def run_script(self, script, conda=None, args=''):
         """ run the script using paramiko paramiko.SSHClient()
         
         this uses paramiko's ssh protocol to run the script
@@ -206,7 +206,7 @@ class Server():
         print(self.command)
             
     
-    def runScriptX(self, script, args=''):
+    def run_scriptX(self, script, args=''):
         """Run script through ssh terminal and pass X for graphics
         
         This uses the subprocess module to ssh into the server and execute a script
@@ -254,8 +254,8 @@ class Server():
         # non-blocking readline. sometimes doesnt work... WTF
         loopCount = 0
         while (subProc.poll() is None):
-            stdout = nonBlockRead(subProc.stdout)
-            stderr = nonBlockRead(subProc.stderr)
+            stdout = non_block_read(subProc.stdout)
+            stderr = non_block_read(subProc.stderr)
             
             if stdout:
                 print(stdout.decode('ascii').rstrip('\n'))
@@ -266,7 +266,7 @@ class Server():
         subProc.terminate() 
         
         
-    def putDir(self,source='./',target='~/', fileTypes=['all'],output=False):
+    def put_dir(self, source='./', target='~/', fileTypes=['all'], output=False):
         """Uploads the contents of the source directory to the target path. 
         
         All subdirectories in source are created under target. 
@@ -303,7 +303,7 @@ class Server():
                             self.sftp.put(os.path.join(source, item), '%s/%s' % (target, item))
                     elif item[0] not in hiddenPrefixes:
                         self.mkdirR('%s/%s' % (target, item))
-                        self.putDir(os.path.join(source, item), '%s/%s' % (target, item))
+                        self.put_dir(os.path.join(source, item), '%s/%s' % (target, item))
             else:
                 copyDirs = 'dir' in fileTypes
                 for item in os.listdir(source):
@@ -313,7 +313,7 @@ class Server():
                                 self.sftp.put(os.path.join(source, item), '%s/%s' % (target, item))
                     elif copyDirs and item[0] not in hiddenPrefixes:
                         self.mkdirR('%s/%s' % (target, item))
-                        self.putDir(os.path.join(source, item), '%s/%s' % (target, item))
+                        self.put_dir(os.path.join(source, item), '%s/%s' % (target, item))
         else:
             if not os.path.exists(target):
                 os.makedirs(target) 
@@ -369,7 +369,7 @@ class Server():
         #     self.sftp.remove(remote_directory+file)
         
        
-    def checkSubProcRealTime(self,subProc, delay):
+    def check_subproc_realtime(self, subProc, delay):
         """NOT WORKING
         
         Check the output of the subProcess in realtime. The output is 
@@ -522,9 +522,9 @@ if __name__ == "__main__":
     script = '/home***REMOVED***Documents/CFA_L-4953/pythonScripts/DataManagment/' + scriptName
     sourceDir = '/home***REMOVED***Documents/SimulationProjects/CFA_L-4953/pythonScripts/DataManagment/'
     # ECEsim.putDir(sourceDir,workspace,['.py'],output=True)
-    ECEsim.putDir(sourceDir,workspace,['all'],output=True)
+    ECEsim.put_dir(sourceDir, workspace, ['all'], output=True)
     
-    ECEsim.runScript(workspace+scriptName,conda='data-manage',args=args) 
+    ECEsim.run_script(workspace + scriptName, conda='data-manage', args=args)
     ECEsim.close() 
     
 

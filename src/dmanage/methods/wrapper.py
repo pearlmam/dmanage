@@ -4,7 +4,7 @@ import itertools
 from multiprocess import Pool
 import functools
 import numpy as np
-from dmanage.utils.utils import isIterable
+from dmanage.utils.utils import is_iterable
 
 
 def looperize(func):
@@ -35,7 +35,7 @@ def looperize(func):
         iteratorType = type(steps)
         for step in steps:
             result = result + [func(step,*bound.args[1:],**bound.kwargs)]
-        if iteratorType is np.ndarray and isIterable(result[0]):
+        if iteratorType is np.ndarray and is_iterable(result[0]):
             result = np.array(result)
         return result
     return wrapper
@@ -56,7 +56,7 @@ def parallelize_looped_method(func,ncPass=False):
         
         # first arg is the iterable, and if it's not, make it one
         steps = bound.args[0]
-        if not isIterable(steps): steps = [steps]
+        if not is_iterable(steps): steps = [steps]
         iteratorType = type(steps)
         nc = min(nc,len(steps))   # dont use more cores than steps
         
@@ -70,7 +70,7 @@ def parallelize_looped_method(func,ncPass=False):
             result.wait()
             result = result.get()
             pool.close()
-            if isIterable(result[0]):
+            if is_iterable(result[0]):
                 if iteratorType is np.ndarray:
                     result = np.concatenate(result)
                 else:
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         addOne = parallelize_iterator_method(_addOne)
         startTime = time.time()
         if arg1:
-            if not isIterable(arg0): arg0 = [arg0]   # determine if it is an iterable and make it one
+            if not is_iterable(arg0): arg0 = [arg0]   # determine if it is an iterable and make it one
             nc = min(nc,len(arg0))
             print('Adding one to values using %i cores...'%(nc), end=' ')
             result = addOne(arg0,arg1,nc=nc)

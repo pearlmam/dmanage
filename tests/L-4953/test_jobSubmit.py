@@ -10,7 +10,7 @@ import datetime
 import time
 import itertools
  
-from dmanage.utils.parser import genSaveString
+from dmanage.utils.parser import gen_save_string
 from dmanage.plugins.vsim.driver import VSimJob,genArgParse,mapArgs
 
 from dmanage.utils.mail import Mail
@@ -114,7 +114,7 @@ sendtoMail = 'marcus.pearlman@gmail.com'
 #       Start Jobs
 ###########################################
 
-varString = genSaveString(setVarsDict)
+varString = gen_save_string(setVarsDict)
 runLoc = runBaseLoc + '%s/' %(varString)         
 runLoc = runLoc.replace('~',homeDir)
 preLoc = preLoc.replace('~',homeDir)
@@ -189,7 +189,7 @@ if not postProcess:
     totalOutput = printStore('\n\nPost Processing is turned off!!!!!\n',totalOutput)
 if sendMail:
     mail = Mail(senderMail,password)
-    mail.sendDone(sendtoMail,content=totalOutput, outputFile=None)
+    mail.send_done(sendtoMail, content=totalOutput, outputFile=None)
 
 
 ###########################################
@@ -291,7 +291,7 @@ if postProcess and not errorOccured and not testRun:
 
     if sendMail:
         mail = Mail(senderMail,password)
-        mail.sendDone(sendtoMail,content=totalOutput, outputFile=None)
+        mail.send_done(sendtoMail, content=totalOutput, outputFile=None)
 
 
 cwd = os.path.join(os.getcwd(),'')

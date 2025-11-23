@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import pandas as pd
-import argparse
 import os
 import glob
 import shutil
@@ -10,7 +8,7 @@ import datetime
 import time
 import itertools
  
-from dmanage.utils.parser import gen_save_string
+from dmanage.metadata.parser import gen_save_string
 from dmanage.plugins.vsim.driver import VSimJob,genArgParse,mapArgs
 
 from dmanage.utils.mail import Mail

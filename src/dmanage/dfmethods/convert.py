@@ -121,7 +121,7 @@ def df_to_numpy(DF, sort_index=False, inplace=False):
     s = []
     for i,iName in enumerate(DF.index.names):
         # bounds[iName] = DF.index.get_level_values(i).unique().to_numpy()
-        bounds[iName] = DF.index.get_level_values(i).unique().sort_values().to_numpy()
+        bounds[iName] = DF.index.get_level_values(i).unique().to_numpy()
         s = s + [bounds[iName].shape[0]]
     array = np.reshape(DF.to_numpy(),s)
     if  inplace == True:
@@ -511,10 +511,13 @@ def make_uniform_df(DF, method=None, fill_value=np.nan, interpolate=True, limit_
     if interpolate:
         for i,level in enumerate(iNames):
             if limit_area:
-                DF = DF.unstack(level).interpolate(method='linear',limit_area=limit_area).stack(dropna=False)
+                # DF = DF.unstack(level).interpolate(method='linear',limit_area=limit_area).stack(dropna=False)
+                DF = DF.unstack(level).interpolate(method='linear',limit_area=limit_area).stack(future_stack=True)
+                
             else:
                 # print(DF.unstack(level))
-                DF = DF.unstack(level).interpolate(method='linear').stack(dropna=False)
+                # DF = DF.unstack(level).interpolate(method='linear').stack(dropna=False)
+                DF = DF.unstack(level).interpolate(method='linear').stack(future_stack=True)
                 # print(DF.unstack(level))
     if vector:
         DF = DF.stack(dropna=False)
@@ -539,5 +542,17 @@ def interval_to_num_columns(DF, inplace=True):
                 DF=[(x.left+x.right)/2 for x in DF]
     return DF
 
+
+if __name__ == "__main__":
+    a = np.linspace(1,0,10)
+    t = np.linspace(0, 10, 1000)
+    A,T = np.meshgrid(a,t)
+    Y = A*np.sin(2*np.pi*T) # something there
+    df = pd.DataFrame(Y, columns=a, index=t)
+    df.columns.name = 'Amplitude'
+    df.index.name = 'Time'
+    df = df.stack()
+    print(df)
+    array,bounds = df_to_numpy(df)
 
 

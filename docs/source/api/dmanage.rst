@@ -8,6 +8,7 @@ Subpackages
    :maxdepth: 4
 
    dmanage.dfmethods
+   dmanage.metadata
    dmanage.methods
    dmanage.plugins
    dmanage.server

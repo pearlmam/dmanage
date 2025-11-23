@@ -16,7 +16,7 @@ This is a package for stuff
    intro
    concepts/concepts
    usage
-   tutorials
+   tutorials/tutorials
    development/development
    resources/resources
    

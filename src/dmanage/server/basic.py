@@ -36,7 +36,7 @@ def non_block_read(output):
     except:
         return ''
 
-class Server():
+class Server:
     """class for sending files and running scripts to a server
     
     In order to connect, you must setup ssh keys with the server, currently

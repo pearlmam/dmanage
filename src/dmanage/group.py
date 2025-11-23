@@ -14,24 +14,24 @@ import natsort
 #import dmanage.dfmethods as dfm
 import dmanage.methods as methods
 
-class Dummy: 
+class PurePython:
     """
     Inheritance class to make DataUnit a pure python class rather than inheriting from `object`, for __bases__ assignment in makeDataUnit()
     """
     pass
 
-def make_data_group(Base):
-    DataGroup.__bases__ = (Base,)
+def make_data_group(base):
+    DataGroup.__bases__ = (base,)
     return DataGroup
     
     
-class DataGroup(Dummy):
+class DataGroup(PurePython):
     
     """
     opens a sweep data directory containing VSim data directories for common analysis I use. 
-    Plotting relevant histories, plotting electrons, sweep data, etc
-    Can generate a data managment lookup spreadsheet to visualize the availiable data directories
-    
+    Plotting relevant histories, plotting electrons, sweep data, etc.
+    Can generate a data management lookup spreadsheet to visualize the available data directories
+    PurePython inheritance is required for inheritance override by make_data_group()
     
     """
     
@@ -90,7 +90,12 @@ class DataGroup(Dummy):
         print('Done in %0.3f Seconds'%executionTime)
         
     def inheritance_level():
-        """qualifer to determine the hierarchy level for wrapping methods"""
+        """qualifier to determine the hierarchy level for wrapping methods
+        no self input parameter because calling it like below gives error:
+        base = self.__class__
+        level = base.inheritance_level()
+
+        """
         return 'DG'
     
     def load(self,dataDir=None,iLevel='DG'):

@@ -20,14 +20,6 @@ dmanage.utils.mail module
    :undoc-members:
    :show-inheritance:
 
-dmanage.utils.parser module
----------------------------
-
-.. automodule:: dmanage.utils.parser
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 dmanage.utils.system module
 ---------------------------
 

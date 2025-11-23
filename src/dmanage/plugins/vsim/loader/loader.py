@@ -23,7 +23,9 @@ from dmanage import dfmethods as dfm
 from dmanage.utils.utils import child_override
 
 from dmanage.dfmethods.convert import numpy_to_df,create_bounds
-from dmanage.methods.functions import check_exist,vrrotvec
+from dmanage.methods.functions import check_exist
+from dmanage.methods.vector import vrrotvec
+
 
 class UniMesh():
     """

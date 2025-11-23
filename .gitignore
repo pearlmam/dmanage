@@ -55,6 +55,7 @@ cover/
 test_data/
 scratch/
 processed/
+data/
 
 # openMDAO output
 problem*_out/

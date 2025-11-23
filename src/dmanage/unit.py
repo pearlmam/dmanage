@@ -7,39 +7,32 @@ dataUnit stuff
 @author: marcus
 """
 import io
-# import numpy as np
 import pandas as pd
 import os
-import getpass
-import types
+
 import sys
 import inspect
-# import functools
-# from dmanage.plugins import vsim
-# import inspect
-
 
 from dmanage.server.basic import Server
 
 
-class Dummy: 
+class PurePython:
     """
     Inheritance class to make DataUnit a pure python class, for __bases__ assignment in makeDataUnit()
     """
     pass
 
-def make_data_unit(Base=Dummy):
+def make_data_unit(base=PurePython):
     """ Creates DataUnit class
-    :param path: The path of the file to wrap
     This creates the DataUnit class with the inherited components from the base class
     The base class must be a pure python class because DataUnit inherits from Dummy and overwriting 
     __bases__ might throw an error: "TypeError: __bases__ assignment: 'A' deallocator differs from 'object'"
-    If DataUnit did not inherit from Dummy, it defaultly inherits from `object` and __bases__ cant be overwritten 
-    with my python class. The some might be true if your class is not a pure python class.
+    If DataUnit did not inherit from Dummy, it default inherits from `object` and __bases__ cant be overwritten 
+    with my python class. Some might be true if your class is not a pure python class.
     Parameters
     ----------
     base : class
-        This is the base class to inheret that consists of the components required for analysis
+        This is the base class to inherit that consists of the components required for analysis
 
     Returns
     -------
@@ -47,23 +40,23 @@ def make_data_unit(Base=Dummy):
         This is the DataUnit class with the components.
 
     """
-    DataUnit.__bases__ = (Base,)
+    DataUnit.__bases__ = (base,)
     return DataUnit
     
-class DataUnit(Dummy):
+class DataUnit(PurePython):
     
     def __init__(self,dataPath,computer='local',user=None):
         """Loads components of the DataUnit (folder or file)
-        This is the base data unit class which consists of components and methods inhereted from a base class. The base class is unique to each simulation, experiment, or application.
+        This is the base data unit class which consists of components and methods inherited from a base class. The base class is unique to each simulation, experiment, or application.
 
         Parameters
         ----------
         dataPath : str, required
             This is the path to the file or folder
         computer : str, optional
-            The ip address or name of the computer where the dataUnit is. The default is 'local'.
+            UNIMPLEMENTED! The ip address or name of the computer where the dataUnit is. The default is 'local'.
         user : str, optional
-            The user name credentials for the login if needed. Setup an ssh public and private keys to login to the server, no password option is given here. The default is None.
+            The username credentials for the login if needed. Set up an ssh public and private keys to log in to the server, no password option is given here. The default is None.
 
         Returns
         -------
@@ -72,7 +65,7 @@ class DataUnit(Dummy):
         """
         
         if computer != 'local':
-            
+            # UNIMPLEMENTED
             self.Server = Server(computer=computer,user=user)
             # list relevant script files
             script=inspect.getframeinfo(sys._getframe(1)).filename
@@ -80,7 +73,7 @@ class DataUnit(Dummy):
             
             # open connection
             self.Server.connect()
-            self.Server.put(script,self.Server.workspace+filename)
+            #self.Server.put(script,self.Server.workspace+filename)
             # put all relevant scripts on the remote server
             # keep connection open???
             self.Server.close()
@@ -95,17 +88,17 @@ class DataUnit(Dummy):
         self.summaryData = self.read_summary()
         #vsim.VSimRead(self.baseDir,self)  # ??? There should be a validity check and generic sim loader here
         
-    def test_server_wrap(self):
-        self.Server.connect()
-        self.Server.put()
-        self.Hists.read_as_df('Pout')
+    # def test_server_wrap(self):
+    #     self.Server.connect()
+    #     self.Server.put()
+    #     self.Hists.read_as_df('Pout')
     
     
     def inheritance_level():
         return 'DU'
     
     def load(self,dataPath=None,iLevel='DU'):
-        # step through inheretanceLevels
+        # step through inheritance levels
         base = self.__class__
         level = base.inheritance_level()
         while not (level.lower() == 'du'):
@@ -181,4 +174,3 @@ class DataUnit(Dummy):
                             print('Unable to Coerce %s  to Dataframe'%(col))
         return self.summaryData
     
-#DataUnit.__bases__ = (vsim.loader.VSim,)

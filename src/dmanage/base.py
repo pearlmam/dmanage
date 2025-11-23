@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
-
 import dmanage.dfmethods as dfm
 from dmanage.server.basic import Server
 
@@ -27,11 +25,9 @@ def make_database(base):
             self.servers = servers
         
         def inheritance_level():
-            """qualifer to determine the hierarchy level for wrapping methods"""
+            """qualifier to determine the hierarchy level for wrapping methods"""
             return 'DB'
-        
-        
-        
+
         def connection_setup(self):
             pass
         

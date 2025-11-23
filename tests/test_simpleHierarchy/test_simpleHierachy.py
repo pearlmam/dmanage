@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from dmanage.group import make_data_group
 from dmanage.unit import make_data_unit
 from dmanage.utils.utils import child_override
-from dmanage.utils.parser import parse_filename
+from dmanage.metadata.parser import parse_filename
 
 def generateData(saveLoc):
     # waveform parameters

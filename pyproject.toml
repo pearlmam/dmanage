@@ -52,7 +52,8 @@ dependencies = [
 #  pandoc                # might need sudo apt-get install pandoc
 #  sphinx                # sphinx
 #  sphinx_rtd_theme      # sphinx theme
-#  sphinx-apidoc?        # automatically generate documentation
+#  sphinx-rtd-dark-mode  # dark mode extension for sphinx_rtd_theme
+#  sphinx-apidoc        # automatically generate documentation
 
 # for plotting interactive
 #  PyQt5                  # plotting qt

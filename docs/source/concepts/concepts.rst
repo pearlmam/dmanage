@@ -9,3 +9,4 @@ These are the fundamental concepts of the package philosophy
    dataHierarchy
    dfmethods
    server
+   metadata

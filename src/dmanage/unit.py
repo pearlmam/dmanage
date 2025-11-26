@@ -25,9 +25,9 @@ class PurePython:
 def make_data_unit(base=PurePython):
     """ Creates DataUnit class
     This creates the DataUnit class with the inherited components from the base class
-    The base class must be a pure python class because DataUnit inherits from Dummy and overwriting 
+    The base class must be a pure python class because DataUnit inherits from PurePython and overwriting 
     __bases__ might throw an error: "TypeError: __bases__ assignment: 'A' deallocator differs from 'object'"
-    If DataUnit did not inherit from Dummy, it default inherits from `object` and __bases__ cant be overwritten 
+    If DataUnit did not inherit from this dummy PurePython, it default inherits from `object` and __bases__ cant be overwritten 
     with my python class. Some might be true if your class is not a pure python class.
     Parameters
     ----------
@@ -80,8 +80,14 @@ class DataUnit(PurePython):
             # server_wrap_component_methods
         super().__init__(dataPath)
         # define attributes
-        
-        self.baseDir = os.path.join(dataPath,'')
+        self.dataUnit = dataPath
+        self.unitType = os.path.isdir(dataPath)*'dir' or os.path.isfile(dataPath)*'file' or 'UNDEFINED'
+        if self.unitType == 'UNDEFINED':
+            raise Exception(f"Undefined unit: {self.unitType}")
+        if self.unitType == 'dir':
+            self.baseDir = os.path.join(dataPath,'')
+        else:
+            self.baseDir = os.path.join(os.path.dirname(dataPath),'')
         self.resDir = self.baseDir+'processed/'
         self.summaryFile = self.baseDir + 'summary.csv'
         # self.summaryData = pd.Series() # 

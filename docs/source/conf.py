@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Dmanage'
+project = 'D-Manage'
 copyright = '2025, Marcus Pearlman'
 author = 'Marcus Pearlman'
 release = '1.00'
@@ -29,6 +29,7 @@ extensions = [
    'sphinx.ext.autodoc',      # Automatic code documentation
    'sphinx.ext.doctest',      # for traditional documentation and code
    'nbsphinx',                # for notebooks
+   'sphinx_rtd_dark_mode',    # Dark mode toggle for sphinx_rtd_theme
 ]
 
 templates_path = ['_templates']
@@ -66,6 +67,10 @@ napoleon_use_rtype = True
 napoleon_preprocess_types = False
 napoleon_type_aliases = None
 napoleon_attr_annotations = True
+
+# -- Options for sphinx_rtd_dark_mode -------------------------------------------------
+default_dark_mode = False     # user starts in light mode
+
 
 # -- General options ----------------------------------------------------------
 exclude_patterns = ['_build', '**.ipynb_checkpoints']

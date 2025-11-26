@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 from dmanage.group import make_data_group
 from dmanage.unit import make_data_unit
 from dmanage.utils.utils import child_override
-from dmanage.metadata.parser import parse_filename
+from dmanage.metadata.metastring import parse
 
-def generateData(saveLoc):
+def generate_data(saveLoc):
     # waveform parameters
     f = 1e3                       # frequency
     T = 1/f                       # Period
@@ -40,41 +40,40 @@ DataUnit = make_data_unit()
 class DataFile(DataUnit):
     def __init__(self,filepath):
         self.dataFile = filepath
-    def isValid(self,dataFile):
+    def is_valid(self,dataFile):
         return ('.csv' in dataFile)
     
     @child_override
-    def readWaveform(self):
+    def read_waveform(self):
         df = pd.read_csv(self.dataFile)
         return df
-        
-    @child_override    
-    def parseFilename(self):
-        return parse_filename(self.dataFile, 'Vin')
+    # no override here because dmanage.metadata.parser.parse_filename concats the result where 
+    # the auto wrapping does not.
+    def parse_filename(self):
+        return parse(self.dataFile, 'Vin')
         
     @child_override
-    def getWaveformRMS(self):
-        df = self.readWaveform()
+    def get_waveform_rms(self):
+        df = self.read_waveform()
         return np.sqrt((df['Voltage']**2).mean())
 
 
 DataDir = make_data_group(DataFile)
 class DataDirectory(DataDir):
+    def parse_filename(self):
+        return parse(self.dataUnits, 'Vin')
     pass
 
-DataDir = make_data_group(DataFile)
-class DataDirectory(DataDir):
-    pass
 
 if __name__ == "__main__":
     dataLoc = './test_data/'                # save location
-    generateData(dataLoc)             # generate data
+    generate_data(dataLoc)             # generate data
 
     
         
     DD = DataDirectory(dataLoc,dataUnitType='files')
-    Vrms = DD.getWaveformRMS()
-    Vin = DD.parseFilename()
+    Vrms = DD.get_waveform_rms()
+    Vin = DD.parse_filename()
     
     fig = plt.figure(1, figsize=(8,3))
     ax = fig.subplots(nrows=1,ncols=1)

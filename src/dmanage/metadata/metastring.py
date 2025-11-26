@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 import natsort
-import numpy as np
-import ntpath
 import os
 import pandas as pd
 import re
@@ -9,43 +7,29 @@ import re
 from dmanage.utils.utils import is_iterable
 from dmanage.methods.wrapper import parallelize_iterator_method
 
-def genSaveLoc(varDict):
-    outString = ''
-    for key,value in varDict.items():
-        outString = outString + key + '-' + value + '/'
-    return outString
-
-
-def gen_save_string(dataStruct, equivStr='-', sepStr='/', order=False):
+def compose(dataStruct, equiv='-', sep='_', order=False):
     outString = ''
     if type(dataStruct) is dict:
         if order: keys = natsort.natsorted(list(dataStruct.keys()))
         else: keys = list(dataStruct.keys())
         for key in keys:
-            outString = outString + key + equivStr + dataStruct[key] + sepStr
+            outString = outString + key + equiv + dataStruct[key] + sep
         
     elif type(dataStruct) is list:
         if order: dataStruct = natsort.natsorted(dataStruct)
         
         for item in dataStruct:
-            outString = outString + item + sepStr
+            outString = outString + item + sep
             
-    outString = (outString[::-1].replace(sepStr[::-1],'',1))[::-1]  # remove last occurance of sepStr
+    outString = (outString[::-1].replace(sep[::-1], '', 1))[::-1]  # remove last occurrence of sepStr
     return outString
-
-class Del:
-    def __init__(self, keep='0123456789-.'):
-      self.comp = dict((ord(c),c) for c in keep)
-    def __getitem__(self, k):
-      return self.comp.get(k)
-DD = Del()
 
 
 # ??? this function also needs to also read all metadata with checkVars undefined
 # ??? this also can only handle number values, need to include strings.
 # ??? should return DF
 
-def parse_filename(files, checkVars=None, nc=1):
+def parse(files, checkVars=None, equiv='-', sep='_', nc=1):
     """ Description
     this parses through the filename to get variable values
 
@@ -59,7 +43,7 @@ def parse_filename(files, checkVars=None, nc=1):
     Returns
     -------
     data : numpy.array
-        A numpy array containing the values associated with the identifiers for all of the files
+        A numpy array containing the values associated with the identifiers for all the files
         Examples:
         filename = '/path/to/file/name_L-10mW_T-100C_exp-1ms_ND-0.tiff'
         output1 = parseFilename(files=filename, checkVars=['L-','T-','exp-','ND-'])
@@ -71,14 +55,14 @@ def parse_filename(files, checkVars=None, nc=1):
     """
     
     if not is_iterable(files): files = [files]
-    parseFileName = parallelize_iterator_method(_parse_filename)
-    DF = parseFileName(files,checkVars,nc=nc)
+    parse_filename_ = parallelize_iterator_method(_parse)
+    DF = parse_filename_(files,checkVars, equiv=equiv, sep=sep,nc=nc)
     if type(DF) is list:
         DF = pd.concat(DF).reset_index(drop=True)
     return DF
 
 
-def _parse_filename(file, checkVars):
+def _parse(file, checkVars=None, equiv='-', sep='_'):
     """ Description
     this parses through the filename to get variable values
 
@@ -91,15 +75,15 @@ def _parse_filename(file, checkVars):
 
     Returns
     -------
-    data : numpy.array
-        A numpy array containing the values associated with the identifiers for all of the files
+    data : numpy.ndarray
+        A numpy array containing the values associated with the identifiers for all the files
         Examples:
         filename = '/path/to/file/name_L-10mW_T-100C_exp-1ms_ND-0.tiff'
         output1 = parseFilename(files=filename, checkVars=['L-','T-','exp-','ND-'])
         output1 = np.array([10,100,1,0])
 
         filenames = ['/path/to/file/name_L-10mW_T-100C_exp-1ms_ND-0.tiff', '/path/to/file/name_L-500mW_T-400C_exp-25ms_ND-0.tiff']
-        output2 = parseFilename(file=filenames, checkVars=['L-','T-','exp-'])
+        output2 = parseFilename(file=filenames, checkVars=['L','T','exp'])
         output2 = np.array([[10,100,1],[500,400,25]])
     """
     
@@ -107,18 +91,18 @@ def _parse_filename(file, checkVars):
     DF = pd.DataFrame()
     
     if os.path.basename(file) == '':
-        # its a directory and do not remove extension
+        # it's a directory and do not remove extension
         file_name = os.path.basename(os.path.dirname(file))
     else:
         
         file_name = os.path.basename(file)
         file_name, _ = os.path.splitext(file_name) # remove extension
     #file_name = file_name.replace('.tiff','')
-    file_name = file_name.split('_') # the data looks like [randomName, L-10000mW, T-100C, exp-100ms,ND-0 ]
+    file_name = file_name.split(sep) # the data looks like [randomName, L-10000mW, T-100C, exp-100ms,ND-0 ]
     matchNumber = re.compile('-?\\ *[0-9]+\\.?[0-9]*(?:[Ee]\\ *-?\\ *[0-9]+)?')
     for part in file_name:
         if '-' in part:
-            colVal = part.split('-',1)
+            colVal = part.split(equiv,1)
             col = colVal[0]
             valueStr = colVal[1] # now the number and units remain: 10000mW
             #data[i] = float(re.sub("[^0123456789\.-]","",valueStr))
@@ -141,10 +125,10 @@ if __name__ == "__main__":
     fileName = '/path/to/file/name_L-10mW_T--100C_exp-1ms_V--100.0e-3_ND-0_target-seeds/'
     checkVars=['target','L','T','exp','ND']
     
-    DF = parse_filename(fileName, checkVars=None, nc=1)
+    DF = parse(fileName, checkVars=None, nc=1)
     print(DF)
     fileNames = ['/path/to/file/name_L-10mW_T-2.0e-2_exp-1ms_V--100e-3_ND-0_target-seeds.tiff']*10
-    DF = parse_filename(fileNames, checkVars=None, nc=1)
+    DF = parse(fileNames, checkVars=None, nc=1)
     print(DF)
 
     

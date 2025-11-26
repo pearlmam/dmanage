@@ -14,8 +14,8 @@ This is a package for stuff
    :maxdepth: 2
    
    intro
+   gettingStarted
    concepts/concepts
-   usage
    tutorials/tutorials
    development/development
    resources/resources

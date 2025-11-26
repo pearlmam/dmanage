@@ -53,7 +53,7 @@ if __name__ == "__main__":
     
     SD.PreVars.read('VDC')
     
-    scalars = SD.getScalars('VDC')
+    scalars = SD.get_scalars('VDC')
     
     
     

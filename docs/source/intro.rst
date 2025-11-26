@@ -3,9 +3,9 @@ Introduction
 
 D-Manage is a Python package, a methodology, and a community!
 
-* Dmanage demands easier data managment
-* Dmanage demands personalized data managment
-* Dmanage demands community data managment
+* D-Manage demands easier data managment
+* D-Manage demands personalized data managment
+* D-Manage demands community data managment
 
 D-Manage as a Python Package
 ----------------------------

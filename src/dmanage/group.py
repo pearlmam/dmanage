@@ -58,28 +58,29 @@ class DataGroup(PurePython):
         """
         # NEEDS STANDARD NAME FOR ATTRIBUTES, not sweepDir, and deal with baseDir for both Unit and Group???
         # attributes
-        self.processedDir = 'processed'
+        
         baseDir = os.path.join(baseDir,'')
         self.baseDir = baseDir 
-        self.resDir = self.baseDir+self.processedDir + '/'
-        self.sweepResDir = self.resDir + 'sweep/'
-        self.dataLookupFile = self.baseDir + 'dataLookup.xlsx'
-        self.baseNameDepth=3
+        self.processedDir = 'processed'
         
         # sweep data directories
         print('Opening %s...'%baseDir, end = ' ')
         startTime = time.time()
         self.ignoreDirs = [self.processedDir]
         if dataUnitType == 'dir':
-            self.sweepDirs = self.get_units(baseDir, nc=nc)
+            self.dataUnits = self.get_units(baseDir, nc=nc)
         else:
-            self.sweepDirs = self.get_data_files(baseDir)
+            self.dataUnits = self.get_data_files(baseDir)
             
-        if len(self.sweepDirs) == 0: raise Exception("There are no Data Directories in '%s'"%self.baseDir)
-        self.sweepDirs = natsort.natsorted(self.sweepDirs)
-        super().__init__(os.path.join(baseDir,self.sweepDirs[0]))
+        if len(self.dataUnits) == 0: raise Exception("There are no Data Directories in '%s'" % self.baseDir)
+        self.dataUnits = natsort.natsorted(self.dataUnits)
+        super().__init__(os.path.join(baseDir, self.dataUnits[0]))
         self.baseDir = os.path.join(baseDir,'')   # overwrite baseDir again,
         
+        self.resDir = self.baseDir+self.processedDir + '/'
+        self.sweepResDir = self.resDir + 'sweep/'
+        self.dataLookupFile = self.baseDir + 'dataLookup.xlsx'
+        self.baseNameDepth=3
         self._wrap_component_methods()
         
         
@@ -192,7 +193,7 @@ class DataGroup(PurePython):
         else:
             ncPass = False
         method = methods.wrapper.parallelize_iterator_method(self._on_component_call,ncPass=ncPass ) 
-        DFs = method(self.sweepDirs,component_name, method_name, original, *args, **kwargs)
+        DFs = method(self.dataUnits, component_name, method_name, original, *args, **kwargs)
         #self._wrap_component_methods()                # rewrap component methods with SD equivalent
         return DFs
     
@@ -202,7 +203,7 @@ class DataGroup(PurePython):
         filenames = os.listdir(baseDir)
         sweepDirs = []
         for filename in filenames:
-            if self.isValid(filename): 
+            if self.is_valid(filename): 
                 sweepDirs.append(filename)
             else: 
                 pass

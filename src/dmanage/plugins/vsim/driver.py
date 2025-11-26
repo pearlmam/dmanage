@@ -64,7 +64,7 @@ class VSimJob():
         self.loadModules = loadModules
         return
     
-    def writeTimingFile(self,folder,fileName='output.log',outputFileName='timingAnalysis.csv'):
+    def write_timing_file(self, folder, fileName='output.log', outputFileName='timingAnalysis.csv'):
         fileHandle = folder + fileName
         timingFileHandle = folder + outputFileName
         timingString = 'timingAnalysis:,'
@@ -82,13 +82,13 @@ class VSimJob():
         file.close()
         return
     
-    def submitJob(self,jobLoc,numProcs,delayCheck=5,fudge=0,queue=None,timing=-1,resume=False):
+    def submit_job(self, jobLoc, numProcs, delayCheck=5, fudge=0, queue=None, timing=-1, resume=False):
         # source ~/Programs/VSim-11.0/VSimComposer.sh > /dev/null
         # mpiexec -np 2 ~/Programs/VSim-11.0/Contents/engine/bin/vorpal -i CFA.pre
         preFile = glob.glob(jobLoc + '*.pre')[0]
         fileName = os.path.basename(preFile)
-        self.repVars(preFile, 'NUM_PROCS', numProcs,throwError=False)
-        self.repVars(preFile, 'timingPeriodicity', timing)
+        self.rep_vars(preFile, 'NUM_PROCS', numProcs, throwError=False)
+        self.rep_vars(preFile, 'timingPeriodicity', timing)
         currentDir=os.getcwd()
         # create sequence of commands
         suppressOutput = True
@@ -156,7 +156,7 @@ class VSimJob():
         #print('RUNNING: %s'%(preFile))
         startTime = time.time()
         subProc=sp.Popen(command, shell=True, executable='/bin/bash', stdout=sp.PIPE)
-        errorOccured = self.checkSubProcRealTime(subProc, self.outFile, delayCheck)   # process hangs here until vorpal is done.
+        errorOccured = self.check_subproc_realtime(subProc, self.outFile, delayCheck)   # process hangs here until vorpal is done.
         date = (datetime.datetime.now().strftime('%Y-%m-%d %T'))
         jobLocStriped = Path(*jobLoc.split('/')[-3:])
         elapsedTime = (time.time() - startTime)/60./60.
@@ -171,12 +171,12 @@ class VSimJob():
                 try: os.remove(item)
                 except: pass
             if timing > -1:
-                self.writeTimingFile(jobLoc,fileName='output.log')
+                self.write_timing_file(jobLoc, fileName='output.log')
                 if timingAnalysisCore:
                     commsList = glob.glob('*_comms_*')
                     commsList = natsort.natsorted(commsList)
                     for i,commFileName in enumerate(commsList):
-                        self.writeTimingFile(jobLoc,fileName=os.path.basename(commFileName),outputFileName='timingAnalysis_%i.csv'%i)
+                        self.write_timing_file(jobLoc, fileName=os.path.basename(commFileName), outputFileName='timingAnalysis_%i.csv' % i)
             print("FINISHED %s: '.../%s/' in %.2f hours"%(date,jobLocStriped,elapsedTime))
         os.chdir(currentDir)
         if not queue is None:
@@ -185,7 +185,7 @@ class VSimJob():
             queue.put(ret)  
         return errorOccured
 	
-    def submitJobs(self,jobLocs,numProcs,nt,delayCheck=5,fudge=0,queue=None,timing=-1,resume=False):
+    def submit_jobs(self, jobLocs, numProcs, nt, delayCheck=5, fudge=0, queue=None, timing=-1, resume=False):
         if type(numProcs) is not list:
             numProcs = [numProcs]*len(jobLocs)
         if len(jobLocs) > len(numProcs):
@@ -194,17 +194,17 @@ class VSimJob():
         procs = [None] * nt
 
         for i in range(nt):
-            procs[i] = mp.Process(target=self.submitJob, args=(jobLocs[i], numProcs[i],delayCheck,fudge,queue,timing,resume))
+            procs[i] = mp.Process(target=self.submit_job, args=(jobLocs[i], numProcs[i], delayCheck, fudge, queue, timing, resume))
             procs[i].start()
         return procs
     
-    def checkActiveProcs(self):
+    def check_active_procs(self):
         checkVorpalProc=sp.Popen('ps aux | grep Rsl | grep vorpa[l]', shell=True, executable='/bin/bash', stdout=sp.PIPE, stderr=sp.PIPE)
         output, err = checkVorpalProc.communicate()
         usedProcs = len(output.decode('ascii').split('\n'))-1
         return usedProcs
     
-    def submitJobsMonitor(self, jobLocs,numProcs,nt,delayCheck=5,fudge=0,timing=-1,resume=False):
+    def submit_jobs_monitor(self, jobLocs, numProcs, nt, delayCheck=5, fudge=0, timing=-1, resume=False):
         """
         jobLocs: list of strings representing the paths
         numProcs: integer or a list of ints that represent the number of processors to use for each job in jobLocs
@@ -227,12 +227,12 @@ class VSimJob():
         errorOccured = {'error':False}
         queue.put(errorOccured)
         # queue = None
-        procs = self.submitJobs(jobLocs=jobLocs,numProcs=numProcs,nt=nt,delayCheck=delayCheck,fudge=fudge,queue=queue,timing=timing,resume=resume)
+        procs = self.submit_jobs(jobLocs=jobLocs, numProcs=numProcs, nt=nt, delayCheck=delayCheck, fudge=fudge, queue=queue, timing=timing, resume=resume)
         check = True
         # errorOccured = False
         while check:
             sleep(delayCheck*2)
-            usedProcs = self.checkActiveProcs()
+            usedProcs = self.check_active_procs()
             freeProcs = self.maxProcs-usedProcs
             nextProcs = numProcs[finJobs+nt]
             #print('Used Procs = %d, Free Procs = %d, Next Procs = %d'%(usedProcs,freeProcs,nextProcs))
@@ -254,7 +254,7 @@ class VSimJob():
                     print('Progress: %i/%i, %.1f%%'%(finJobs,numJobs,progress))
                     if finJobs <= numJobs-nt:                          # jobs availiable so start next job
                         j = finJobs+nt-1
-                        procs[i] = mp.Process(target=self.submitJob,args=(jobLocs[j],numProcs[j],delayCheck,fudge,queue,timing,resume))
+                        procs[i] = mp.Process(target=self.submit_job, args=(jobLocs[j], numProcs[j], delayCheck, fudge, queue, timing, resume))
                         procs[i].start()
                         sleep(5) # wait for the job to be submitted so I can keep track of procs on the next loop
                         break  # need to break loop to check the number of procs and deal with it properly
@@ -270,7 +270,7 @@ class VSimJob():
                     pass
         return procs
     
-    def checkSubProcRealTime(self,subProc,outFile,delay):
+    def check_subproc_realtime(self, subProc, outFile, delay):
         # Check the output of the subProcess in realtime. The output is 
         # written to outFile periodically at time intervals defned by delay 
         
@@ -362,7 +362,7 @@ class VSimJob():
         
         return errorOccured
     
-    def spawnSweepDirs(self,preLoc,variables,values,jobLoc=None,protect=True):
+    def spawn_sweep_dirs(self, preLoc, variables, values, jobLoc=None, protect=True):
         # make both list of lists
         if not is_iterable(variables): variables = [variables]
         if not is_iterable(values): values = [values]
@@ -399,14 +399,14 @@ class VSimJob():
                 histBackupFile = jobSubLoc + simName + '_History.h5.backup'
                 os.symlink('/dev/null',histBackupFile)
             for macFile in macFiles: shutil.copy(macFile, jobSubLoc) 
-            self.repVars(glob.glob(jobSubLoc + '*.pre')[0],variables,value,tag = '@@@',throwError=True)
+            self.rep_vars(glob.glob(jobSubLoc + '*.pre')[0], variables, value, tag ='@@@', throwError=True)
         return jobSubLocs
     
-    def repVarsSweepDirs(self, jobLocs,variables,values,throwError=True):
+    def rep_vars_sweep_dirs(self, jobLocs, variables, values, throwError=True):
         for i,jobLoc in enumerate(jobLocs):
-             self.repVars(glob.glob(jobLoc + '*.pre')[0],variables,values[i],tag = '@@@',throwError=throwError)
+             self.rep_vars(glob.glob(jobLoc + '*.pre')[0], variables, values[i], tag ='@@@', throwError=throwError)
     
-    def repVars(self,fileHandle,variables=None,values=None,varDict=None,tag = '@@@', preStr = '$ ',message='value replaced by sweep',throwError=False):
+    def rep_vars(self, fileHandle, variables=None, values=None, varDict=None, tag ='@@@', preStr ='$ ', message='value replaced by sweep', throwError=False):
         """
         Open a file and change the parameter value. This function searches for the string specified by <tag>, default '@@@,' and replaces the parameters listed in <params> with the values specified in <values
         A backup file is also created with the same name <fileHandle> and '~' appended. 
@@ -510,7 +510,7 @@ def mkdir_p(sftp, remote_directory):
 
 ###### parser for command line inputs
 
-def genArgParse(): 
+def gen_arg_parse():
     parser = argparse.ArgumentParser(description ='submit VSim Jobs')
     parser.add_argument('--preLoc', dest ='preLoc', action ='store', 
                         default=None, help ='location of the pre-file to run')
@@ -529,7 +529,7 @@ def genArgParse():
 
     return parser
 
-def mapArgs(args,defaults):
+def map_args(args, defaults):
     for key,value in args.items():
         if value is None:
             args[key] = defaults[key]

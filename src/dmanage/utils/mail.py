@@ -8,8 +8,8 @@ class Mail():
     def __init__(self,senderMail,password):
         self.smtpServer = 'smtp.gmail.com'
         self.port = 465
-        self.senderMail = 'marcus.pearlman2@gmail.com'
-        self.password = 'bonglyoaxoxlqjti'
+        self.senderMail = senderMail
+        self.password = password
         self.hostname = socket.gethostname()
         
     def send(self,email,subject,content):

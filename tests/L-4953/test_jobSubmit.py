@@ -8,8 +8,8 @@ import datetime
 import time
 import itertools
  
-from dmanage.metadata.parser import gen_save_string
-from dmanage.plugins.vsim.driver import VSimJob,genArgParse,mapArgs
+from dmanage.metadata.metastring import compose
+from dmanage.plugins.vsim.driver import VSimJob,gen_arg_parse,map_args
 
 from dmanage.utils.mail import Mail
 
@@ -27,7 +27,7 @@ theDate = datetime.datetime.now().strftime("%m.%d.%y")
 
 
 
-parser = genArgParse()
+parser = gen_arg_parse()
 args = parser.parse_args()
 
 ###########################################
@@ -112,12 +112,12 @@ sendtoMail = 'marcus.pearlman@gmail.com'
 #       Start Jobs
 ###########################################
 
-varString = gen_save_string(setVarsDict)
+varString = compose(setVarsDict)
 runLoc = runBaseLoc + '%s/' %(varString)         
 runLoc = runLoc.replace('~',homeDir)
 preLoc = preLoc.replace('~',homeDir)
 
-args = mapArgs(vars(args),locals())
+args = map_args(vars(args), locals())
 if not os.path.exists(runLoc):
     os.makedirs(runLoc) 
 files = glob.glob(os.path.join(preLoc, '*.pre')) + glob.glob(os.path.join(preLoc, '*.mac'))
@@ -139,10 +139,10 @@ totalOutput = printStore('\n############   Running Sweep   ############\nSweep D
 
 
 preFile = glob.glob(runLoc + '*.pre')[0]
-myJob.repVars(preFile,varDict=setVarsDict,message='set variable by folder naming')
-myJob.repVars(preFile,'NUM_PROCS',1)
+myJob.rep_vars(preFile, varDict=setVarsDict, message='set variable by folder naming')
+myJob.rep_vars(preFile, 'NUM_PROCS', 1)
 
-jobLocs = myJob.spawnSweepDirs(runLoc,variables=variables,values=values,jobLoc=runLoc,protect=(not resume))
+jobLocs = myJob.spawn_sweep_dirs(runLoc, variables=variables, values=values, jobLoc=runLoc, protect=(not resume))
 
 totalOutput = printStore('%s = %s'%(variables,values),totalOutput)
 totalOutput = printStore('Number of Jobs: %d' % len(jobLocs),totalOutput)
@@ -169,9 +169,9 @@ try:
         if coordProdGrid:
             coordProdThreads = min(numThreads*numProcs,len(jobLocs))
             totalOutput = printStore('########  Setting Up Coordinate Produced Grid  #######\n ',totalOutput)
-            procList = myJob.submitJobsMonitor(jobLocs,1,coordProdThreads,delayCheck=0.5,fudge=fudge,timing=timing,resume=resume) # jobLocs=None: no jobs submitted
+            procList = myJob.submit_jobs_monitor(jobLocs, 1, coordProdThreads, delayCheck=0.5, fudge=fudge, timing=timing, resume=resume) # jobLocs=None: no jobs submitted
             totalOutput = printStore('############   Running Sweep   ############\n',totalOutput)
-        procList = myJob.submitJobsMonitor(jobLocs,numProcs,numThreads,delayCheck=delayCheck,fudge=fudge,timing=timing,resume=resume) # jobLocs=None: no jobs submitted
+        procList = myJob.submit_jobs_monitor(jobLocs, numProcs, numThreads, delayCheck=delayCheck, fudge=fudge, timing=timing, resume=resume) # jobLocs=None: no jobs submitted
     totalOutput = printStore('\n############   Finished Sweep   ############',totalOutput)
     
 except:

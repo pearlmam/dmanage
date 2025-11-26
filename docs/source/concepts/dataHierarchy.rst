@@ -6,4 +6,6 @@ The hierarchy methodology provides a coding structure for your projects so that 
 .. figure:: 
    /figures/diagrams/dataHierarchy2.png
    
-This provides an overview of the data hierarchy, but sometimes an example can explain how this works. See Tutorials! 
+This provides an overview of the data hierarchy, but sometimes an example can explain how this works. See the `data hierarchy tutorial`_.
+
+.. _data hierarchy tutorial: ../tutorials/notebooks/dataHierarchy/dataHierarchy

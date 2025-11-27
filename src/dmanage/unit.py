@@ -100,18 +100,18 @@ class DataUnit(PurePython):
     #     self.Hists.read_as_df('Pout')
     
     
-    def inheritance_level():
+    def inheritance_level(self):
         return 'DU'
     
     def load(self,dataPath=None,iLevel='DU'):
         # step through inheritance levels
         base = self.__class__
-        level = base.inheritance_level()
+        level = base.inheritance_level(self)
         while not (level.lower() == 'du'):
             if len(base.__bases__) < 1:
                 raise Exception("Inheritance chain does not include level '%s'"%level)
             base = base.__bases__[0]
-            level = base.inheritance_level()
+            level = base.inheritance_level(self)
         return base(dataPath)
     
     def add_to_summary(self, data, summaryData=None, internalSummary=True):

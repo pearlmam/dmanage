@@ -4,11 +4,13 @@ import numpy as np
 import shutil
 import os
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 from dmanage.group import make_data_group
 from dmanage.unit import make_data_unit
-from dmanage.utils.utils import child_override
+from dmanage.decorate import override
 from dmanage.metadata.metastring import parse
+import dmanage.dfmethods as dfm
 
 def generate_data(saveLoc):
     # waveform parameters
@@ -39,24 +41,48 @@ def generate_data(saveLoc):
 DataUnit = make_data_unit()
 class DataFile(DataUnit):
     def __init__(self,filepath):
-        self.dataFile = filepath
-    def is_valid(self,dataFile):
-        return ('.csv' in dataFile)
+        self.dataUnit = filepath
+        self.baseDir = os.path.join(os.path.dirname(filepath),'')
+        self.resultDir = self.baseDir + 'processed/'
+        self.Plot = dfm.plot.Plot()
+        
+        
+    def is_valid(self,dataUnit):
+        return ('.csv' in dataUnit)
     
-    @child_override
+    def savetag(self):
+        filename = Path(self.dataUnit).stem
+        return filename.split('_')[-1]
+    
+    @override()
     def read_waveform(self):
-        df = pd.read_csv(self.dataFile)
+        df = pd.read_csv(self.dataUnit)
+        df = df.set_index('Time')
         return df
+    
     # no override here because dmanage.metadata.parser.parse_filename concats the result where 
     # the auto wrapping does not.
     def parse_filename(self):
-        return parse(self.dataFile, 'Vin')
+        return parse(self.dataUnit, 'Vin')
         
-    @child_override
+    @override()
     def get_waveform_rms(self):
         df = self.read_waveform()
         return np.sqrt((df['Voltage']**2).mean())
-
+    
+    @override('savetag')
+    def plot_waveform(self,savename,saveloc=None,savetag=''):
+        if saveloc is None:
+           saveloc = self.resultDir
+        if savetag != '':
+           savetag = '_' + savetag
+        if not os.path.exists(saveloc):
+           os.makedirs(saveloc)
+        
+        df = self.read_waveform()
+        fig,ax = self.Plot.plot1d(df)
+        savename = savename + savetag + '.' + self.Plot.P.saveType
+        fig.savefig(saveloc + savename, bbox_inches='tight', format=self.Plot.P.saveType)
 
 DataDir = make_data_group(DataFile)
 class DataDirectory(DataDir):
@@ -67,17 +93,25 @@ class DataDirectory(DataDir):
 
 if __name__ == "__main__":
     dataLoc = './test_data/'                # save location
+    dataFile = 'waveform_Vin-1.0.csv'
     generate_data(dataLoc)             # generate data
 
+    D = DataFile(dataLoc+dataFile)
+    D.plot_waveform('waveform')
     
         
     DD = DataDirectory(dataLoc,dataUnitType='files')
     Vrms = DD.get_waveform_rms()
-    Vin = DD.parse_filename()
+    Vin = DD.parse_filename().to_numpy()
     
-    fig = plt.figure(1, figsize=(8,3))
+    fig = plt.figure(1, figsize=(8,3),clear=True)
     ax = fig.subplots(nrows=1,ncols=1)
     ax.plot(Vin,Vrms)
+    
+    DD.plot_waveform('waveform')
+    
+    
+    
     
     
     

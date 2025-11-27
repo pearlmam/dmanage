@@ -42,6 +42,25 @@ def looperize(func):
 
 
 def parallelize_looped_method(func,ncPass=False):
+    """Make the function parallel
+
+    Parameters
+    ----------
+    func : function
+        looped function to be parallelized.
+    ncPass : bool, optional
+        To pass the nc parameter to the original function. This is useful if the original function is
+        already parallel and it is more efficient to loop through and run that parallely. This parameter
+        is useful for automated wrapping and choosing what kind of wrapping on the fly.
+        The default is False.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
+    
     sig = inspect.signature(func)
     @functools.wraps(func)
     def wrapper(*args,**kwargs):

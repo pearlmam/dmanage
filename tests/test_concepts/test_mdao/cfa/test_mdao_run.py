@@ -9,7 +9,7 @@ from dmanage.plugins import vsim
 from dmanage.unit import make_data_unit
 from dmanage.group import make_data_group
 import dmanage.dfmethods as dfm
-from dmanage.utils.utils import child_override
+from dmanage.decorate import override
 
 DataDir = make_data_unit(vsim.loader.VSim)
 class MyDataDir(DataDir):
@@ -61,7 +61,7 @@ class MyDataDir(DataDir):
             noiseLevel = -np.inf
             sideband = np.nan
         return float(noiseLevel)
-    @child_override
+    @override
     def getScalarVars(self,varList,theRange=[0.75, 1.0],dtype='Dict'):
         """
         determines if varRead is a history or a input variable in vars.py and reads the variable accordingly

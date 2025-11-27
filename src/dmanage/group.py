@@ -81,16 +81,12 @@ class DataGroup(PurePython):
         self.sweepResDir = self.resDir + 'sweep/'
         self.dataLookupFile = self.baseDir + 'dataLookup.xlsx'
         self.baseNameDepth=3
-        self._wrap_component_methods()
-        
-        
-        
-        
-        
+        self._wrap_methods()
+ 
         executionTime = time.time()-startTime
         print('Done in %0.3f Seconds'%executionTime)
         
-    def inheritance_level():
+    def inheritance_level(self):
         """qualifier to determine the hierarchy level for wrapping methods
         no self input parameter because calling it like below gives error:
         base = self.__class__
@@ -102,16 +98,16 @@ class DataGroup(PurePython):
     def load(self,dataDir=None,iLevel='DG'):
         # step through inheretanceLevels
         base = self.__class__
-        level = base.inheritance_level()
+        level = base.inheritance_level(self)
         while not (level.lower() == 'dg'):
             if len(base.__bases__) < 1:
                 raise Exception("Inheritance chain does not include level '%s'"%level)
             base = base.__bases__[0]
-            level = base.inheritanceLevel() 
+            level = base.inheritance_level(self)
         return base(dataDir)
     
-    def _wrap_component_methods(self):
-        """Scan all attributes and wrap methods of component-like objects."""
+    def _wrap_methods(self):
+        """Scan all attributes and wrap methods of component objects and self methods"""
         for attr_name, attr_value in vars(self).items():
             if attr_name.startswith("_"):
                 continue  # skip internal attributes
@@ -128,10 +124,9 @@ class DataGroup(PurePython):
         for method_name, method in inspect.getmembers(target, predicate=inspect.isroutine):
             if method_name.startswith("_"):
                 continue  # skip private methods
-            elif not hasattr(method, "_override"):  # if you want to use decorators
+            elif not hasattr(method, "_override"):
                 continue  # skip methods without '_override' attribute
-            # elif not 'read' in method_name:
-            #     continue  # skip methods without 'DF' in method name
+            # if method._override == 'default': # ??? Apply the correct wrapper
             original_func = method
             wrapped = self._make_wrapper(comp_name or "self", method_name, original_func)
             # types.MethodType() includes self in the method call, or something like that
@@ -147,22 +142,19 @@ class DataGroup(PurePython):
 
         """
         def wrapper(_self, *args, **kwargs):
-            if hasattr(self, "on_component_call"):
-                return self.on_component_call(
-                    component_name,
-                    method_name,
-                    lambda *a, **kw: original_func(*a, **kw),
-                    *args,
-                    **kwargs,
-                )
-            else:
-                return original_func(*args, **kwargs)
+            return self.on_method_call(
+                component_name,
+                method_name,
+                lambda *a, **kw: original_func(*a, **kw),
+                *args,
+                **kwargs,
+            )
         return wrapper
     
-    def _on_component_call(self, sweepDir,component_name, method_name, original, *args, **kwargs):
+    def _on_method_call(self, dataUnit, component_name, method_name, original, *args, **kwargs):
         """iteration method: loads DU and returns result of the component method
         NOTE: when called from a pathos.multiprocessing.Pool and MyDataGroup Class is 
-            created in another module, the super() functionraises an exception
+            created in another module, the super() function raises an exception
                "TypeError: super(type, obj): obj (instance of MySweepDir) is not an 
                instance or subtype of type (DataGroup)."
             isinstance() does not recognize that self is an instance of DataGroup...
@@ -170,32 +162,42 @@ class DataGroup(PurePython):
             TO DO: Maybe I need to chain the inheritance better... ie not use the makeDataGroup()
         
         """
+        
         # print(self.__class__.__bases__)
         # print(isinstance(self,self.__class__.__bases__))
         # print(isinstance(self,DataGroup))
-        DD = super().load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
+        du = super().load(os.path.join(self.baseDir,dataUnit),iLevel='DU') 
         # DD = super(self.__class__.__bases__[0],self).load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
-        # DD = self.load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
+        # DD = self.load(os.path.join(self.baseDir,dataUnit),iLevel='DU') 
         if component_name == 'self':
             # the "component" is actually self
-            component = DD
+            component = du
         else: 
             #The method is within a component
-            component = getattr(DD,component_name)
+            component = getattr(du,component_name)
         
-        DD_func = getattr(component,method_name)
-        return DD_func( *args, **kwargs )
+        du_func = getattr(component,method_name)
+        
+        # this allows for handling other _override kinds
+        overrideKind = du_func._override
+        if overrideKind != 'default':
+            varOverrideMethod = getattr(component,overrideKind)
+            varValue = varOverrideMethod()
+            kwargs[overrideKind] = varValue
+        
+        return du_func( *args, **kwargs )
     
-    def on_component_call(self, component_name, method_name, original, *args, **kwargs):
+    def on_method_call(self, component_name, method_name, original, *args, **kwargs):
         """parallel iterater method: loads all DDs and returns list of component method results"""
         if 'ncPass' in kwargs:
             ncPass = kwargs.pop('ncPass')
         else:
             ncPass = False
-        method = methods.wrapper.parallelize_iterator_method(self._on_component_call,ncPass=ncPass ) 
-        DFs = method(self.dataUnits, component_name, method_name, original, *args, **kwargs)
-        #self._wrap_component_methods()                # rewrap component methods with SD equivalent
-        return DFs
+        
+        method = methods.wrapper.parallelize_iterator_method(self._on_method_call, ncPass=ncPass)
+        results = method(self.dataUnits, component_name, method_name, original, *args, **kwargs)
+
+        return results
     
     def get_data_files(self, baseDir=None):
         if type(baseDir) == type(None):
@@ -245,11 +247,11 @@ class DataGroup(PurePython):
             DESCRIPTION.
 
         """
-        _getDDs = methods.wrapper.parallelize_looped_method(self._get_units, ncPass=False)
+        get_units_ = methods.wrapper.parallelize_looped_method(self._get_units, ncPass=False)
         if type(baseDir) == type(None):
             baseDir = self.baseDir
         subDirs = list(list(zip(*os.walk(baseDir,followlinks=True)))[0])
-        sweepDirs = _getDDs(subDirs,baseDir)
+        sweepDirs = get_units_(subDirs,baseDir)
 
         return sweepDirs
         

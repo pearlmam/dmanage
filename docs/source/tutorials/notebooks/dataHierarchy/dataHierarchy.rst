@@ -5,3 +5,4 @@ Data Hierarchy
    :maxdepth: 2
    
    intro
+   plotting

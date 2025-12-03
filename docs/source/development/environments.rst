@@ -1,7 +1,7 @@
 Enviroments (IDEs)
 ==================
 
-There are two interactive development environemnts (IDEs) suggested here.
+There are two interactive development environments (IDEs) suggested here.
 
 Spyder
 ------
@@ -20,4 +20,4 @@ to install PyCharm, see `PyCharm's installation page`_.
 
 .. _PyCharm's installation page: https://www.jetbrains.com/help/pycharm/installation-guide.html#standalone_linux
 
-I havent used this IDE very much, but it has extensive refactoring capabilities. At first glance, it looks beautiful and it's refactoring is simple. The refactoring alone makes this IDE worth checking out.
+I haven't used this IDE very much, but it has extensive refactoring capabilities. At first glance, it looks beautiful and it's refactoring is simple. The refactoring alone makes this IDE worth checking out.

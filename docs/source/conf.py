@@ -45,7 +45,7 @@ html_logo = './logo/dmanage-logo-inkscape.svg'
 html_static_path = ['_static']
 
 # -- Options for nbsphinx -----------------------------------------------------
-nbsphinx_execute = "always"   # run notebooks at build time
+nbsphinx_execute = "auto"   # run notebooks at build time
 # Other options: "auto", "never", "inline"
 
 # Tell Sphinx where notebooks are located
@@ -74,4 +74,19 @@ default_dark_mode = False     # user starts in light mode
 
 # -- General options ----------------------------------------------------------
 exclude_patterns = ['_build', '**.ipynb_checkpoints']
+
+
+# Here are some universal hyperlinks
+rst_epilog = """
+.. _pandas: https://pandas.pydata.org/
+.. _Pandas: https://pandas.pydata.org/
+.. _scipy: https://scipy.org/
+.. _Scipy: https://scipy.org/
+.. _numpy: https://numpy.org/
+.. _Numpy: https://numpy.org/
+.. _matplotlib: https://matplotlib.org/
+.. _Matplotlib: https://matplotlib.org/
+.. _dmanage: https://github.com/pearlmam/dmanage
+"""
+# .. |dmanage| replace:: :ref:`dmanage` 
 

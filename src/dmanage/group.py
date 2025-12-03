@@ -11,6 +11,7 @@ import os
 import time
 import pandas as pd
 import natsort
+import matplotlib as mpl
 #import dmanage.dfmethods as dfm
 import dmanage.methods as methods
 
@@ -180,6 +181,14 @@ class DataGroup(PurePython):
         
         # this allows for handling other _override kinds
         overrideKind = du_func._override
+        
+        # if overrideKind == 'plot':  # ??? to do
+        #     backEnd = mpl.get_backend()
+        #     mpl.use('agg')
+        #     # print(mp.current_process())
+        #     pid = os.getpid()
+        #     kwargs['fig'] = pid
+            
         if overrideKind != 'default':
             varOverrideMethod = getattr(component,overrideKind)
             varValue = varOverrideMethod()

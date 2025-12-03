@@ -10,3 +10,5 @@ These are the fundamental concepts of the package philosophy
    dfmethods
    server
    metadata
+   refactoringData/refactoringData
+   cacheingData/cacheingData

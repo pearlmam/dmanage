@@ -1,7 +1,7 @@
 Getting Started
 ===============
 
-First install the package and take a look at the simple hierarchy example. This will familiarize yourself with the basic usage of the D-Manage package and methodology. Then take a look at the templates to get started on your own problem. If you are more interested in the algorithms provided by ``dmanage``, then skip to the DataFrame methods section.
+First install the package and take a look at the simple hierarchy example. This will familiarize yourself with the basic usage of the D-Manage package and methodology. Then take a look at the templates to get started on your own problem. If you are more interested in the algorithms provided by dmanage, then skip to the DataFrame methods section.
 
 .. _installation:
 
@@ -39,13 +39,13 @@ There are example projects here. Sometimes the best way to learn is to look at e
 Plugins
 -------
 
-There are many plugins availiable to interact with different software packages. These are documented here. Maybe you can manage and process your data with dmanage and also utilize your favorite software! If the plugin doesn't exist for your software, consider helping develop one! Information about development is here. 
+There are many plugins availiable to interact with different software packages. These are documented here. Maybe you can manage and process your data with dmanage_ and also utilize your favorite software! If the plugin doesn't exist for your software, consider helping develop one! Information about development is here.
 
 
 DataFrame Methods
 -----------------
 
-D-Manage has many algorithms developed by the community. These often utilize ``pandas`` DataFrames. The documentation for these methods is provided here. There are also some tutorials on how to use many of them.
+D-Manage has many algorithms developed by the community. These often utilize pandas_ DataFrames. The documentation for these methods is provided here. There are also some tutorials on how to use many of them.
 
 
 

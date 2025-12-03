@@ -7,7 +7,7 @@ This lists out some tasks that need completion
 Plotting
 --------
 
-I often need to plot and save data. This is currently how I visualize datasets and compare. Plotting and saving data from one dataset is easy, but when platting and saving from a datagroup, I need to save the files with the metadata attached to the savename. This is how I do it now.
+I often need to plot and save data. This is currently how I visualize datasets and compare. Plotting and saving data from one dataset is easy, but when platting and saving from a datagroup, I need to save the files with the metadata attached to the `savename`. This is how I do it now.
 
 .. code-block:: python
    
@@ -71,7 +71,7 @@ This implementation might be good for running simulations, but needs to be strea
 
 Also, I need a way to run scripts on the server as if they were local: an RPC implementation.
 
-I have to deploy the dmanage package if I am working with dmanage; I'm kind of okay with this because the dmanage package should be static. Currently I have a deploy script which works rather well, But I have to remember to run it first...
+I have to deploy the dmanage_ package if I am working with dmanage; I'm kind of okay with this because the dmanage_ package should be static. Currently I have a deploy script which works rather well, But I have to remember to run it first...
 
 Drivers
 -------
@@ -81,7 +81,7 @@ I am really interested in using openMDAO or similar for running my simulations. 
 Data Hierarchy Examples
 -----------------------
 
-Add some example projects that use the DManage methodology. Also document these projects. The organization should alow for user-based code and documentation. I want to set a standard for organization and documentation for projects so they can be easily communicated and understood.
+Add some example projects that use the D-Manage methodology. Also document these projects. The organization should allow for user-based code and documentation. I want to set a standard for organization and documentation for projects so they can be easily communicated and understood.
 
 Visualization
 -------------
@@ -91,14 +91,14 @@ Develop a Python based visualization tool. This could simply visualize DataUnit 
 Concatenation
 -------------
 
-Need to develop common concatenate functions. For example, get_scalars() returns a dict of the variable name keys and the scalar values. When wrapped with the DataGroup, it returns a list of these dicts. We want a the variable key with a list or array of values.
+Need to develop common concatenate functions. For example, ``get_scalars()`` returns a dict of the variable name keys and the scalar values. When wrapped with the DataGroup, it returns a list of these dicts. We want a the variable key with a list or array of values.
 
 We also might need a concatenate scheme for DataFrames. We shall see as we go.
 
 Document: load() Method
 -----------------------
 
-This method instantiates the self object. Each level in the hiearchy has its load() method. The child method uses super().load() to access the parent load() method. Example: the DataGroup class needs to wrap its DataUnit parent methods with a looped DataUnit method. This uses inheritance_level() to determine if the super().load() method is the correct level to call load(). 
+This method instantiates the self object. Each level in the hierarchy has its load() method. The child method uses ``super().load()`` to access the parent ``load()`` method. Example: the ``DataGroup`` class needs to wrap its ````DataUnit`` parent methods with a looped ``DataUnit`` method. This uses ``inheritance_level()`` to determine if the ``super().load()`` method is the correct level to call ``load()``.
 
 Anyway, Document this and develop a tutorial for this methodology. Also look into using an integer level rather than a string level. This way, N number of levels can be used.
 
@@ -106,7 +106,9 @@ Anyway, Document this and develop a tutorial for this methodology. Also look int
 Change Name to DManage?
 -----------------------
 
-Yup?
+Yup? NO
+
+
 
 
 

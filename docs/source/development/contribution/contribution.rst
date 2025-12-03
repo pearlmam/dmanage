@@ -1,7 +1,7 @@
 Contribution
 ============
 
-This is the documentation relavent to contributing to the dmanage project
+This is the documentation relevant to contributing to theD-Manage project
 
 clone the project using one of the following commands. For more information about cloning the repository, see the GitHub documentation.
 

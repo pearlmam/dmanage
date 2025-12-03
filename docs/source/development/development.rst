@@ -1,7 +1,7 @@
 Development
 ===========
 
-This is the documentation relavent to project development
+This is the documentation relevant to project development
 
 .. toctree::
    :maxdepth: 2

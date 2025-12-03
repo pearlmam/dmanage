@@ -1,10 +1,10 @@
-.. dmanage documentation master file, created by
+..D-Managedocumentation master file, created by
    sphinx-quickstart on Wed Oct 29 17:53:42 2025.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Dmanage documentation
-=====================
+D-Manage
+========
 
 This is a package for stuff
 
@@ -23,5 +23,3 @@ This is a package for stuff
    api/modules
    
    
-
-  

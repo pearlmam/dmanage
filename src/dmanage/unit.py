@@ -14,7 +14,7 @@ import sys
 import inspect
 
 from dmanage.server.basic import Server
-
+from dmanage.components import SoftCache
 
 class PurePython:
     """
@@ -91,6 +91,7 @@ class DataUnit(PurePython):
         self.resDir = self.baseDir+'processed/'
         self.summaryFile = self.baseDir + 'summary.csv'
         # self.summaryData = pd.Series() # 
+        self.Cache = SoftCache()
         self.summaryData = self.read_summary()
         #vsim.VSimRead(self.baseDir,self)  # ??? There should be a validity check and generic sim loader here
         

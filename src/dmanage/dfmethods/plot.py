@@ -111,7 +111,7 @@ class Plot():
     warn.filterwarnings("ignore", message="Ignoring specified arguments in this call because figure with num:*") # ignore warning for fig = plt.figure(fig, figsize=figsize)
     def __init__(self,backEnd='TkAgg'):
         super().__init__()
-        self.P = PlotDefs(backEnd)
+        self.Defs = PlotDefs(backEnd)
         
         #self.err = DFErrorMessages()
         #print('loading DFPlotter')
@@ -124,7 +124,7 @@ class Plot():
     
     def check_fig(self, fig, figsize, clear, projection='rectilinear', subplots=(1, 1)):
         # get the proper figure ref
-        if type(fig) == type(None): fig = plt.figure(self.P.fig, figsize=figsize)
+        if type(fig) == type(None): fig = plt.figure(self.Defs.fig, figsize=figsize)
         elif type(fig) is int: fig = plt.figure(fig, figsize=figsize)
         else: pass
         
@@ -180,7 +180,7 @@ class Plot():
         xlabel = DF.index.name
 
         if convertAxis:
-            x,xlabel = self.P.convert_axis(DF.index.name, x)
+            x,xlabel = self.Defs.convert_axis(DF.index.name, x)
         
         for i,col in enumerate(DF.columns):
             if 'label' in line2Dkwargs.keys():
@@ -243,7 +243,7 @@ class Plot():
         xlabel = DF.index.name
 
         if convertAxis:
-            x,xlabel = self.P.convert_axis(DF.index.name, x)
+            x,xlabel = self.Defs.convert_axis(DF.index.name, x)
         y = DF[DF.columns[0]]
         # width = (x[1]-x[0])
         width = np.mean(np.diff(x))
@@ -282,11 +282,11 @@ class Plot():
         x = DF.index.values
         xlabel = DF.index.name
         if convertAxis:
-            x,xlabel = self.P.convert_axis(DF.index.name, x)
+            x,xlabel = self.Defs.convert_axis(DF.index.name, x)
         for i,col in enumerate(DF.columns):
             y = DF[col].to_numpy()
             for j in range(0,len(y)):
-                plt.text(x[j],y[j],j,fontsize=self.P.tickfs,horizontalalignment='center', verticalalignment='bottom' )
+                plt.text(x[j], y[j], j, fontsize=self.Defs.tickfs, horizontalalignment='center', verticalalignment='bottom')
         return fig,ax
                 
     def labeled_scatter(self, DF, labelCol=None, fig=None, figsize=(12, 5), clear=True, subplots=(1, 1), subplot=0, convertAxis=True, axType='linear', **line2Dkwargs):
@@ -301,14 +301,14 @@ class Plot():
         x = DF.index.values
         xlabel = DF.index.name
         if convertAxis:
-            x,xlabel = self.P.convert_axis(DF.index.name, x)
+            x,xlabel = self.Defs.convert_axis(DF.index.name, x)
         columns = list(DF.columns)
         columns.remove(labelCol)
         
         for i,col in enumerate(columns):
             y = DF[col].to_numpy()
             for j,label in enumerate(DF[labelCol]):
-                plt.text(x[j],y[j],label,fontsize=self.P.tickfs,horizontalalignment='center', verticalalignment='bottom' )
+                plt.text(x[j], y[j], label, fontsize=self.Defs.tickfs, horizontalalignment='center', verticalalignment='bottom')
         return fig,ax 
     
     def prep_text_chart(self, DF, fmt=".2f"):
@@ -325,11 +325,11 @@ class Plot():
         if issubclass(type(DF), pd.core.series.Series): DF = DF.to_frame()
         cols = list(DF.columns)
         for i,col in enumerate(DF.columns):
-            if col in self.P.axisUnits.keys():
-                unit = self.P.axisUnits[col]
+            if col in self.Defs.axisUnits.keys():
+                unit = self.Defs.axisUnits[col]
                 cols[i] = '%s\n%s'%(col,unit)
-                if unit in self.P.unitFactors.keys():
-                    DF[col] = DF[col]*self.P.unitFactors[unit]         
+                if unit in self.Defs.unitFactors.keys():
+                    DF[col] = DF[col]*self.Defs.unitFactors[unit]
         DF.columns = cols
         output = tabulate(DF,floatfmt=fmt,headers="keys",tablefmt="plain",numalign="left") 
         
@@ -375,7 +375,7 @@ class Plot():
         xlabel = DF.index.name
 
         if convertAxis:
-            x,xlabel = self.P.convert_axis(DF.index.name, x)
+            x,xlabel = self.Defs.convert_axis(DF.index.name, x)
         for i,col in enumerate(DF.columns):
             if 'label' in line2Dkwargs.keys():
                 pass
@@ -438,8 +438,8 @@ class Plot():
         label = list(iNames)
         
         if convertAxis:
-            x,label[0] = self.P.convert_axis(iNames[0], x)
-            y,label[1] = self.P.convert_axis(iNames[1], y)
+            x,label[0] = self.Defs.convert_axis(iNames[0], x)
+            y,label[1] = self.Defs.convert_axis(iNames[1], y)
         
         cax = ax.scatter(x, y, c=c,label=ylabel,**line2Dkwargs)
         if cbar:
@@ -482,8 +482,8 @@ class Plot():
         
         label = list(iNames)
         if convertAxis:
-            x,label[0] = self.P.convert_axis(iNames[0], x)
-            y,label[1] = self.P.convert_axis(iNames[1], y)
+            x,label[0] = self.Defs.convert_axis(iNames[0], x)
+            y,label[1] = self.Defs.convert_axis(iNames[1], y)
         
         plot = ax.tricontourf(x, y, z,cmap=cmap)
 
@@ -557,8 +557,8 @@ class Plot():
         
         label = list(iNames)
         if convertAxis:
-            x,label[0] = self.P.convert_axis(iNames[0], x)
-            y,label[1] = self.P.convert_axis(iNames[1], y)
+            x,label[0] = self.Defs.convert_axis(iNames[0], x)
+            y,label[1] = self.Defs.convert_axis(iNames[1], y)
         if polar: 
             ax.set(title=title,ylim=[0,max(y)])
             x = np.concatenate([x,x[[0]]])
@@ -609,8 +609,8 @@ class Plot():
         
         label = list(iNames)
         if convertAxis:
-            x,label[0] = self.P.convert_axis(iNames[0], x)
-            y,label[1] = self.P.convert_axis(iNames[1], y)
+            x,label[0] = self.Defs.convert_axis(iNames[0], x)
+            y,label[1] = self.Defs.convert_axis(iNames[1], y)
         # used to be np.object
         if array.dtype == object: array = array.astype(float)
          

@@ -95,7 +95,7 @@ class DataFile(DataUnit):
         df = self.read_waveform()
         return np.sqrt((df['Voltage']**2).mean())
     
-    @override('plot')
+    @override()
     def plot_waveform(self,savename,saveloc=None,fig=1):
         """Plots and saves the waveform
         
@@ -117,8 +117,8 @@ class DataFile(DataUnit):
         savetag = self.savetag()
         df = self.read_waveform()
         fig,ax = self.Plot.plot1d(df,fig=fig)
-        savename = savename + savetag + '.' + self.Plot.P.saveType
-        fig.savefig(saveloc + savename, bbox_inches='tight', format=self.Plot.P.saveType)
+        savename = savename + savetag + '.' + self.Plot.Defs.saveType
+        fig.savefig(saveloc + savename, bbox_inches='tight', format=self.Plot.Defs.saveType)
 
 DataDir = make_data_group(DataFile)
 class DataDirectory(DataDir):
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     ax.plot(Vin,Vrms)
     
     # plot and save all the waveforms
-    DD.plot_waveform('waveform',nc=4)
+    DD.plot_waveform('waveform',nc=1)
     
     # NOTE: using nc>1 utilizes a parallel implementation to save the plots,
     # sometimes this can cause data corruption if the processes are using the same figure

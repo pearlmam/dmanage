@@ -58,6 +58,11 @@ processed/
 data/
 local_test/
 
+# data files, ignores all files with this extension
+*.h5
+*.csv
+
+
 # openMDAO output
 problem*_out/
 

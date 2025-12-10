@@ -12,3 +12,4 @@ These are the fundamental concepts of the package philosophy
    metadata
    refactoringData/refactoringData
    cacheingData/cacheingData
+   dataTypes

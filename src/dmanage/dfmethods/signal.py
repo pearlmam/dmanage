@@ -489,6 +489,8 @@ def apply_filter(DF, method, cutoff, order=5, axis=-1, modLabels=True):
         fs = 1/dx
         nyq = 0.5 * fs
         normal_cutoff = [v/nyq for v in cutoff]
+        if max(normal_cutoff)>1.0:
+            raise Exception('maximum cutoff is higher than the Nyquist limit. Lower the high cutoff frequency.')
         padlen = None #int(array.shape[axis]*0.001)
         sos = signal.butter(order, normal_cutoff, btype=method, analog=False,output='sos')
         array = signal.sosfiltfilt(sos, array,axis=axis,padlen=padlen)

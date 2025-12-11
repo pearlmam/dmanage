@@ -169,8 +169,10 @@ class History():
     def read_as_df(self, histNames, concat=True, axis=1, **kwargs):
         if not type(histNames) is list: histNames = [histNames]
         DFs = []
+        if len(histNames)>1: stack = True
+        else: stack = False
         for histName in histNames:
-            DFs = DFs + [self._read_as_df(histName, **kwargs)]
+            DFs = DFs + [self._read_as_df(histName,stack=stack, **kwargs)]
         if concat and DFs:
             DFs = pd.concat(DFs,axis=axis,verify_integrity=False)
             DFs = DFs.loc[:,~DFs.columns.duplicated()].copy()
@@ -178,7 +180,7 @@ class History():
             DFs = pd.DataFrame([])
         return DFs
  
-    def _read_as_df(self, histName, **kwargs):
+    def _read_as_df(self, histName,stack=True, **kwargs):
         if type(histName) is list: 
             histName = histName[0]
         
@@ -283,17 +285,18 @@ class History():
                 # this could be a absorber data or a average vector history
                 if 'ptclDataDescription' in attrs:
                     cols = node.get_attr('ptclDataDescription').decode('ascii').replace("'","").replace(" ","").split(',')
-                    DF = pd.DataFrame(array,columns=cols).set_index('tag').sort_index()
+                    #DF = pd.DataFrame(array,columns=cols).set_index('tag').sort_index()
+                    DF = pd.DataFrame(array,columns=cols)
                     DF.columns.name = 'data'
                 elif 'fieldComponents' in attrs:
                     cols = list(node.get_attr('fieldComponents'))
                     DF = pd.DataFrame(array,columns=cols,index=t)
                     DF.index.name = 't'
                     DF.columns.name = 'v'
-                
-                DF = DF.stack()
-                DF.name = histName
-                DF = DF.to_frame()
+                if stack == True:
+                    DF = DF.stack()
+                    DF.name = histName
+                    DF = DF.to_frame()
             elif len(s) == 1:          # it's a scaler History
                 DF = numpy_to_df(array, {'t':t}, histName, inplace=True)
             else: raise Exception('This history has no method to read yet')
@@ -784,7 +787,7 @@ class InputVariables():
         self.preName = os.path.basename(varFile).replace('Vars.py','')
         
     @override()
-    def read(self, varList,warn=False):
+    def read(self, varList,asString=False,warn=False):
         """
         extracts variables in varList from the Vars.py file. Only the last variable 
         declaration in Vars.py is used. returns dictionary elemnts {"varname":value,...}
@@ -803,8 +806,11 @@ class InputVariables():
             i = 0
             for item in varList_copy:
                 if item == line.split('=')[0].strip():
-                    try: variables[item]=float(line.strip().split('=')[1])
-                    except: variables[item]=line.strip().split('=')[1]
+                    if asString:
+                        variables[item]=line.strip().split('=')[1].strip()
+                    else:
+                        try: variables[item]=float(line.strip().split('=')[1].strip())
+                        except: variables[item]=line.strip().split('=')[1].strip()
                     varList_copy.pop(i)
                 i+=1
         source.close()

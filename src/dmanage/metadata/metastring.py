@@ -3,17 +3,44 @@ import natsort
 import os
 import pandas as pd
 import re
+import decimal
 
 from dmanage.utils.utils import is_iterable
 from dmanage.methods.wrapper import parallelize_iterator_method
 
-def compose(dataStruct, equiv='-', sep='_', order=False):
+def adjusted_scientific_notation(val,num_decimals=2,exponent_pad=1):
+    exponent_template = "{:0>%d}" % exponent_pad
+    mantissa_template = "{:.%df}" % num_decimals
+    
+    order_of_magnitude = decimal.Decimal(val).adjusted()
+    nearest_lower_third = 3*(order_of_magnitude//3)
+    adjusted_mantissa = val*10**(-nearest_lower_third)
+    adjusted_mantissa_string = mantissa_template.format(adjusted_mantissa)
+    adjusted_exponent_string = "+-"[nearest_lower_third<0] + exponent_template.format(abs(nearest_lower_third))
+    return adjusted_mantissa_string+"E"+adjusted_exponent_string
+
+def smartString(val,numDecimals=3):
+    if -3 < decimal.Decimal(val).adjusted() < 3:
+        mantissa_template = "{:.%df}" % numDecimals
+        string = mantissa_template.format(val)
+    else:
+        string = adjusted_scientific_notation(val,num_decimals=numDecimals,exponent_pad=1)
+        # string = "{0: >10}".format(string)
+    
+    return string
+
+
+
+def compose(dataStruct, equiv='-', sep='_', order=False,numDecimals=3):
     outString = ''
     if type(dataStruct) is dict:
         if order: keys = natsort.natsorted(list(dataStruct.keys()))
         else: keys = list(dataStruct.keys())
         for key in keys:
-            outString = outString + key + equiv + dataStruct[key] + sep
+            value = dataStruct[key]
+            if type(value) is not str:
+                value = smartString(value,numDecimals)
+            outString = outString + key + equiv + value + sep
         
     elif type(dataStruct) is list:
         if order: dataStruct = natsort.natsorted(dataStruct)

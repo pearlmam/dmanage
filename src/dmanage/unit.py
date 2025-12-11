@@ -83,7 +83,7 @@ class DataUnit(PurePython):
         self.dataUnit = dataPath
         self.unitType = os.path.isdir(dataPath)*'dir' or os.path.isfile(dataPath)*'file' or 'UNDEFINED'
         if self.unitType == 'UNDEFINED':
-            raise Exception(f"Undefined unit: {self.unitType}")
+            raise Exception("Undefined unit: '%s' is neither a directory or a file"%dataPath)
         if self.unitType == 'dir':
             self.baseDir = os.path.join(dataPath,'')
         else:

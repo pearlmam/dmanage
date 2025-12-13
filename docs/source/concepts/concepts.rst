@@ -7,9 +7,11 @@ These are the fundamental concepts of the package philosophy
    :maxdepth: 2
    
    dataHierarchy
+   pandas/pandas
+   metadata
    dfmethods
    server
-   metadata
    refactoringData/refactoringData
    cacheingData/cacheingData
-   dataTypes
+   dataFiles
+   projectStructure

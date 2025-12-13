@@ -80,6 +80,8 @@ exclude_patterns = ['_build', '**.ipynb_checkpoints']
 rst_epilog = """
 .. _pandas: https://pandas.pydata.org/
 .. _Pandas: https://pandas.pydata.org/
+.. _Dask: https://docs.dask.org/en/stable/
+.. _dask: https://docs.dask.org/en/stable/
 .. _scipy: https://scipy.org/
 .. _Scipy: https://scipy.org/
 .. _numpy: https://numpy.org/
@@ -87,6 +89,8 @@ rst_epilog = """
 .. _matplotlib: https://matplotlib.org/
 .. _Matplotlib: https://matplotlib.org/
 .. _dmanage: https://github.com/pearlmam/dmanage
+.. _Sphinx: https://www.sphinx-doc.org/en/master
+.. _sphinx: https://www.sphinx-doc.org/en/master
 """
 # .. |dmanage| replace:: :ref:`dmanage` 
 

@@ -1,3 +1,6 @@
+
+.. _Documentation:
+ 
 Documentation
 =============
 This lists out how to document the project

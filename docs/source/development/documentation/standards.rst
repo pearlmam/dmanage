@@ -8,9 +8,9 @@ This lists out the documentation standards for this project
 docstrings
 ----------
 
-Docstrings are the comments imeadiatly following function or class definitions. These follow the numpy standard. Alternative options are google and sphinx standards, but numpy was chosen for this project. An example of the numpy docstring is `here`_. An excert from that link is given below. 
+Docstrings are the comments imeadiatly following function or class definitions. These follow the numpy standard. Alternative options are google and sphinx standards, but numpy was chosen for this project. Here is an example of the `numpy docstring`_. An excert from that link is given below. 
 
-.. _here: https://www.sphinx-doc.org/en/master/usage/extensions/example_numpy.html
+.. _`numpy docstring`: https://www.sphinx-doc.org/en/master/usage/extensions/example_numpy.html
 
 .. code-block:: python
 
@@ -39,10 +39,8 @@ This is how you describe methods!
 Writing Documentation
 ---------------------
 
-This project uses `sphinx`_ to generate documentation. This package follows the "documentation as code" philosophy, where your entire project, including documentation, should be code-like. This approach takes some time to learn, but offers automatic documentation, subversion support, easy generation of HTMLS, PDFs, and other format documentation in return.
+This project uses sphinx_ to generate documentation. This package follows the "documentation as code" philosophy, where your entire project, including documentation, should be code-like. This approach takes some time to learn, but offers automatic documentation, subversion support, easy generation of HTMLS, PDFs, and other format documentation in return.
  
-.. _sphinx: https://www.sphinx-doc.org/en/master/
-
 reStructuredText
 ^^^^^^^^^^^^^^^^
 
@@ -51,7 +49,9 @@ This is what many of the documents use, including this one.
 Notebooks
 ^^^^^^^^^
 
-Jupyter notebooks are excellent candidates for demonstration of code and its functions. Many of the tutorials use notebooks for this purpose. Sphinx has an extention `nbsphinx` to suport notbook integration. It will run your notebook and generate the documentation for it. Need link.
+Jupyter notebooks are excellent candidates for demonstration of code and its functions. Many of the tutorials use notebooks for this purpose. Sphinx has an extention nbsphinx_ to suport notbook integration. It will run your notebook and generate the documentation for it. Need link.
+
+.. _nbsphinx: https://nbsphinx.readthedocs.io/en/0.9.8/
 
 Markdown
 ^^^^^^^^

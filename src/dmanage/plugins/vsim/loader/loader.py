@@ -169,8 +169,10 @@ class History():
     def read_as_df(self, histNames, concat=True, axis=1, **kwargs):
         if not type(histNames) is list: histNames = [histNames]
         DFs = []
-        if len(histNames)>1: stack = True
-        else: stack = False
+        
+        stack = False
+        #if len(histNames)>1: stack = True
+        
         for histName in histNames:
             DFs = DFs + [self._read_as_df(histName,stack=stack, **kwargs)]
         if concat and DFs:

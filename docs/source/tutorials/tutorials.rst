@@ -9,5 +9,5 @@ This is a list of the availiable tutorials
    /tutorials/notebooks/dataHierarchy/dataHierarchy
    /tutorials/notebooks/parallelize.ipynb
    /tutorials/notebooks/dfmethods/dfmethods
-   
+   /tutorials/notebooks/cacheing/softCache
    

@@ -3,6 +3,27 @@ To Do
 
 This lists out some tasks that need completion
 
+Documentation
+-------------
+
+Rework Data Hierarchy Intro Example
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Right now the response is linearly increasing. The response should be a transfer function?
+
+Document: load() Method
+^^^^^^^^^^^^^^^^^^^^^^^
+This method instantiates the self object. Each level in the hierarchy has its load() method. The child method uses ``super().load()`` to access the parent ``load()`` method. Example: the ``DataGroup`` class needs to wrap its ````DataUnit`` parent methods with a looped ``DataUnit`` method. This uses ``inheritance_level()`` to determine if the ``super().load()`` method is the correct level to call ``load()``.
+
+Anyway, Document this and develop a tutorial for this methodology. Also look into using an integer level rather than a string level. This way, N number of levels can be used.
+
+Data File Types
+^^^^^^^^^^^^^^^
+Create a tutorial about file types: binary and ASCI files. Discuss what H5 and csv files are and how to create them. Discuss the term 'delimators'. Advantages and disadvantages.
+
+Cacheing Data
+^^^^^^^^^^^^^
+Create a tutorial for it. 
+
 
 Near Term
 ---------
@@ -17,20 +38,11 @@ Need to develop common concatenate functions. For example, ``get_scalars()`` ret
 
 We also might need a concatenate scheme for DataFrames. We shall see as we go.
 
-Document: load() Method
-^^^^^^^^^^^^^^^^^^^^^^^
-This method instantiates the self object. Each level in the hierarchy has its load() method. The child method uses ``super().load()`` to access the parent ``load()`` method. Example: the ``DataGroup`` class needs to wrap its ````DataUnit`` parent methods with a looped ``DataUnit`` method. This uses ``inheritance_level()`` to determine if the ``super().load()`` method is the correct level to call ``load()``.
-
-Anyway, Document this and develop a tutorial for this methodology. Also look into using an integer level rather than a string level. This way, N number of levels can be used.
-
 
 Change Name to DManage?
 ^^^^^^^^^^^^^^^^^^^^^^^
 Yup? NO?
 
-Data File Types
-^^^^^^^^^^^^^^^
-Create a tutorial about file types: binary and ASCI files. Discuss what H5 and csv files are and how to create them. Discuss the term 'delimators'. Advantages and disadvantages.
 
 Summary Component
 ^^^^^^^^^^^^^^^^^
@@ -38,7 +50,7 @@ Define the summary component for creating summary files
 
 Cacheing Data
 ^^^^^^^^^^^^^
-Develop soft and hard cache components. Create a tutorial for it. 
+Enhance the hard cache capabilities.
 
 Long Term
 ---------

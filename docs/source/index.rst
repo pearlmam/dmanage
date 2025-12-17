@@ -19,7 +19,7 @@ This is a package for stuff
    tutorials/tutorials
    development/development
    resources/resources
-   
+   glossary
    api/modules
    
    

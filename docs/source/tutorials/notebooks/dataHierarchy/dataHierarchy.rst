@@ -1,3 +1,5 @@
+.. _data hierarchy tutorial: 
+
 Data Hierarchy
 ==============
 
@@ -6,3 +8,4 @@ Data Hierarchy
    
    intro
    plotting
+   

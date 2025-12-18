@@ -12,6 +12,7 @@ from dmanage.group import make_data_group
 from dmanage.unit import make_data_unit
 from dmanage.decorate import override
 from dmanage.metadata.metastring import parse
+from dmanage.dfmethods import plot
 import dmanage.dfmethods as dfm
 
 def generate_data(saveloc):
@@ -62,7 +63,6 @@ class DataFile(DataUnit):
         self.dataUnit = filepath
         self.baseDir = os.path.join(os.path.dirname(filepath),'')
         self.resultDir = self.baseDir + 'processed/'
-        self.Plot = dfm.plot.Plot()
         
     def is_valid(self,dataUnit):
         """returns bool if the file is a valid data file. 
@@ -116,9 +116,9 @@ class DataFile(DataUnit):
            os.makedirs(saveloc)
         savetag = self.savetag()
         df = self.read_waveform()
-        fig,ax = self.Plot.plot1d(df,fig=fig)
-        savename = savename + savetag + '.' + self.Plot.Defs.saveType
-        fig.savefig(saveloc + savename, bbox_inches='tight', format=self.Plot.Defs.saveType)
+        fig,ax = plot.plot1d(df,fig=fig)
+        savename = savename + savetag + '.' + plot.Defs.saveType
+        fig.savefig(saveloc + savename, bbox_inches='tight', format=plot.Defs.saveType)
 
 DataDir = make_data_group(DataFile)
 class DataDirectory(DataDir):

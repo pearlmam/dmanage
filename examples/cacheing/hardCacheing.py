@@ -150,7 +150,6 @@ class MyDataUnit(DataUnit):
         self.dataUnit = filepath
         self.baseDir = os.path.join(os.path.dirname(filepath),'')
         self.resultDir = self.baseDir + 'processed/'
-        self.Plot = dfm.plot.Plot()
         hardCacheName = 'cache' + self.saveTag() + '.h5'
         self.HardCache = HardCache(self.resultDir,hardCacheName)
         

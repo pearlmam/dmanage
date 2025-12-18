@@ -87,7 +87,6 @@ class MyDataUnit(DataUnit):
         self.dataUnit = filepath
         self.baseDir = os.path.join(os.path.dirname(filepath),'')
         self.resultDir = self.baseDir + 'processed/'
-        self.Plot = dfm.plot.Plot()
         self.Cache = SoftCache()
         
         self.wavename = 'power'
@@ -127,9 +126,9 @@ class MyDataUnit(DataUnit):
         filename = Path(self.dataUnit).stem
         savetag = filename.split('_')[-1]
         df = self.read_waveform()
-        fig,ax = self.Plot.plot1d(df,fig=fig)
-        savename = savename + savetag + '.' + self.Plot.Defs.saveType
-        fig.savefig(saveloc + savename, bbox_inches='tight', format=self.Plot.Defs.saveType)
+        fig,ax = plot.plot1d(df,fig=fig)
+        savename = savename + savetag + '.' + plot.Defs.saveType
+        fig.savefig(saveloc + savename, bbox_inches='tight', format=plot.Defs.saveType)
         
     @override()
     def get_startup(self,):

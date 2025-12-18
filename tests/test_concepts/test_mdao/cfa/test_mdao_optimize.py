@@ -4,10 +4,10 @@ import openmdao.api as om
 import pandas as pd
 
 from test_mdao_run import DataDir,SweepDir,MyDataDir,MySweepDir,CFA2
-from dmanage.dfmethods.plot import Plot
+from dmanage.dfmethods import plot
 
 if __name__ == "__main__":
-    plot = Plot()
+
     folder = '/media***REMOVED***FASTER/CFAdata/2023/vbSweep/NXY-109/TEND-300e-9/FREQ-1.315e9/iCathode-1000/BSTATIC-0.140/PRF_AVG-450e3/VDC-90.5e3/'
     DD = MyDataDir(folder)
     #### test functions

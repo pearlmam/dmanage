@@ -8,13 +8,12 @@ Created on Tue Oct 14 13:31:59 2025
 
 from dmanage.unit import make_data_unit
 from dmanage.plugins import vsim
-from dmanage.dfmethods.plot import Plot
+from dmanage.dfmethods import plot
 
 DataDir = make_data_unit(vsim.loader.VSim)
 class MyDataDir(DataDir):
     def __init__(self,dataDir=None):
         super().__init__(dataDir)
-        self.Plot = Plot()
         ####   add any attributes here    ####
         
     #### Add person methods here   ####
@@ -85,7 +84,7 @@ if __name__ == "__main__":
     
     histName = 'Pout'
     df = DD.Hists.read_as_df(histName)
-    fig,ax = DD.Plot.plot1d(df)
+    fig,ax = plot.plot1d(df)
     
     
     

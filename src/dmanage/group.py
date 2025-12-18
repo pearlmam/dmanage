@@ -11,7 +11,7 @@ import os
 import time
 import pandas as pd
 import natsort
-import matplotlib as mpl
+
 #import dmanage.dfmethods as dfm
 import dmanage.methods as methods
 

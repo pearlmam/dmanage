@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 import time
 from dmanage import dfmethods as dfm
-from dmanage.dataDir import makeDataDir
-from dmanage.dfmethods.plot import Plot
-from dmanage.loaders.vsim import vsim
-
-DFP = Plot(backEnd = 'qtagg')
+from dmanage.unit import make_data_unit
+from dmanage.dfmethods import plot
+from dmanage.plugins.vsim.loader import VSim
 
 
 folder = './test_data/vsim_data/VDC-87.8e3/'
-DataDir = makeDataDir(vsim.VSim)
+DataDir = make_data_unit(VSim)
 DD = DataDir(folder)
 
 
@@ -19,8 +17,8 @@ df0 = DD.Hists.read_as_df(histName)
 df1 = dfm.signal.apply_filter(df0, method='low', cutoff=100e6)
 
 fignum = 1
-fig,ax = DFP.plot1d(df0, fig=fignum)
-fig,ax = DFP.plot1d(df1, fig=fignum, clear=False)
+fig,ax = plot.plot1d(df0, fig=fignum)
+fig,ax = plot.plot1d(df1, fig=fignum, clear=False)
 
 partName = 'electronsT'
 df0 = DD.Parts.read_as_df(steps='all', partType=partName, nc=4)

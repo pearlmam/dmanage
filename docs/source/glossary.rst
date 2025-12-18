@@ -51,7 +51,16 @@ Data Hierarchy Terms
    decorator
       A Python way to modify functions. It basically takes a function as an input, modifies it, and returns the modified function. In python, it uses the `@` syntax prefix directly above the function to be wrapped. In ``dmanage`` decorators are used to flag ``DataUnit`` methods for a ``DataGroup`` override.
       
+Python Terms
+------------
+.. glossary::
+   :sorted:
+   
+   garbage collect
+      This decribes when variables in the python name space are deleted from RAM. Every time a function returns from execution, all the local variables defined in the function are garbage collected. There is a package ``gc`` that gives some control over the garbage collection, but it generally not used here. 
       
+   namespace
+      This is basically where the the variables are defined and how the variable names are resolved with their value. In Python, each package, module, class, function and method function owns a namespace. Plus there's a global namespace that's used if the name isn't in the local namespace. 
       
 Pandas Terms
 ------------

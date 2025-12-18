@@ -13,9 +13,6 @@ import os
 import sys
 import inspect
 
-from dmanage.server.basic import Server
-from dmanage.components import SoftCache
-
 class PurePython:
     """
     Inheritance class to make DataUnit a pure python class, for __bases__ assignment in makeDataUnit()
@@ -45,7 +42,7 @@ def make_data_unit(base=PurePython):
     
 class DataUnit(PurePython):
     
-    def __init__(self,dataPath,computer='local',user=None):
+    def __init__(self,dataPath):
         """Loads components of the DataUnit (folder or file)
         This is the base data unit class which consists of components and methods inherited from a base class. The base class is unique to each simulation, experiment, or application.
 
@@ -63,22 +60,7 @@ class DataUnit(PurePython):
         None.
 
         """
-        
-        if computer != 'local':
-            # UNIMPLEMENTED
-            self.Server = Server(computer=computer,user=user)
-            # list relevant script files
-            script=inspect.getframeinfo(sys._getframe(1)).filename
-            filename = os.path.basename(script)
-            
-            # open connection
-            self.Server.connect()
-            #self.Server.put(script,self.Server.workspace+filename)
-            # put all relevant scripts on the remote server
-            # keep connection open???
-            self.Server.close()
-            # server_wrap_component_methods
-        super().__init__(dataPath)
+        super().__init__(dataPath)   # ??? do I want to have to make a component assembler?
         # define attributes
         self.dataUnit = dataPath
         self.unitType = os.path.isdir(dataPath)*'dir' or os.path.isfile(dataPath)*'file' or 'UNDEFINED'
@@ -89,18 +71,7 @@ class DataUnit(PurePython):
         else:
             self.baseDir = os.path.join(os.path.dirname(dataPath),'')
         self.resDir = self.baseDir+'processed/'
-        self.summaryFile = self.baseDir + 'summary.csv'
-        # self.summaryData = pd.Series() # 
-        self.Cache = SoftCache()
-        self.summaryData = self.read_summary()
-        #vsim.VSimRead(self.baseDir,self)  # ??? There should be a validity check and generic sim loader here
         
-    # def test_server_wrap(self):
-    #     self.Server.connect()
-    #     self.Server.put()
-    #     self.Hists.read_as_df('Pout')
-    
-    
     def inheritance_level(self):
         return 'DU'
     
@@ -115,69 +86,4 @@ class DataUnit(PurePython):
             level = base.inheritance_level(self)
         return base(dataPath)
     
-    def add_to_summary(self, data, summaryData=None, internalSummary=True):
-        
-        if summaryData is None:
-            summaryData = self.summaryData
-        if type(summaryData) is pd.core.frame.Series:
-            summaryData = pd.DataFrame(summaryData).T
-        if type(summaryData ) is pd.core.frame.DataFrame:
-            if summaryData.shape[0] > 1:
-                summaryData  = summaryData .T
-        if type(data) is dict:
-            datas = []
-            for key, value in data.items():
-                datas = datas + [pd.DataFrame(pd.Series({key:value})).T]
-            if len(datas)>0: data = pd.concat(datas,axis=1)
-            else: data = pd.DataFrame()
-            # data = pd.Series(data)
-            # data = pd.DataFrame(data,index=[0],copy=False)
-            #data = pd.DataFrame(pd.Series(data)).T
-        if type(data) is pd.core.frame.DataFrame:
-            if data.shape[0] > 1:
-                data = data.T
-        if type(data) is pd.core.frame.Series:
-            data = pd.DataFrame(data).T
-        if not data.empty:
-            for indice in data.index:
-                if type(data.loc[indice]) is pd.core.frame.DataFrame:
-                    if not type(data.loc[indice].index) is pd.core.indexes.range.RangeIndex:
-                        data[indice] = data.loc[indice].reset_index()
-            summaryData = pd.concat([summaryData.reset_index(drop=True),data.reset_index(drop=True)],axis=1,ignore_index=False)
-            summaryData = summaryData.loc[:,~summaryData.columns.duplicated(keep='last')]
-            if internalSummary:
-                self.summaryData = summaryData
-        return summaryData
-    
-    def save_summary(self, saveType ='csv'):
-        #### put all DataFrame data at the end
-        self.summaryData = self.summaryData[self.summaryData.dtypes.sort_values().index]
-        
-        if saveType == 'excel':
-            self.summaryData.to_excel(self.summaryFile)
-        else:
-            self.summaryData.to_csv(self.summaryFile) 
-        
-    def read_summary(self, ow=False, debug=False):
-        if os.path.exists(self.summaryFile) and not ow:
-            self.summaryData = pd.read_csv(self.summaryFile)
-            self.summaryData = self.summaryData.drop(self.summaryData.columns[0],axis=1)
-        else:
-            # self.summaryData = pd.Series()
-            self.summaryData = pd.DataFrame()
-            
-        #### check for DataFrame Strings (NOT NEEDED ??????)
-        for col in self.summaryData.columns:
-            # float(self.summaryData.loc[col][0])
-            if type(self.summaryData[col][0]) is str:
-                #### attempt to make it a DataFrame
-                if '\n' in self.summaryData[col][0]:
-                    try: 
-                        value = pd.read_csv(io.StringIO(self.summaryData[col][0]),delim_whitespace=True)
-                        #value = value.set_index(value.columns[0])
-                        self.summaryData[col].loc[0] = value
-                    except:
-                        if debug:
-                            print('Unable to Coerce %s  to Dataframe'%(col))
-        return self.summaryData
-    
+

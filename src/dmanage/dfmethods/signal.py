@@ -10,7 +10,7 @@ import dmanage.methods.signal
 from dmanage.dfmethods.convert import numpy_to_df,df_to_numpy
 from dmanage.methods import functions as func
 from dmanage.dfmethods.fft import fft, fft_amplitude
-from dmanage.dfmethods.plot import Plot as DFP
+from dmanage.dfmethods import plot
 
 
 def find_pks(DF, maxPks=20, hRatio=None, pRatio=None, tRatio=None, height=None, **kwargs):
@@ -195,7 +195,7 @@ def check_stability(DF, method='fft', debug=False, **kwargs):
         DF = DF.iloc[ (DF.index.get_level_values(0)>=fLow) & (DF.index.get_level_values(0)<=fHigh) ]
         DFpks,props = find_pks(DF, maxPks=10, hRatio=None, pRatio=0.05, height=noiseLevel)
         if debug:
-            fig,ax = DFP.plot1d_pks(DF, fig=fignum, pRatio=0.05, height=noiseLevel)
+            fig,ax = plot.plot1d_pks(fig=fignum, pRatio=0.05, height=noiseLevel)
         Npks = len(DFpks)
         NpksCheck = 1
         if Npks == NpksCheck:
@@ -239,7 +239,7 @@ def check_stability(DF, method='fft', debug=False, **kwargs):
             fhigh = max(cutoff)
             DFfilt = apply_filter(DF, method='high', cutoff=flow, order=3, axis=-1)
             if debug: 
-                fig,ax = DFP.plot1d(DFfilt, fig=fignum)
+                fig,ax = plot.plot1d(fig=fignum)
                 fignum = fignum + 1
             DFfilt = apply_filter(DFfilt, method='low', cutoff=fhigh, order=3, axis=-1)
         elif filt.lower() == 'bandpass':
@@ -251,7 +251,7 @@ def check_stability(DF, method='fft', debug=False, **kwargs):
             fhigh = max(cutoff)
             DFfilt = apply_filter(DF, method='low', cutoff=fhigh, order=3, axis=-1)
             if debug: 
-                fig,ax = DFP.plot1d(DFfilt, fig=fignum)
+                fig,ax = plot.plot1d(fig=fignum)
                 fignum = fignum + 1
             DFfilt = DFfilt.diff()
         elif method.lower() == 'abs':
@@ -270,12 +270,12 @@ def check_stability(DF, method='fft', debug=False, **kwargs):
             stableFilt = False
                 
         if debug: 
-            fig,ax = DFP.plot1d(DFfilt, fig=fignum)
-            fig,ax = DFP.scatter(DFpks,fig=fig,clear=False,color='b')
+            fig,ax = plot.plot1d(fig=fignum)
+            fig,ax = plot.scatter(fig=fig, clear=False, color='b')
             ax.relim()
             ax.autoscale()
             ax.set(title='Peak Check: detect=%0.0f, max=%0.0f, stable = %0.0f'%(Npks,NpksCheck,stableFilt))
-            fig = DFP.draw_fig(fig)
+            fig = plot.draw_fig()
             fignum = fignum + 1
         stable = stableFilt
         
@@ -312,16 +312,16 @@ def check_stability(DF, method='fft', debug=False, **kwargs):
         tStart = get_startup(DF, method='bandpass', cutoff=cutoff, hRatio=0.4, pRatio=0.4, debug=debug, fignum=fignum)
         
         if debug:
-            fig,ax = DFP.plot1d(DF, fig=fignum)
+            fig,ax = plot.plot1d(fig=fignum)
             ax.set(title='Original Signal, tstart=%0.2f ns'%(tStart*1e9))
-            fig = DFP.draw_fig(fig)
+            fig = plot.draw_fig()
             fignum = fignum + 1
 
         #DF = applyFilter(DF,method='high',cutoff=flow,order=3,axis=-1)
 
         DFfilt = apply_filter(DF, method='low', cutoff=fhigh, order=3, axis=-1)
         if debug:
-            fig,ax = DFP.plot1d(DFfilt, fig=fignum)
+            fig,ax = plot.plot1d(fig=fignum)
             ax.set(title='low pass signal')
             fignum = fignum + 1
         
@@ -334,7 +334,7 @@ def check_stability(DF, method='fft', debug=False, **kwargs):
         # DFfilt = DFfilt.pow(2)
         
         if debug:
-            fig,ax = DFP.plot1d(DFfilt, fig=fignum, clear=True)
+            fig,ax = plot.plot1d(fig=fignum, clear=True)
         
         
         ###### step 2: check the decay of the beat signal
@@ -389,17 +389,17 @@ def check_stability(DF, method='fft', debug=False, **kwargs):
             if debug:
                 # # for sqared signal denormalization
                 # fig,ax = DFP.plot1D(DFfiltAbs,fig=fignum,clear=True)
-                # fig,ax = DFP.DFP.scatter(DFpksCheck.pow(1/2),fig=fig,clear=False,color='b')
+                # fig,ax = DFP.DFP.plot.scatter(DFpksCheck.pow(1/2),fig=fig,clear=False,color='b')
                 
                 # for non-sqared signals
-                fig,ax = DFP.plot1d(DFfilt, fig=fignum, clear=True)
-                fig,ax = DFP.scatter(DFpksCheck,fig=fig,clear=False,color='b')
+                fig,ax = plot.plot1d(fig=fignum, clear=True)
+                fig,ax = plot.scatter(fig=fig, clear=False, color='b')
                 
-                fig,ax = DFP.plot1d(DFline, fig=fig, clear=False)
+                fig,ax = plot.plot1d(fig=fig, clear=False)
                 ax.relim()
                 ax.autoscale()
                 ax.set(title='mod decay [%%/ns]: detect=%0.1f, min=%0.1f, stable=%0.0f'%(-decayRate*100,minDecay*100,stableDecay))
-                fig = DFP.draw_fig(fig)
+                fig = plot.draw_fig()
                 fignum = fignum + 1
         
         
@@ -412,9 +412,9 @@ def check_stability(DF, method='fft', debug=False, **kwargs):
             DFfilt = DFfilt[DFfilt.index.get_level_values(0) > tStart]
             
             if debug:
-                fig,ax = DFP.plot1d(DF, fig=fignum)
+                fig,ax = plot.plot1d(fig=fignum)
                 ax.set(title='Original Signal, tstart=%0.2f ns'%(tStart*1e9))
-                fig = DFP.draw_fig(fig)
+                fig = plot.draw_fig()
                 fignum = fignum + 1
     
             
@@ -435,10 +435,10 @@ def check_stability(DF, method='fft', debug=False, **kwargs):
                     stableAttenuation = True
 
                 if debug: 
-                    fig,ax = DFP.plot1d(DFfilt, fig=fignum)
-                    fig,ax = DFP.plot1d(DFline, fig=fig, clear=False)
+                    fig,ax = plot.plot1d(fig=fignum)
+                    fig,ax = plot.plot1d(fig=fig, clear=False)
                     ax.set(title='attenuation [%%/ns]: detect=%0.2f, min=%0.2f,stable=%0.0f'%(attenuationRate*100,-maxAttenuationRate*100,stableAttenuation))
-                    fig = DFP.draw_fig(fig)
+                    fig = plot.draw_fig()
                     fignum = fignum + 1
             else:
                 stableAttenuation = True
@@ -520,14 +520,14 @@ def get_beat_period(DF, cutoff=[50e6, 500e6], hRatio=0.4, pRatio=0.3, startup=Tr
             
     DF = apply_filter(DF, method='low', cutoff=fhigh, order=3, axis=-1)
     if debug:
-        fig,ax = DFP.plot1d(DF, fig=11)
+        fig,ax = plot.plot1d(fig=11)
         ax.set(title='filtered signal')
     
     DF = DF.loc[DF.index.get_level_values('t')>(startup+startupBuff)]
     DF = DF - DF.mean()
     T = get_period(DF, hRatio=hRatio, pRatio=pRatio, debug=debug)
     if debug:
-        fig,ax = DFP.plot1d(DF, fig=12)
+        fig,ax = plot.plot1d(fig=12)
         ax.set(title='Estimated Beat Period = %0.2f ns'%(T*1e9))
 
     return T
@@ -542,32 +542,32 @@ def get_startup(DF, method='bandpass', cutoff=[50e6, 500e6], hRatio=0.4, pRatio=
         flow = min(cutoff)
         fhigh = max(cutoff)
         DF = apply_filter(DF, method='high', cutoff=flow, order=3, axis=-1)
-        if debug: DFP.plot1d(DF, fig=fignum)
+        if debug: plot.plot1d(fig=fignum)
         DF = apply_filter(DF, method='low', cutoff=fhigh, order=3, axis=-1)
     elif method == 'bandpass':
         flow = min(cutoff)
         fhigh = max(cutoff)
         DF = apply_filter(DF, method='band', cutoff=cutoff, order=3, axis=-1)
-        if debug: DFP.plot1d(DF, fig=fignum)
+        if debug: plot.plot1d(fig=fignum)
     elif method == 'lowdiff':
         fhigh = max(cutoff)
         DF = apply_filter(DF, method='low', cutoff=fhigh, order=3, axis=-1)
-        if debug: DFP.plot1d(DF, fig=fignum)
+        if debug: plot.plot1d(fig=fignum)
         DF = DF.diff()
     elif method == 'abs':
         DF = DF.abs()
-        if debug: DFP.plot1d(DF, fig=fignum)
+        if debug: plot.plot1d(fig=fignum)
     else:
-        if debug: DFP.plot1d(DF, fig=fignum)
+        if debug: plot.plot1d(fig=fignum)
         
     fignum += 1
     DFpks,props = find_pks(DF, maxPks=10, hRatio=hRatio, pRatio=pRatio)
     if debug: 
-        fig,ax = DFP.plot1d(DF, fig=fignum)
-        fig,ax = DFP.scatter(DFpks,fig=fig,clear=False,color='b')
+        fig,ax = plot.plot1d(fig=fignum)
+        fig,ax = plot.scatter(fig=fig, clear=False, color='b')
         ax.relim()
         ax.autoscale()
-        fig = DFP.draw_fig(fig)
+        fig = plot.draw_fig()
     if not DFpks.empty: startup = DFpks.index[0]
     else: startup = np.nan
     return startup

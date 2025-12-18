@@ -25,6 +25,22 @@ dmanage.base module
    :undoc-members:
    :show-inheritance:
 
+dmanage.components module
+-------------------------
+
+.. automodule:: dmanage.components
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dmanage.decorate module
+-----------------------
+
+.. automodule:: dmanage.decorate
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 dmanage.group module
 --------------------
 

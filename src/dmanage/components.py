@@ -3,9 +3,24 @@ import os
 import tables as tb
 import pandas as pd
 import copy
-import gc
+import io
+
+from dmanage.utils.utils import is_iterable
 
 class SoftCache(dict):
+    """This is a dict-like component used for storing data
+    
+    inherited methods:
+    self.update()
+    self.items()
+    self.keys()
+    self.pop()
+    self.popitem()
+    self.values()
+    self.clear()
+    self.copy()
+    
+    """
     def __getattr__(self, key):
         if not key in self.keys():
             raise AttributeError("No '%s' in cache"%(key))
@@ -23,16 +38,38 @@ class SoftCache(dict):
        return super().__setitem__(key, value)
         
     def get(self,key,method=None,*args,**kwargs):
-        if (not key in self.keys()) and (method is not None):
-            self[key] = method(*args, **kwargs)
-        return self[key]
-    
-    
+        """Gets the value from the cache or the method(*args,**kwargs)
+        Maybe for methods returning tuples, have way to ignore some values using None
+        """
+        iterable = is_iterable(key)
+        if not iterable:
+            if (not key in self.keys()) and (method is not None):
+                self[key] = method(*args, **kwargs)
+            return self[key]
+        else:
+            # # drop None values for the cache check
+            # checkKeys = [k for k in key if k is not None]
+            
+            if not all(x in self.keys() for x in key) and (method is not None):
+                # call method and set the tuple result to key iterable
+                results = method(*args, **kwargs)
+                if type(results) is not tuple:
+                    raise Exception("The number of elements in 'key' does not equal the size of the tuple returned by 'method'")
+                for k,result in zip(key,results):
+                        self[k] = result
+            else:
+                # get from cache
+                results = tuple(self[k] for k in key)
+            return results
+        
 class HardCache():
-    def __init__(self,loc='./processed/',name='cache.h5'):
-        self.loc = loc
-        self.name = name
-        self.path = os.path.join(self.loc,self.name)
+    """This is a component that stores data in an hdf file on the disk
+    
+    
+    """
+    def __init__(self,path='./processed/cache.h5'):
+        self.loc = os.path.dirname(path)
+        self.path = path
         self.h5file = type('Uninitialized', (object,), {'isopen':0})
         
     def open(self):
@@ -67,8 +104,6 @@ class HardCache():
             for openFile in copy.copy(openFiles):
                 openFile.close()
             self.h5file = openFile
-        
-             
         
     def close_all(self):
         """This closes all open h5 files
@@ -128,17 +163,18 @@ class HardCache():
         else:
             raise Warning("No Hard Cache created, ignoring...")
     
-    def get(self,name):
-        
+    def get(self,name,method=None,*args,**kwargs):
         if name in self.keys():
             self.close()
             group = '/DataFrames/' + name
             df = pd.read_hdf(self.path,group)
+        elif method is not None:
+            df = method(*args, **kwargs)
+            self.save(df)
         else:
-            df = pd.DataFrame()
+            raise Exception("No '%s' in keys and method=None, Define method to generate and hard cache the data."%(name))
         return df
-    
-    
+
     def delete_all(self):
         if os.path.exists(self.path):
             os.remove(self.path)
@@ -148,82 +184,106 @@ class HardCache():
 
 
 class Summary():
-    """NOT IMPLEMENTED
+    """This manages summary data in RAM and on the disk
     """
-    def __init__(self,dataPath):
-        self.summaryFile = self.baseDir + 'summary.csv'
-        self.summaryData = self.read_summary()
-    def add_to_summary(self, data, summaryData=None, internalSummary=True):
+    def __init__(self,path='./processed/summary.csv'):
+        self.path = path
+        self.loc = os.path.dirname(path)
+        self.data = pd.DataFrame()
+        self.filetype = path.split('.')[-1]
         
-        if summaryData is None:
-            summaryData = self.summaryData
-        if type(summaryData) is pd.core.frame.Series:
-            summaryData = pd.DataFrame(summaryData).T
-        if type(summaryData ) is pd.core.frame.DataFrame:
-            if summaryData.shape[0] > 1:
-                summaryData  = summaryData .T
+    def add(self, data):
         if type(data) is dict:
             datas = []
             for key, value in data.items():
-                datas = datas + [pd.DataFrame(pd.Series({key:value})).T]
+                datas = datas + [pd.Series(value,name=key)]
             if len(datas)>0: data = pd.concat(datas,axis=1)
             else: data = pd.DataFrame()
-            # data = pd.Series(data)
-            # data = pd.DataFrame(data,index=[0],copy=False)
-            #data = pd.DataFrame(pd.Series(data)).T
         if type(data) is pd.core.frame.DataFrame:
             if data.shape[0] > 1:
                 data = data.T
         if type(data) is pd.core.frame.Series:
             data = pd.DataFrame(data).T
         if not data.empty:
-            for indice in data.index:
-                if type(data.loc[indice]) is pd.core.frame.DataFrame:
-                    if not type(data.loc[indice].index) is pd.core.indexes.range.RangeIndex:
-                        data[indice] = data.loc[indice].reset_index()
-            summaryData = pd.concat([summaryData.reset_index(drop=True),data.reset_index(drop=True)],axis=1,ignore_index=False)
-            summaryData = summaryData.loc[:,~summaryData.columns.duplicated(keep='last')]
-            if internalSummary:
-                self.summaryData = summaryData
-        return summaryData
+            """I dont remember what the follow code is for."""
+            # for indice in data.index:
+            #     if type(data.loc[indice]) is pd.core.frame.DataFrame:
+            #         if not type(data.loc[indice].index) is pd.core.indexes.range.RangeIndex:
+            #             data[indice] = data.loc[indice].reset_index()
+            self.data = pd.concat([self.data.reset_index(drop=True),data.reset_index(drop=True)],axis=1,ignore_index=False)
+            self.data = self.data.loc[:,~self.data.columns.duplicated(keep='last')]
+        return self.data
     
     
-    def save_summary(self, saveType ='csv'):
-        #### put all DataFrame data at the end
-        self.summaryData = self.summaryData[self.summaryData.dtypes.sort_values().index]
-        
-        if saveType == 'excel':
-            self.summaryData.to_excel(self.summaryFile)
-        else:
-            self.summaryData.to_csv(self.summaryFile) 
-        
-    def read_summary(self, ow=False, debug=False):
-        if os.path.exists(self.summaryFile) and not ow:
-            self.summaryData = pd.read_csv(self.summaryFile)
-            self.summaryData = self.summaryData.drop(self.summaryData.columns[0],axis=1)
-        else:
-            # self.summaryData = pd.Series()
-            self.summaryData = pd.DataFrame()
+    def save(self,ow=True):
+        filetype = self.filetype
+        if not os.path.exists(self.loc):
+            os.mkdir(self.loc)
+        if not ow:
+            data = self.read(warn=False)
+            self.data = pd.concat([self.data.reset_index(drop=True),data.reset_index(drop=True)],axis=1,ignore_index=False)
+            self.data = self.data.loc[:,~self.data.columns.duplicated(keep='last')]
             
-        #### check for DataFrame Strings (NOT NEEDED ??????)
-        for col in self.summaryData.columns:
-            # float(self.summaryData.loc[col][0])
-            if type(self.summaryData[col][0]) is str:
-                #### attempt to make it a DataFrame
-                if '\n' in self.summaryData[col][0]:
-                    try: 
-                        value = pd.read_csv(io.StringIO(self.summaryData[col][0]),delim_whitespace=True)
-                        #value = value.set_index(value.columns[0])
-                        self.summaryData[col].loc[0] = value
-                    except:
-                        if debug:
-                            print('Unable to Coerce %s  to Dataframe'%(col))
-        return self.summaryData
+        if filetype == 'excel':
+            self.data.to_excel(self.path)
+        elif filetype == 'h5' or filetype == 'hdf':
+            self.data.to_hdf(self.path,key='summary') 
+        else:
+            self.data.to_csv(self.path) 
+        
+    def read(self, warn=False):
+        filetype = self.filetype
+        if os.path.exists(self.path):
+            if filetype == 'excel':
+                data = pd.read_excel(self.path)
+            elif filetype == 'h5' or filetype == 'hdf':
+                data = pd.read_hdf(self.path,key='summary') 
+            elif filetype == 'csv':
+                pd.read_csv(self.path)
+                data = pd.read_csv(self.path)
+                data = data.drop(self.data.columns[0],axis=1)
+        else:
+            if warn:
+                raise Warning("Summary file '%s' does NOT exist, returning empty DataFrame."%self.path)
+            data = pd.DataFrame()
+            
+        # #### check for DataFrame Strings (NOT NEEDED ??????)
+        # for col in self.data.columns:
+        #     # float(self.summaryData.loc[col][0])
+        #     if type(self.data[col][0]) is str:
+        #         #### attempt to make it a DataFrame
+        #         if '\n' in self.data[col][0]:
+        #             try: 
+        #                 value = pd.read_csv(io.StringIO(self.data[col][0]),delim_whitespace=True)
+        #                 #value = value.set_index(value.columns[0])
+        #                 self.data[col].loc[0] = value
+        #             except:
+        #                 if debug:
+        #                     print('Unable to Coerce %s  to Dataframe'%(col))
+        return data
 
 
 
 if __name__ == "__main__":
-    pass
-
+    def costlyMethod():
+        return (3,4)
+    Cache = SoftCache()
+    Cache.update({'a':1,'b':2})
+    Cache.get(('c','d'),costlyMethod)
+    print(Cache)
+    value = Cache.get(('c',None),costlyMethod)
+    print(value)
+    print(Cache)
+    # Sum = Summary(path='./processed/summary.h5')
+    # a = {'var1':2.2,'var2':'red'}
+    # Sum.add(a)
+    # b = {'var3':1,'var4':True}
+    # Sum.add(b)
+    
+    # print('Save data: \n%s\n'%Sum.data)
+    # Sum.save()
+    # data = Sum.read()
+    # print('Read data: \n%s\n\nData Types:\n%s'%(data,data.dtypes))
+    
 
 

@@ -11,21 +11,36 @@ import os
 import time
 import pandas as pd
 import natsort
+import functools
 
+from dmanage.decorate import override
 #import dmanage.dfmethods as dfm
 import dmanage.methods as methods
 
 class PurePython:
     """
-    Inheritance class to make DataUnit a pure python class rather than inheriting from `object`, for __bases__ assignment in makeDataUnit()
+    Inheritance class to make DataUnit a pure python class rather than inheriting 
+    from `object`, for __bases__ assignment in makeDataUnit(). 
     """
     pass
 
 def make_data_group(base):
+    """Makes a DataGroup object with inheritance
+    
+    Setting the __bases__ attribute is the best way to do this for a number of reasons
+    1. The object prints to the terminal with fewer wrapped namespaces
+    2. I think this allows the super() function to work better with multiprocess.Pool class
+    3. isinstance() works in multiprocess.Pool class
+    
+    This function will fail if the DataGroup and/or the base input class does not
+    inherit from a pure python class. If no inheritance is set, the inheritance defaults
+    to an object class. setting the __base__ attribute on a object class with a pure python class
+    will throw an error.
+    """
     DataGroup.__bases__ = (base,)
     return DataGroup
-    
-    
+
+
 class DataGroup(PurePython):
     
     """
@@ -69,7 +84,7 @@ class DataGroup(PurePython):
         startTime = time.time()
         self.ignoreDirs = [self.processedDir]
         if dataUnitType == 'dir':
-            self.dataUnits = self.get_units(baseDir, nc=nc)
+            self.dataUnits = self.get_dunits(baseDir, nc=nc)
         else:
             self.dataUnits = self.get_data_files(baseDir)
             
@@ -86,8 +101,9 @@ class DataGroup(PurePython):
  
         executionTime = time.time()-startTime
         print('Done in %0.3f Seconds'%executionTime)
-        
-    def inheritance_level(self):
+
+    @staticmethod
+    def inheritance_level():
         """qualifier to determine the hierarchy level for wrapping methods
         no self input parameter because calling it like below gives error:
         base = self.__class__
@@ -95,7 +111,7 @@ class DataGroup(PurePython):
 
         """
         return 'DG'
-    
+
     def load(self,dataDir=None,iLevel='DG'):
         # step through inheretanceLevels
         base = self.__class__
@@ -128,38 +144,37 @@ class DataGroup(PurePython):
             elif not hasattr(method, "_override"):
                 continue  # skip methods without '_override' attribute
             # if method._override == 'default': # ??? Apply the correct wrapper
-            original_func = method
-            wrapped = self._make_wrapper(comp_name or "self", method_name, original_func)
+            wrapped = self._make_wrapper(comp_name or "self", method_name)
             # types.MethodType() includes self in the method call, or something like that
             setattr(target, method_name, types.MethodType(wrapped, target))
-            #self._original_methods[f"{attr_name}.{method_name}"] = original_func # if you want to crate a dict of all original methods
-
-
-       
-    def _make_wrapper(self, component_name, method_name, original_func):
+            
+    def _make_wrapper(self, component_name, method_name):
         """
         Private method which wraps the component method with call to
         on_component_call() hook. also allows access to the original method
 
         """
+        func = get_component_method(self,component_name, method_name)
+        @functools.wraps(func)
         def wrapper(_self, *args, **kwargs):
             return self.on_method_call(
                 component_name,
                 method_name,
-                lambda *a, **kw: original_func(*a, **kw),
                 *args,
                 **kwargs,
             )
         return wrapper
     
-    def _on_method_call(self, dataUnit, component_name, method_name, original, *args, **kwargs):
+    
+    def _on_method_call(self, dataUnit, component_name, method_name, *args, **kwargs):
         """iteration method: loads DU and returns result of the component method
-        NOTE: when called from a pathos.multiprocessing.Pool and MyDataGroup Class is 
+        NOTE: when called from a multiprocess.Pool and MyDataGroup Class is 
             created in another module, the super() function raises an exception
                "TypeError: super(type, obj): obj (instance of MySweepDir) is not an 
                instance or subtype of type (DataGroup)."
             isinstance() does not recognize that self is an instance of DataGroup...
             That's why the super uses its self.__class__.__bases__[0].
+            I think I solved this with the improved make_data_group method?
             TO DO: Maybe I need to chain the inheritance better... ie not use the makeDataGroup()
         
         """
@@ -170,42 +185,44 @@ class DataGroup(PurePython):
         du = super().load(os.path.join(self.baseDir,dataUnit),iLevel='DU') 
         # DD = super(self.__class__.__bases__[0],self).load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
         # DD = self.load(os.path.join(self.baseDir,dataUnit),iLevel='DU') 
-        if component_name == 'self':
-            # the "component" is actually self
-            component = du
-        else: 
-            #The method is within a component
-            component = getattr(du,component_name)
         
-        du_func = getattr(component,method_name)
+        du_func = get_component_method(du,component_name, method_name)
         
         # this allows for handling other _override kinds
-        overrideKind = du_func._override
+        orKind = du_func._override
+        orLevel = du_func._level
+        orArgs = du_func._kwargs
         
-        # if overrideKind == 'plot':  # ??? to do
+        # if orKind == 'plot':  # ??? to do
         #     backEnd = mpl.get_backend()
         #     mpl.use('agg')
         #     # print(mp.current_process())
         #     pid = os.getpid()
         #     kwargs['fig'] = pid
-            
-        if overrideKind != 'default':
-            varOverrideMethod = getattr(component,overrideKind)
-            varValue = varOverrideMethod()
-            kwargs[overrideKind] = varValue
+
+        # elif orKind != 'default':
+        #     varOverrideMethod = getattr(component,overrideKind)
+        #     varValue = varOverrideMethod()
+        #     kwargs[overrideKind] = varValue
         
         return du_func( *args, **kwargs )
     
-    def on_method_call(self, component_name, method_name, original, *args, **kwargs):
+    def on_method_call(self, component_name, method_name,  *args, **kwargs):
         """parallel iterater method: loads all DDs and returns list of component method results"""
         if 'ncPass' in kwargs:
             ncPass = kwargs.pop('ncPass')
         else:
             ncPass = False
-        
+        originalMethod = get_component_method(self,component_name, method_name)
+        orKind = originalMethod._override
+        orLevel = originalMethod._level
+        orArgs = originalMethod._kwargs
         method = methods.wrapper.parallelize_iterator_method(self._on_method_call, ncPass=ncPass)
-        results = method(self.dataUnits, component_name, method_name, original, *args, **kwargs)
-
+        results = method(self.dataUnits, component_name, method_name, *args, **kwargs)
+        if orKind == 'DataFrame':
+            results =pd.concat(results,**orArgs)
+        elif orKind == 'dict':
+            results = combine_dicts(results)
         return results
     
     def get_data_files(self, baseDir=None):
@@ -221,7 +238,7 @@ class DataGroup(PurePython):
         return sweepDirs
     
     
-    def _get_units(self, subDirs, baseDir):
+    def _get_dunits(self, subDirs, baseDir):
         """looped iterator method: returns list of valid sweep directories"""
         sweepDirs = []
         if type(subDirs) != list: subDirs = [subDirs]
@@ -239,7 +256,7 @@ class DataGroup(PurePython):
                 pass
         return sweepDirs
        
-    def get_units(self, baseDir=None, nc=1):
+    def get_dunits(self, baseDir=None, nc=1):
         """
         parallel iterator method: returns list of valid sweep directories
 
@@ -256,11 +273,11 @@ class DataGroup(PurePython):
             DESCRIPTION.
 
         """
-        get_units_ = methods.wrapper.parallelize_looped_method(self._get_units, ncPass=False)
+        get_dunits_ = methods.wrapper.parallelize_looped_method(self._get_dunits, ncPass=False)
         if type(baseDir) == type(None):
             baseDir = self.baseDir
         subDirs = list(list(zip(*os.walk(baseDir,followlinks=True)))[0])
-        sweepDirs = get_units_(subDirs,baseDir)
+        sweepDirs = get_dunits_(subDirs,baseDir)
 
         return sweepDirs
         
@@ -322,16 +339,7 @@ class DataGroup(PurePython):
             return pd.DataFrame(Dict)
         
         
-    def combine_dicts(self, dictList):
-        for i,dictionary in enumerate(dictList):
-            if i == 0:
-                outDict = dictionary
-            else:
-                for key in dictionary.keys():
-                    if not type(outDict[key]) is list: outDict[key] = [outDict[key]]
-                    if not type(dictionary[key]) is list: dictionary[key] = [dictionary[key]]
-                    outDict[key] = outDict[key] + dictionary[key]
-        return outDict
+    
     
     def get_vars_from_dir(self, folders):
         DFList = []
@@ -369,3 +377,26 @@ class DataGroup(PurePython):
                 pass
             
     
+
+def get_component_method(obj,component_name, method_name):
+    if component_name == 'self':
+        # the "component" is actually self
+        component = obj
+    else: 
+        #The method is within a component
+        component = getattr(obj,component_name)
+    
+    func = getattr(component,method_name)
+    return func
+
+def combine_dicts(dictList):
+    for i,dictionary in enumerate(dictList):
+        if i == 0:
+            outDict = dictionary
+        else:
+            for key in dictionary.keys():
+                if not type(outDict[key]) is list: outDict[key] = [outDict[key]]
+                if not type(dictionary[key]) is list: dictionary[key] = [dictionary[key]]
+                outDict[key] = outDict[key] + dictionary[key]
+    return outDict
+

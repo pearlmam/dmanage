@@ -18,7 +18,6 @@ import select               # for non-block readline()
 import multiprocess as mp    # requires python <3.14
 import glob
 from threading import Timer
-from time import sleep
 import numpy as np
 
 
@@ -46,10 +45,10 @@ def dummy():
 
 class VSimInfo():
     def __init__(self, VSimDir):
-        self.VSIM_DIR=VSimDir
-        self.VSIM_BIN_DIR= self.VSIM_DIR + 'Contents/engine/bin/'
-        self.VSIM_LIB_DIR=self.VSIM_DIR + 'Contents/engine/lib/'
-        self.VSIM_SHARE_DIR=self.VSIM_DIR + 'Contents/engine/share/'
+        self.VSIM_DIR = VSimDir
+        self.VSIM_BIN_DIR = self.VSIM_DIR + 'Contents/engine/bin/'
+        self.VSIM_LIB_DIR = self.VSIM_DIR + 'Contents/engine/lib/'
+        self.VSIM_SHARE_DIR = self.VSIM_DIR + 'Contents/engine/share/'
         self.df='datefudge "2021-05-01 00:00" '
     
 class VSimJob():
@@ -103,17 +102,17 @@ class VSimJob():
             commands.append("module load %s"%loadModule)
             commands.append(" && ")
         
-        commands.append("source %sVSimComposer.sh > /dev/null" % self.VSimInfo.VSIM_DIR)
+        commands.append("source %sVSimComposer.sh > /dev/null"%self.VSimInfo.VSIM_DIR)
         commands.append(" && ")
-        preprocess = 1
+        preprocess = True
         if preprocess:
             baseName = os.path.splitext(fileName)[0]
             commands.append("txpp.py -q %s.pre"%(baseName))  # -q makes simple in file
             # commands.append("txppp.py -n %s.pre %s"%(baseName,baseName))
             if suppressOutput:
-                commands.append(' &> /dev/null')
+                commands.append(' &> /dev/null') # the '&>' supresses ???
             commands.append(" && ")
-            runInFile = True
+            runInFile = False
             if runInFile:
                 fileName = fileName.replace('.pre','.in')
         if fudge:
@@ -125,7 +124,9 @@ class VSimJob():
                 binding = '--bind-to core'
             else:
                 binding = ''
-            commands.append("mpiexec -np %s %s %svorpal -i %s" % \
+            # mpiBin = "%smpiexec"%self.VSimInfo.VSIM_BIN_DIR
+            mpiBin = "mpiexec"
+            commands.append(mpiBin + " -np %s %s %svorpal -i %s" % \
 		                   (numProcs, binding,self.VSimInfo.VSIM_BIN_DIR,fileName))
             if not timingAnalysisCore:
                 commands.append(' -nc')
@@ -144,7 +145,7 @@ class VSimJob():
             commands.append(' -r %i'%lastValidDump)
         
         if suppressOutput:
-            commands.append(' 2> /dev/null')
+            commands.append(' 2> /dev/null')  # i think the '2>' supresses only output not error output.
 
         commands.append(" && ")
         commands.append("exit")
@@ -194,8 +195,10 @@ class VSimJob():
         procs = [None] * nt
 
         for i in range(nt):
+            # print('starting Job %f'%i)
             procs[i] = mp.Process(target=self.submit_job, args=(jobLocs[i], numProcs[i], delayCheck, fudge, queue, timing, resume))
             procs[i].start()
+            time.sleep(1)
         return procs
     
     def check_active_procs(self):
@@ -231,7 +234,7 @@ class VSimJob():
         check = True
         # errorOccured = False
         while check:
-            sleep(delayCheck*2)
+            time.sleep(delayCheck*2)
             usedProcs = self.check_active_procs()
             freeProcs = self.maxProcs-usedProcs
             nextProcs = numProcs[finJobs+nt]
@@ -256,7 +259,7 @@ class VSimJob():
                         j = finJobs+nt-1
                         procs[i] = mp.Process(target=self.submit_job, args=(jobLocs[j], numProcs[j], delayCheck, fudge, queue, timing, resume))
                         procs[i].start()
-                        sleep(5) # wait for the job to be submitted so I can keep track of procs on the next loop
+                        time.sleep(5) # wait for the job to be submitted so I can keep track of procs on the next loop
                         break  # need to break loop to check the number of procs and deal with it properly
                     elif (finJobs > numJobs-nt) and (finJobs <= numJobs-1): # no new jobs availiable, remove proc from list
                         procs.pop(i)

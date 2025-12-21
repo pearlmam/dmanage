@@ -72,18 +72,19 @@ class DataUnit(PurePython):
             self.baseDir = os.path.join(os.path.dirname(dataPath),'')
         self.resDir = self.baseDir+'processed/'
         
-    def inheritance_level(self):
+    @staticmethod
+    def inheritance_level():
         return 'DU'
     
     def load(self,dataPath=None,iLevel='DU'):
         # step through inheritance levels
         base = self.__class__
-        level = base.inheritance_level(self)
+        level = base.inheritance_level()
         while not (level.lower() == 'du'):
             if len(base.__bases__) < 1:
                 raise Exception("Inheritance chain does not include level '%s'"%level)
             base = base.__bases__[0]
-            level = base.inheritance_level(self)
+            level = base.inheritance_level()
         return base(dataPath)
     
 

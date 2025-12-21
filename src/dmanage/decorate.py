@@ -2,16 +2,18 @@
 
 
 class add_attribute:
-    """Decorator that adds an attribute to a function without wrapping or renaming it."""
+    """Decorator that adds an attribute to a function without wrapping or renaming it.
+    To Do: make it so you can add more attrs at once or over multiple calls
+    """
     def __init__(self, name, value):
         self.name = name
         self.value = value
-
+    
     def __call__(self, func):
         setattr(func, self.name, self.value)
         return func
 
-def override(kind='default',level=None):
+def override(kind='default',level=None,**kwargs):
     """
     
 
@@ -35,7 +37,12 @@ def override(kind='default',level=None):
     def _override(func):
         """Decorator to add an override attribute for a method."""
         add_attr = add_attribute('_override',kind)
-        return add_attr(func)
+        func = add_attr(func)
+        add_attr = add_attribute('_level',level)
+        func = add_attr(func)
+        add_attr = add_attribute('_kwargs',kwargs)
+        func = add_attr(func)
+        return func
     return _override
 
 
@@ -44,11 +51,14 @@ if __name__ == "__main__":
     # def test():
     #     pass
 
-    @override()
+    @override('hi',a=1,b=2)
     def test():
         pass
 
 
     print(test)
     print(test._override)
+    print(test._level)
+    print(test._args)
+    
     pass

@@ -430,15 +430,15 @@ def tricontourf(DF, fig=None, figsize=(12, 5), clear=True, cmap='viridis', conve
         x,label[0] = Defs.convert_axis(iNames[0], x)
         y,label[1] = Defs.convert_axis(iNames[1], y)
 
-    plot = ax.tricontourf(x, y, z,cmap=cmap)
+    grid = ax.tricontourf(x, y, z,cmap=cmap)
 
-    cbar = fig.colorbar(plot,ax=ax)
+    cbar = fig.colorbar(grid,ax=ax)
     ax.set(xlabel=label[0],ylabel=label[1],title=title)
     ax.grid(True)
     if not mpl.get_backend().lower() == 'agg':
         fig.subplots_adjust(bottom=0.15)
     fig = draw_fig(fig)
-    return fig,ax,plot,cbar
+    return fig,ax,grid,cbar
 
 
 def contourf(DF, fig=None, figsize=(12, 5), clear=True, polar=False, cmap='viridis', convertAxis=True):
@@ -473,7 +473,7 @@ def contourf(DF, fig=None, figsize=(12, 5), clear=True, polar=False, cmap='virid
         DESCRIPTION.
     ax : TYPE
         DESCRIPTION.
-    plot : TYPE
+    grid : TYPE
         DESCRIPTION.
     cbar : TYPE
         DESCRIPTION.
@@ -511,14 +511,14 @@ def contourf(DF, fig=None, figsize=(12, 5), clear=True, polar=False, cmap='virid
         array = np.concatenate([array,np.expand_dims(array[0,:],axis=0)],axis=0)
     else: ax.set(xlabel=label[0],ylabel=label[1],title=title)
 
-    plot = ax.contourf(x,y,array.T,cmap=cmap)
-    cbar = fig.colorbar(plot,ax=ax)
+    grid = ax.contourf(x,y,array.T,cmap=cmap)
+    cbar = fig.colorbar(grid,ax=ax)
 
     ax.grid(True)
     if not mpl.get_backend().lower() == 'agg':
         fig.subplots_adjust(bottom=0.15)
     fig = draw_fig(fig)
-    return fig,ax,plot,cbar
+    return fig,ax,grid,cbar
 
 
 def pcolor(DF, fig=None, figsize=(12, 5), clear=True, polar=False, subplots=(1, 1), subplot=0, cmap='viridis', cbarOrientation='vertical', convertAxis=True):
@@ -561,7 +561,7 @@ def pcolor(DF, fig=None, figsize=(12, 5), clear=True, polar=False, subplots=(1, 
     # used to be np.object
     if array.dtype == object: array = array.astype(float)
 
-    plot = ax.pcolor(x,y,array.T,shading='auto',cmap=cmap)
+    grid = ax.pcolor(x,y,array.T,shading='auto',cmap=cmap)
     if not cbarOrientation is None:
         if polar:
             if cbarOrientation == 'horizontal':
@@ -570,18 +570,18 @@ def pcolor(DF, fig=None, figsize=(12, 5), clear=True, polar=False, subplots=(1, 
             else:
                 fraction=0.034
                 cbarLocation='right'
-            # cbar = fig.colorbar(plot,ax=ax,fraction=0.038, pad=0.02)
-            cbar = fig.colorbar(plot,ax=ax,fraction=fraction, pad=0.01,orientation=cbarOrientation,location=cbarLocation)
+            # cbar = fig.colorbar(grid,ax=ax,fraction=0.038, pad=0.02)
+            cbar = fig.colorbar(grid,ax=ax,fraction=fraction, pad=0.01,orientation=cbarOrientation,location=cbarLocation)
             if cbarLocation=='right':
                 cax = ax.collections[0].colorbar.ax
                 pos = cax.get_position()
                 cax.set_position([pos.x0, pos.y0*1.35, pos.width, pos.height])  # set a new position
                 cax.set_frame_on(True)
         else:
-            cbar = fig.colorbar(plot,ax=ax,pad=0.02)
+            cbar = fig.colorbar(grid,ax=ax,pad=0.02)
     else:
         cbar = None
-    # cbar = fig.colorbar(plot,ax=ax)
+    # cbar = fig.colorbar(grid,ax=ax)
 
     if polar: ax.set(title=title)
     else: ax.set(xlabel=label[0],ylabel=label[1],title=title)
@@ -590,7 +590,7 @@ def pcolor(DF, fig=None, figsize=(12, 5), clear=True, polar=False, subplots=(1, 
     if not mpl.get_backend().lower() == 'agg':
         fig.subplots_adjust(bottom=0.15)
     fig = draw_fig(fig)
-    return fig,axs,plot,cbar
+    return fig,axs,grid,cbar
 
 
 def plot1d_slider(DF, fig=1, clear=True):

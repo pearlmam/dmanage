@@ -62,15 +62,18 @@ class DataUnit(PurePython):
         """
         super().__init__(dataPath)   # ??? do I want to have to make a component assembler?
         # define attributes
-        self.dataUnit = dataPath
+        self.processedDir = 'processed/'
         self.unitType = os.path.isdir(dataPath)*'dir' or os.path.isfile(dataPath)*'file' or 'UNDEFINED'
         if self.unitType == 'UNDEFINED':
             raise Exception("Undefined unit: '%s' is neither a directory or a file"%dataPath)
-        if self.unitType == 'dir':
-            self.baseDir = os.path.join(dataPath,'')
-        else:
-            self.baseDir = os.path.join(os.path.dirname(dataPath),'')
-        self.resDir = self.baseDir+'processed/'
+        if  self.inheritance_level() == 'DU':
+            # this is so the DataGroup paths don't get overridden when loading DU info.
+            #self.dataUnit = dataPath
+            if self.unitType == 'dir':
+                self.baseDir = os.path.join(dataPath,'')
+            else:
+                self.baseDir = os.path.join(os.path.dirname(dataPath),'')
+            self.resDir = self.baseDir+'processed/'
         
     @staticmethod
     def inheritance_level():

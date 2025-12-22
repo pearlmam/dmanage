@@ -51,7 +51,7 @@ class DataGroup(PurePython):
     
     """
     
-    def __init__(self,baseDir,dataUnitType='dir',nc=1):
+    def __init__(self, baseDir, unitType='dir', nc=1):
         """
         
 
@@ -76,31 +76,30 @@ class DataGroup(PurePython):
         # attributes
         
         baseDir = os.path.join(baseDir,'')
-        self.baseDir = baseDir 
-        self.processedDir = 'processed'
-        
+        self.baseDir = baseDir
+        self.processedDir = 'processed/'
+        self.resDir = os.path.join(self.baseDir,self.processedDir)
+        self.sweepResDir = os.path.join(self.resDir,'sweep/')
+        self.baseNameDepth=3
         # sweep data directories
-        print('Opening %s...'%baseDir, end = ' ')
-        startTime = time.time()
+        #print('Opening %s...'%baseDir, end = ' ')
+        #startTime = time.time()
         self.ignoreDirs = [self.processedDir]
-        if dataUnitType == 'dir':
+        if unitType == 'dir':
             self.dataUnits = self.get_dunits(baseDir, nc=nc)
         else:
             self.dataUnits = self.get_data_files(baseDir)
             
         if len(self.dataUnits) == 0: raise Exception("There are no Data Directories in '%s'" % self.baseDir)
         self.dataUnits = natsort.natsorted(self.dataUnits)
+        # open one data directory to load any relevant DataUnit info
         super().__init__(os.path.join(baseDir, self.dataUnits[0]))
-        self.baseDir = os.path.join(baseDir,'')   # overwrite baseDir again,
+        #self.baseDir = os.path.join(baseDir,'')   # overwrite baseDir again,
         
-        self.resDir = self.baseDir+self.processedDir + '/'
-        self.sweepResDir = self.resDir + 'sweep/'
-        self.dataLookupFile = self.baseDir + 'dataLookup.xlsx'
-        self.baseNameDepth=3
         self._wrap_methods()
  
-        executionTime = time.time()-startTime
-        print('Done in %0.3f Seconds'%executionTime)
+        #executionTime = time.time()-startTime
+        #print('Done in %0.3f Seconds'%executionTime)
 
     @staticmethod
     def inheritance_level():
@@ -139,9 +138,9 @@ class DataGroup(PurePython):
     def _wrap_target_methods(self,target,comp_name=None):
         # Wrap all public methods of the component
         for method_name, method in inspect.getmembers(target, predicate=inspect.isroutine):
-            if method_name.startswith("_"):
-                continue  # skip private methods
-            elif not hasattr(method, "_override"):
+            # if method_name.startswith("_"):
+            #     continue  # skip private methods?
+            if not hasattr(method, "_override"):
                 continue  # skip methods without '_override' attribute
             # if method._override == 'default': # ??? Apply the correct wrapper
             wrapped = self._make_wrapper(comp_name or "self", method_name)

@@ -339,6 +339,7 @@ class Server:
                 pass
             else:
                 raise
+                
     def mkdirR(self, remote_directory):
         """Change to this directory, recursively making new folders if needed.
         Returns True if any folders were created.

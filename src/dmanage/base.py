@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import dmanage.dfmethods as dfm
-from dmanage.server.basic import Server
+from dmanage.server.ssh import Server
 
 def make_database(base):
     class DataBase(base):

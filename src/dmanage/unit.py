@@ -68,7 +68,7 @@ class DataUnit(PurePython):
             raise Exception("Undefined unit: '%s' is neither a directory or a file"%dataPath)
         if  self.inheritance_level() == 'DU':
             # this is so the DataGroup paths don't get overridden when loading DU info.
-            #self.dataUnit = dataPath
+            self.dataUnit = dataPath
             if self.unitType == 'dir':
                 self.baseDir = os.path.join(dataPath,'')
             else:

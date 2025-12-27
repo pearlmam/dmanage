@@ -30,8 +30,8 @@ dependencies = [
   "pandas",            # data manipulation
   "matplotlib",        # for plotting
   "multiprocess",      # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
-  "paramiko",          # for server implementation
-  "Pyro5",             # RPC server implementation
+  "paramiko",          # for remote implementation
+  "Pyro5",             # RPC remote implementation
 ]
 
 

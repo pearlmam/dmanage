@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 import numpy as np
-import dmanage.server.rpc as rpc
+import dmanage.remote.rpc as rpc
 
 length = 100
 class MyDataUnit():
@@ -81,7 +81,12 @@ if __name__ == "__main__":
     module = "/home***REMOVED***Documents/SimulationProjects/dmanage/tests/test_rpc/test_pyro/test_project/project"
     server='127.0.0.1'
     user='marcus'
-    # rpc.start_nameserver(server=server,user=user)
-    rpc.create_pyro_object(obj,module=module,server=server,user=user,dataPath=dataPath)
-    #rpc._create_pyro_object('MyDataUnit',module='/home***REMOVED***Documents/SimulationProjects/dmanage/tests/test_rpc/test_pyro/test_project/project',dataPath='/home***REMOVED***Documents/SimulationProjects/dmanage/tests/test_data/vsim_data/VDC-87.8e3')
+    conda='dmanage'
+    RPC = rpc.RPC(server=server,user=user,conda=conda)
+    #RPC.connect()
+    RPC.start_nameserver(subProc=True)
+    # RPC.create_pyro_object(obj,module=module,debug=False,dataPath=dataPath)
+    # DD = RPC.get_remote_object(name='Obj')
+    #RPC.close()
+
     

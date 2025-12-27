@@ -16,12 +16,12 @@ def start_nameserver():
         
 def gen_pyro_object(Obj,name='Obj'):
     daemon = Pyro5.server.Daemon()         # make a Pyro daemon
-    ns = Pyro5.api.locate_ns()             # find the name server
+    ns = Pyro5.api.locate_ns()             # find the name remote
     uri = daemon.register(Obj)       # register the greeting maker as a Pyro object
-    ns.register(name, uri)   # register the object with a name in the name server
+    ns.register(name, uri)   # register the object with a name in the name remote
     print(uri)
     print("Ready.")
-    daemon.requestLoop()                   # start the event loop of the server to wait for calls
+    daemon.requestLoop()                   # start the event loop of the remote to wait for calls
     return uri
 
 def create_instance(cls,dataPath,**kwargs):
@@ -141,7 +141,7 @@ if __name__ == "__main__":
 
     # result = rsync(source=source,
     #          dest=dest,
-    #          dest_ssh=server,
+    #          dest_ssh=remote,
     #          options=options,
     #          includes=includes,
     #          excludes=excludes)

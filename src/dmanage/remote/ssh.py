@@ -37,9 +37,9 @@ def non_block_read(output):
         return ''
 
 class Server:
-    """class for sending files and running scripts to a server
+    """class for sending files and running scripts to a remote
     
-    In order to connect, you must setup ssh keys with the server, currently
+    In order to connect, you must setup ssh keys with the remote, currently
     no password option exists for security. 
     to setup ssh keys
     
@@ -53,7 +53,7 @@ class Server:
     
     """
     def __init__(self, computer='local',user=None):
-        """instantiates a Server class for a specific server
+        """instantiates a Server class for a specific remote
         
 
         Parameters
@@ -81,9 +81,9 @@ class Server:
         #     self.connect()
     
     def connect(self):
-        """ Connect to the server
+        """ Connect to the remote
         
-        opens ssh and sftp connections to the server
+        opens ssh and sftp connections to the remote
         """
         if not self.computer == 'local':
             print('connecting...')
@@ -209,7 +209,7 @@ class Server:
     def run_scriptX(self, script, args=''):
         """Run script through ssh terminal and pass X for graphics
         
-        This uses the subprocess module to ssh into the server and execute a script
+        This uses the subprocess module to ssh into the remote and execute a script
         I dont remember if this works very well
 
         Parameters
@@ -278,7 +278,7 @@ class Server:
         source : string, optional
             local source of the directory to copy. The default is './'.
         target : string, optional
-            Destination on the server to put the directory. The default is '~/'.
+            Destination on the remote to put the directory. The default is '~/'.
         fileTypes : list of strings, optional
             list of the file types to copy. Generally use extensions, like '.py', 
             but it can be any string pattern. If the string pattern is in the filename,

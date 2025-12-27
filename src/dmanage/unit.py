@@ -53,7 +53,7 @@ class DataUnit(PurePython):
         computer : str, optional
             UNIMPLEMENTED! The ip address or name of the computer where the dataUnit is. The default is 'local'.
         user : str, optional
-            The username credentials for the login if needed. Set up an ssh public and private keys to log in to the server, no password option is given here. The default is None.
+            The username credentials for the login if needed. Set up an ssh public and private keys to log in to the remote, no password option is given here. The default is None.
 
         Returns
         -------

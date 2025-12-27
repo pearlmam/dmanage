@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import dmanage.dfmethods as dfm
-from dmanage.server.ssh import Server
+from dmanage.remote.ssh import Server
 
 def make_database(base):
     class DataBase(base):
         """
-        dataBases is a dict containing server and folder entries
+        dataBases is a dict containing remote and folder entries
         {'local':{'dataCollections':collectionList,'user':userName},'ipAddress':folderList}
         """
         def __init__(self,computers={}):
@@ -14,7 +14,7 @@ def make_database(base):
                 super().__init__(computers['local']['dataGroups'][0])
                 pass
             else:
-                #load components from the server?
+                #load components from the remote?
                 pass
             # connections needs to be setup
             servers = []

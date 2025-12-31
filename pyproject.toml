@@ -62,7 +62,8 @@ dependencies = [
 # Depriciated
 #  "pathos",            # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
 
-
+[project.scripts]
+dmanage-factory = "dmanage.remote.rpc:main"
 
 [project.urls]
 Homepage = "https://github.com/pearlmam/dmanage/"

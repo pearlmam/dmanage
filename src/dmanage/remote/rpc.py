@@ -6,6 +6,8 @@ import Pyro5.api
 import os
 import sys
 import pandas as pd
+import subprocess as sp
+import inspect
 
 from types import ModuleType
 from importlib import reload
@@ -15,10 +17,19 @@ def create_instance(cls,*args,**kwargs):
     #obj.correlation_id = current_context.correlation_id
     return obj
 
+@Pyro5.api.expose
+class Component():
+    def __init__(self):
+        self.attr = 'I am testing component attr access'
+    def func(self):
+        return 'Component Func Worked'
+    
 ######   server methods    #######
 @Pyro5.api.expose
 @Pyro5.server.behavior(instance_mode="single",instance_creator=lambda clazz :  create_instance(clazz,False,nshost=None))
 class ProxyFactory():
+    attr = 'Im a class attr'
+    comp = Component()
     def __init__(self,use_ns=False,nshost=None):
         self.nshost = nshost
         if use_ns:
@@ -32,7 +43,16 @@ class ProxyFactory():
         uri = self._pyroDaemon.register(Obj,objectId=name,force=True,weak=False)
         if self.ns is not None: 
             self.ns.register(name, uri)
+        Obj._pyrouri = uri
         return Obj
+    def test(self):
+        return 'Test worked'
+    
+    @Pyro5.api.expose
+    class ClassComp():
+        attr = 'I am a class attr'
+        def func():
+            return 'I am a class func'
     
 def create_object(obj,module=None,**kwargs):
     """Creates and publishes a Pyro object
@@ -118,6 +138,22 @@ def locate_ns(host=None):
         ns = None
     return ns
 
+def client_setup(user,server,localPort=44444,remotePort=44444,):
+    """sets up ssh port fowarding on the client
+    only needs to be run once. only needed to connect to remote hosts.
+    ssh-L [LOCAL_PORT] : [REMOTE_HOST] : [REMOTE_PORT] user@server
+    This opens [LOCAL_PORT], any connections go through ssh user@server
+    and automatically connects to [REMOTE_HOST] : [REMOTE_PORT]
+    note here REMOTE_HOST is always localhost 127.0.0.1, so it connects through ssh
+    to the server and connects to the localhost.
+    This way you can run the service on the local host and easily connect.
+    """
+    portString = '%s:127.0.0.1:%s'%(localPort,remotePort)
+    serverString = '%s@%s'
+    command = ['ssh', '-L', portString, serverString]
+    sp.Popen(command)
+    
+
 
 ####### Client Methods  #########
 def get_remote_object(name=None,uri=None,host=None,port=None):
@@ -143,7 +179,6 @@ def get_proxy_factory(uri="PYRO:ProxyFactory@localhost:44444"):
     """
     return get_remote_object(uri=uri)
 
-
 #########  Helper Functions  ###########
 def _getattr(self,attr):
     return getattr(self,attr)
@@ -161,34 +196,49 @@ def gen_kwargs_string(**kwargs):
     kwargsString = ",".join(kwargsString)
     return kwargsString
 
-#########  register the special serialization hooks  ###########
-orient='tight'
-def df_to_dict(df):
-    #print("DataFrame to dict")
-    data = df.to_dict(orient=orient)
-    data = {'__class__':'DataFrameDict','DataFrame':data}
-    return data
 
-def dict_to_df(classname, d):
-    #print("dict to Dataframe")
-    data = pd.DataFrame.from_dict(d['DataFrame'],orient=orient)
-    return data
+    
 
-def series_to_dict(series):
-    #print("Series to dict")
-    data = series.to_frame().to_dict(orient=orient)
-    data = {'__class__':'SeriesDict','Series':data}
-    return data
 
-def dict_to_series(classname, d):
-    #print("dict to Series")
-    data = pd.DataFrame.from_dict(d['Series'],orient=orient).iloc[:,0]
-    return data
 
-Pyro5.api.register_class_to_dict(pd.core.frame.DataFrame, df_to_dict)
-Pyro5.api.register_dict_to_class("DataFrameDict", dict_to_df)
-Pyro5.api.register_class_to_dict(pd.core.frame.Series, series_to_dict)
-Pyro5.api.register_dict_to_class("SeriesDict", dict_to_series)
+def exposeAll(target):
+    for method_name, method in inspect.getmembers(target, predicate=inspect.isroutine):
+        if method_name.startswith("_"):
+            continue  # skip private methods?
+        
+
+
+
+Pyro5.api.config.SERIALIZER = "serpent"
+if not Pyro5.api.config.SERIALIZER in ["pickle","dill"]:
+    #########  register the special serialization hooks  ###########
+    orient='tight'
+    def df_to_dict(df):
+        #print("DataFrame to dict")
+        data = df.to_dict(orient=orient)
+        data = {'__class__':'DataFrameDict','DataFrame':data}
+        return data
+    
+    def dict_to_df(classname, d):
+        #print("dict to Dataframe")
+        data = pd.DataFrame.from_dict(d['DataFrame'],orient=orient)
+        return data
+    
+    def series_to_dict(series):
+        #print("Series to dict")
+        data = series.to_frame().to_dict(orient=orient)
+        data = {'__class__':'SeriesDict','Series':data}
+        return data
+    
+    def dict_to_series(classname, d):
+        #print("dict to Series")
+        data = pd.DataFrame.from_dict(d['Series'],orient=orient).iloc[:,0]
+        return data
+    
+    Pyro5.api.register_class_to_dict(pd.core.frame.DataFrame, df_to_dict)
+    Pyro5.api.register_dict_to_class("DataFrameDict", dict_to_df)
+    Pyro5.api.register_class_to_dict(pd.core.frame.Series, series_to_dict)
+    Pyro5.api.register_dict_to_class("SeriesDict", dict_to_series)
 
 def main(args=None):
     from argparse import ArgumentParser

@@ -217,7 +217,7 @@ class PyroObject(Daemon):
         super().start(target=self.publish_object,subProc=subProc,args=(self.exposedObj,))
         
         
-    def create_object(self,obj,module=None,subProc=False,**kwargs):
+    def create_object(self,obj,module=None,**kwargs):
         """Creates and publishes a Pyro object
         
 

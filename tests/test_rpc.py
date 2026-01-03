@@ -18,6 +18,10 @@ user = getpass.getuser()
 obj = 'MyDataUnit'
 module = file_path = os.path.splitext(os.path.realpath(__file__))[0]
 
+class Component3:
+    def func(self):
+        return 'Component3 Func'
+
 class Component2():
     """To test component of component"""
     def __init__(self):
@@ -88,6 +92,9 @@ class MyDataUnit(Parent):
         data = np.linspace(0,10,100)
         # data = {'A':data}
         return data
+    
+    def add_component(self):
+        self.AddedComp = Component3()
 
 class TestAllLocal(TestCase):
     run = True
@@ -131,7 +138,7 @@ class TestAllLocal(TestCase):
         #assert thread.is_alive() is True
         uri = "PYRO:ProxyFactory@localhost:44444"
         Factory = rpc.ProxyFactory(uri=uri)
-        proxyDU = Factory.create(obj,module=module,name='DataDir',dataPath=dataPath)
+        proxyDU = Factory.create(obj,module=module,dataPath=dataPath)
         assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
         assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
         assert proxyDU.Comp.func() == localDU.Comp.func()
@@ -141,12 +148,31 @@ class TestAllLocal(TestCase):
         assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
         assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
         
+        # test get_components
+        localDU.add_component()
+        proxyDU.add_component()
+        proxyDU._register_components()
+        
+        # check dir() implementation
+        proxyAttrs = [attr for attr in dir(proxyDU) if not attr.startswith('_')]
+        localAttrs = [attr for attr in dir(localDU) if not attr.startswith('_')]
+        # remove unexposed proxy attrs from local
+        localAttrs.remove('dataUnit')
+        localAttrs.remove('parentAttr')
+        
+        assert proxyAttrs == localAttrs
+        
+        
+        
         # test numpy
         with pytest.raises(TypeError):
             proxyDU.gen_numpy()
         Pyro5.api.config.SERIALIZER = "pickle"
         assert np.array_equal(proxyDU.gen_numpy(),localDU.gen_numpy())
         Pyro5.api.config.SERIALIZER = "serpent"
+        with pytest.raises(TypeError):
+            proxyDU.gen_numpy()
+        
         # # stop factory
         # self.run = False
         # time.sleep(3)
@@ -156,4 +182,12 @@ if __name__ == "__main__":
     test = TestAllLocal()
     test.test_expose_all()
     test.test_dataUnit_proxy()
-
+    
+    # localDU = MyDataUnit(dataPath)
+    # comps = rpc.get_components(localDU)
+    # print(comps)
+    
+    # uri = "PYRO:ProxyFactory@localhost:44444"
+    # Factory = rpc.ProxyFactory(uri=uri)
+    # proxyDU = Factory.create(obj,module=module,dataPath=dataPath)
+    

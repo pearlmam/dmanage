@@ -1,1 +1,0 @@
-This shows how to access class components of a 

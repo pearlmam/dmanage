@@ -138,7 +138,7 @@ if __name__ == "__main__":
     D = DataFile(dataLoc+dataFile)
     D.plot_waveform('waveform')       # plot one waveform to test
     
-    DD = DataDirectory(dataLoc,dataUnitType='files')
+    DD = DataDirectory(dataLoc,unitType='files')
     
     # read the input and output rms voltages
     Vrms = DD.get_waveform_rms()

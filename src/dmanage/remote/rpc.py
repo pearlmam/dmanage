@@ -3,6 +3,7 @@
 import Pyro5.api
 from Pyro5.server import is_private_attribute
 
+from pathlib import Path
 import os
 import sys
 import pandas as pd
@@ -11,27 +12,60 @@ import inspect
 from types import ModuleType
 from importlib import reload
 
-from dmanage.utils.utils import is_literal
+from dmanage.utils.utils import is_literal,is_iterable
 
 defaultPyroFactoryHost = "localhost"
 defaultPyroFactoryPort = 44444
 defaultPyroFactoryName = "ProxyFactory"
 
+global SECURE_LOCATION
+global RESTRICTED_LOCATIONS 
+RESTRICTED_LOCATIONS = ['anaconda3',]
+SECURE_LOCATIONS = [os.getenv("HOME"),]      # doesnt work for windows...
+
+def set_secure_location(locs):
+    """
+    """
+    if not is_iterable(locs):
+        locs = [locs]
+    global SECURE_LOCATIONS
+    SECURE_LOCATIONS = list(locs)
+    
+    
+def client_ssh_setup(user,server,localPort=44444,remotePort=44444,):
+    """sets up ssh port fowarding on the client
+    only needs to be run once. only needed to connect to remote hosts.
+    ssh-L [LOCAL_PORT] : [REMOTE_HOST] : [REMOTE_PORT] user@server
+    This opens [LOCAL_PORT], any connections go through ssh user@server
+    and automatically connects to [REMOTE_HOST] : [REMOTE_PORT]
+    note here REMOTE_HOST is always localhost 127.0.0.1, so it connects through ssh
+    to the server and connects to the localhost.
+    This way you can run the service on the local host and easily connect.
+    """
+    portString = '%s:127.0.0.1:%s'%(localPort,remotePort)
+    serverString = '%s@%s'
+    command = ['ssh', '-L', portString, serverString]
+    sp.Popen(command)
+
+
 ######   server methods    #######
 @Pyro5.api.expose
-#@Pyro5.api.behavior(instance_mode="single",instance_creator=lambda Obj: create_instance(Obj,**kwargs))
+@Pyro5.api.behavior(instance_mode="single", instance_creator=lambda clazz : clazz.create_instance(None))
 class PyroFactory():
-    def __init__(self):
+    def __init__(self,secureLoc=None):
         """setup rudimentary security? If someone gets access to Factory, 
         they can create any module they want, ensure no access to unwanted python modules"""
-        self.secure = False
+        # self.secureLoc=secureLoc
+        self._secureLocs = SECURE_LOCATIONS
+        self._restrictLocs = RESTRICTED_LOCATIONS
         
-    def create_instance(cls,*args,**kwargs):
-        obj = cls(*args,**kwargs)
-        #obj.correlation_id = current_context.correlation_id
-        return obj  
-    
     def create(self,obj,module=None,**kwargs):
+        # check if location is secure
+        
+        if any([Path(secureLoc) not in Path(module).parents for secureLoc in SECURE_LOCATIONS]):
+            raise Exception("Insecure 'module' Location: '%s' is not in %s"%(module, SECURE_LOCATIONS))
+        if any([str(restrictLoc) in Path(module).parts for restrictLoc in RESTRICTED_LOCATIONS]):
+            raise Exception("Restricted 'module' Location: '%s' is in one of %s"%(module, RESTRICTED_LOCATIONS))
         print("Creating pyro object: '%s'..."%obj, end= ' ' )
         obj = get_object_from_module(obj,module)
         obj = pyroize_object(obj)
@@ -41,8 +75,13 @@ class PyroFactory():
         obj.__register_components__()
         
         return uri
-
-
+    
+    @classmethod    
+    def create_instance(cls,*args,**kwargs):
+        obj = cls(*args,**kwargs)
+        #obj.correlation_id = current_context.correlation_id
+        return obj 
+    
 ######### Pyro methods to inject   #######    
 
 class Pyroize:
@@ -53,6 +92,7 @@ class Pyroize:
     @Pyro5.api.expose
     def __get_comp_uris__(self):
         return self._comp_uris
+    
     @Pyro5.api.expose
     def __register_components__(self):
         comps = get_components(self)
@@ -196,21 +236,6 @@ class ProxyWrap():
 
     def __deepcopy__(self, memo):
         raise TypeError(f"'{self.__class__.__name__}' cannot be deep-copied")        
-
-def client_setup(user,server,localPort=44444,remotePort=44444,):
-    """sets up ssh port fowarding on the client
-    only needs to be run once. only needed to connect to remote hosts.
-    ssh-L [LOCAL_PORT] : [REMOTE_HOST] : [REMOTE_PORT] user@server
-    This opens [LOCAL_PORT], any connections go through ssh user@server
-    and automatically connects to [REMOTE_HOST] : [REMOTE_PORT]
-    note here REMOTE_HOST is always localhost 127.0.0.1, so it connects through ssh
-    to the server and connects to the localhost.
-    This way you can run the service on the local host and easily connect.
-    """
-    portString = '%s:127.0.0.1:%s'%(localPort,remotePort)
-    serverString = '%s@%s'
-    command = ['ssh', '-L', portString, serverString]
-    sp.Popen(command)
 
 
 #########  Helper Functions  ###########

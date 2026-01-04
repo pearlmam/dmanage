@@ -10,6 +10,7 @@ import pytest
 from unittest import TestCase
 import getpass
 import os
+import copy
 
 """   Constants   """
 dataPath = '/path/'
@@ -173,16 +174,49 @@ class TestAllLocal(TestCase):
         with pytest.raises(TypeError):
             proxyDU.gen_numpy()
         
+        # close DataUnit Factory Proxy?
+        
         # # stop factory
         # self.run = False
         # time.sleep(3)
         #assert thread.is_alive() is False
         
+    def test_factory(self):
+        """Make sure factor is running with terminal command 'dmanage-factory'"""
+        uri = "PYRO:ProxyFactory@localhost:44444"
+        Factory = rpc.ProxyFactory(uri=uri)
+        
+        
+        ######   security   #######
+        secureLocation = module
+        insecureLocation = '/Some/Insecure/Path'
+        restrictedLocation = os.path.join(rpc.SECURE_LOCATIONS[0],'Some/Path/In/%s/Directory'%rpc.RESTRICTED_LOCATIONS[0])
+        Factory.create(obj,module=secureLocation,dataPath=dataPath)
+        with pytest.raises(Exception):
+            Factory.create(obj,module=insecureLocation,dataPath=dataPath)
+        with pytest.raises(Exception): 
+            Factory.create(obj,module=restrictedLocation,dataPath=dataPath)
+        
+        
+        ###### Cant currently set secure locations without hard coding in rpc... Config file?
+        # originalSECURE_LOCATIONS = copy.copy(rpc.SECURE_LOCATIONS)
+        # nowNotSecureLocation = secureLocation
+        # rpc.set_secure_location(['/somewhere/outside/home/directory'])
+        # with pytest.raises(Exception): 
+        #     Factory.create(obj,module=nowNotSecureLocation,dataPath=dataPath)
+        
+        # rpc.set_secure_location(['/somewhere/outside/home/directory'])
+        # # Should work again
+        # rpc.set_secure_location(originalSECURE_LOCATIONS)
+        # Factory.create(obj,module=secureLocation,dataPath=dataPath)
+        
+        
+        
 if __name__ == "__main__":
     test = TestAllLocal()
     test.test_expose_all()
     test.test_dataUnit_proxy()
-    
+    test.test_factory()
     # localDU = MyDataUnit(dataPath)
     # comps = rpc.get_components(localDU)
     # print(comps)
@@ -190,4 +224,6 @@ if __name__ == "__main__":
     # uri = "PYRO:ProxyFactory@localhost:44444"
     # Factory = rpc.ProxyFactory(uri=uri)
     # proxyDU = Factory.create(obj,module=module,dataPath=dataPath)
+    # proxyDU = Factory.create(obj,module='/Some/Insecure/Path',dataPath=dataPath)
+    # proxyDU = Factory.create(obj,module='/home***REMOVED***Some/Path/In/anaconda3/Directory',dataPath=dataPath)
     

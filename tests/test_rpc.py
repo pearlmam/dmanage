@@ -158,8 +158,8 @@ class TestAllLocal(TestCase):
         proxyAttrs = [attr for attr in dir(proxyDU) if not attr.startswith('_')]
         localAttrs = [attr for attr in dir(localDU) if not attr.startswith('_')]
         # remove unexposed proxy attrs from local
-        localAttrs.remove('dataUnit')
-        localAttrs.remove('parentAttr')
+        # localAttrs.remove('dataUnit')
+        # localAttrs.remove('parentAttr')
         
         assert proxyAttrs == localAttrs
         
@@ -221,9 +221,9 @@ if __name__ == "__main__":
     # comps = rpc.get_components(localDU)
     # print(comps)
     
-    # uri = "PYRO:ProxyFactory@localhost:44444"
-    # Factory = rpc.ProxyFactory(uri=uri)
-    # proxyDU = Factory.create(obj,module=module,dataPath=dataPath)
+    uri = "PYRO:ProxyFactory@localhost:44444"
+    Factory = rpc.ProxyFactory(uri=uri)
+    proxyDU = Factory.create(obj,module=module,dataPath=dataPath)
     # proxyDU = Factory.create(obj,module='/Some/Insecure/Path',dataPath=dataPath)
     # proxyDU = Factory.create(obj,module='/home***REMOVED***Some/Path/In/anaconda3/Directory',dataPath=dataPath)
     

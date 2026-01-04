@@ -85,10 +85,11 @@ class PyroFactory():
 ######### Pyro methods to inject   #######    
 
 class Pyroize:
-    """this is so pyro objects can register and monitor their own components as they are created"""
+    """Use with PyroWrap. Inherit from this so Proxies can access components and attributes"""
     _comp_uris = {}
     _pyroized = True
     
+    #####  Component Access  #####
     @Pyro5.api.expose
     def __get_comp_uris__(self):
         return self._comp_uris
@@ -99,14 +100,14 @@ class Pyroize:
         for name,comp in comps.items():
             if name not in self._comp_uris.keys():
                 self._comp_uris[name] = self._register_component(comp)
-        return self
 
     def _register_component(self,obj,onlyExposed=False,**kwargs):
+        """Need way to access onlyExposed, Maybe CONFIG FILE"""
         print("Registering Component: '%s'..."%obj, end= ' ' )
         if not onlyExposed:           
+            obj = expose_all(obj)
             obj = pyroize_object(obj) 
         else:
-            print("cant create pyro object: '%s'..."%obj, end= ' ' )
             if not getattr(obj, '_pyroized',False):
                 raise Exception("component is not pyroized and onlyExposed=True")
             if not getattr(obj, '_pyroExposed',False):
@@ -118,7 +119,16 @@ class Pyroize:
         print("Done")
         obj.__register_components__()
         return uri
-  
+    
+    ##### Attribute access  ######
+    @Pyro5.api.expose
+    def __get_attribute_names__(self):
+        return get_attribute_names(self)
+    
+    @Pyro5.api.expose
+    def __get_attribute__(self,name):
+        return getattr(self,name)
+
 def pyroize_object(obj):
     """adds Factory methods and exposes object
     
@@ -154,8 +164,9 @@ def pyroize_object(obj):
     setattr(Obj, '__get_comp_uris__', Pyroize.__get_comp_uris__)
     setattr(Obj, '__register_components__', Pyroize.__register_components__)
     setattr(Obj, '_register_component', Pyroize._register_component)
-    exposedObj = expose_all(obj)
-    return exposedObj
+    setattr(Obj, '__get_attribute_names__', Pyroize.__get_attribute_names__)
+    setattr(Obj, '__get_attribute__', Pyroize.__get_attribute__)
+    return obj
 
 def expose_all(obj):
     """ exposes all the class and bases
@@ -190,26 +201,39 @@ class ProxyFactory():
         return Obj
     
 class ProxyWrap():
-    """Wraps a proxy so that component classes can be accessed"""
+    """Wraps a proxy so that component classes and attributes can be accessed"""
     def __init__(self,uri):
         self._proxy = Pyro5.api.Proxy(uri)
         self._comp_cache = {}       # dict of the created component proxies
         self._get_component_proxies()
         
-        self._proxy_attrs = set(dir(self._proxy))
+        self._proxy_attrs = set(self._proxy.__get_attribute_names__())
+        self._proxy_methods = set(dir(self._proxy))
         self._comp_names = set(self._comp_cache)
         
     def _get_component_proxies(self):
         for name, uri in self._proxy.__get_comp_uris__().items():
-            self._comp_cache[name] = ProxyWrap(uri)
+            if name not in self._comp_cache:
+                self._comp_cache[name] = ProxyWrap(uri)
         self._comp_names = set(self._comp_cache)
     
+    def _get_proxy_attr(self,name):
+        return self._proxy.__get_attribute__(name)
+    
+    ###### metadata methods to update proxy   ######
     def _register_components(self):
         self._proxy.__register_components__()
         self._get_component_proxies()
-    
+        
+    def _get_attribute_names(self):
+        self._proxy_attrs = self._proxy.__get_attribute_names__()
+        
+    ######   private dunder methods
     def __dir__(self):
-        return sorted(set(super().__dir__()) | self._comp_names | self._proxy_attrs)
+        return sorted(set(super().__dir__()) | 
+                      self._comp_names | 
+                      self._proxy_methods |
+                      self._proxy_attrs)
 
     def __getattr__(self, name):
         """Changes the getattr behavior to access proxy components
@@ -223,6 +247,8 @@ class ProxyWrap():
             return getattr(self, name)        # return ProxyWrap attr
         elif name in self._comp_names:
             return self._comp_cache[name]     # return cached component
+        elif name in self._proxy_attrs:
+            return self._get_proxy_attr(name) # return proxy attribute
         else:
             return getattr(self._proxy,name)  # send proxy request
      
@@ -253,6 +279,14 @@ def get_components(obj):
             continue
         comps[name] = value
     return comps
+
+def get_attribute_names(obj):
+    attrs = []
+    for name,value in vars(obj).items():
+        if is_literal(value):
+            attrs = attrs + [name]
+            continue
+    return attrs
 
 def get_object_from_module(obj,module):
     if type(obj) is str:

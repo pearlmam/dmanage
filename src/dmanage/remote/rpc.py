@@ -211,7 +211,7 @@ def expose_all(obj):
     else:
         Obj = obj
     if is_exposable(Obj):
-        print("exposing '%s'"%Obj.__name__)
+        #print("exposing '%s'"%Obj.__name__)
         Pyro5.api.expose(Obj)    
     bases = Obj.__bases__
     for base in bases:

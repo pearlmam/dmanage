@@ -130,99 +130,11 @@ class DataGroup(PurePython):
             if not hasattr(method, "_override"):
                 continue  # skip methods without '_override' attribute
             # if method._override == 'default': # ??? Apply the correct wrapper
-            wrapped = self._make_wrapper(comp_name or "self", method_name)
-            # types.MethodType() includes self in the method call, or something like that
-            setattr(target, method_name, types.MethodType(wrapped, target))
+            wrapped = make_wrapper(self,comp_name or "self", method_name)
             
-    def _make_wrapper(self, component_name, method_name):
-        """
-        Private method which wraps the component method with call to
-        on_component_call() hook. also allows access to the original method
-        """
-        func = get_component_method(self,component_name, method_name)
-        @functools.wraps(func)
-        def wrapper(_self, *args, **kwargs):
-            return self.on_method_call(
-                component_name,
-                method_name,
-                *args,
-                **kwargs,
-            )
-        return wrapper
-    
-    def get_base(self,iLevel='DG'):
-        # step through inheretanceLevels
-        base = self.__class__
-        level = base.inheritance_level()
-        while not (level.lower() == iLevel.lower()):
-            if len(base.__bases__) < 1:
-                raise Exception("Inheritance chain does not include level '%s'"%level)
-            base = base.__bases__[0]
-            level = base.inheritance_level()
-        return base
-    
-    
-    @staticmethod
-    def _on_method_call( dataUnit,base, component_name, method_name, *args, **kwargs):
-        """iteration method: loads DU and returns result of the component method
-        NOTE: when called from a multiprocess.Pool and MyDataGroup Class is 
-            created in another module, the super() function raises an exception
-               "TypeError: super(type, obj): obj (instance of MySweepDir) is not an 
-               instance or subtype of type (DataGroup)."
-            isinstance() does not recognize that self is an instance of DataGroup...
-            That's why the super uses its self.__class__.__bases__[0].
-            I think I solved this with the improved make_data_group method?
-            TO DO: Maybe I need to chain the inheritance better... ie not use the makeDataGroup()
-        
-        Do NOT want to pass self to this, just base class (DataUnit)
-        """
-        
-        
-        du = base(dataUnit) 
-        # DD = super(self.__class__.__bases__[0],self).load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
-        # DD = self.load(os.path.join(self.baseDir,dataUnit),iLevel='DU') 
-        
-        du_func = get_component_method(du,component_name, method_name)
-        
-        # this allows for handling other _override kinds
-        orKind = du_func._override
-        orLevel = du_func._level
-        orArgs = du_func._kwargs
-        
-        # if orKind == 'plot':  # ??? to do
-        #     backEnd = mpl.get_backend()
-        #     mpl.use('agg')
-        #     # print(mp.current_process())
-        #     pid = os.getpid()
-        #     kwargs['fig'] = pid
-
-        # elif orKind != 'default':
-        #     varOverrideMethod = getattr(component,overrideKind)
-        #     varValue = varOverrideMethod()
-        #     kwargs[overrideKind] = varValue
-        
-        return du_func( *args, **kwargs )
-    
-    def on_method_call(self, component_name, method_name,  *args, **kwargs):
-        """parallel iterater method: loads all DDs and returns list of component method results"""
-        if 'ncPass' in kwargs:
-            ncPass = kwargs.pop('ncPass')
-        else:
-            ncPass = False
-        originalMethod = get_component_method(self,component_name, method_name)
-        orKind = originalMethod._override
-        orLevel = originalMethod._level
-        orArgs = originalMethod._kwargs
-        method = methods.wrapper.parallelize_iterator_method(self._on_method_call, ncPass=ncPass)
-        dataUnits = [os.path.join(self.baseDir,dataUnit) for dataUnit in self.dataUnits]
-        base = self.get_base(iLevel='du')
-        results = method(dataUnits, base, component_name, method_name, *args, **kwargs)
-        if orKind == 'DataFrame':
-            results =pd.concat(results,**orArgs)
-        elif orKind == 'dict':
-            results = combine_dicts(results)
-        return results
-    
+            # types.MethodType() includes self in the method call, or something like that
+            setattr(target, method_name, wrapped)
+            
     def get_data_files(self, baseDir=None):
         if type(baseDir) == type(None):
             baseDir = self.baseDir
@@ -373,9 +285,117 @@ class DataGroup(PurePython):
                 pass
             elif key == 'equal':
                 pass
+ 
+    def __getstate__(self):
+        raise RuntimeError("""Datagroup should not be pickled. DataGroup should only pickle 
+                           parallelism should only pickle DataUnit""")
             
+######################
+##   Wrapper funcs
+######################
+
+class make_wrapper:
+    def __init__(self, instance,component_name, method_name):
+        """
+        Private method which wraps the component method with call to
+        on_component_call() hook. also allows access to the original method
+        """
+        func = get_component_method(instance,component_name, method_name)
+        functools.update_wrapper(self, func)
+        @functools.wraps(func)
+        def wrapper(_self, *args, **kwargs):   # caller sends self
+            return self.on_method_call(
+                component_name,
+                method_name,
+                *args,
+                **kwargs,
+            )
+        self.wrapper = wrapper
+        self.dataUnits = [os.path.join(instance.baseDir,dataUnit) for dataUnit in instance.dataUnits]
+        self.base = self.get_base(instance,iLevel='du')
+        self.component_name = component_name
+        self.method_name = method_name
+        originalMethod = get_component_method(instance,component_name, method_name)
+        self.orKind = originalMethod._override
+        self.orLevel = originalMethod._level
+        self.orArgs = originalMethod._kwargs
+    
+    @staticmethod
+    def get_base(instance,iLevel='du'):
+        # step through inheretanceLevels
+        base = instance.__class__
+        level = base.inheritance_level()
+        while not (level.lower() == iLevel.lower()):
+            if len(base.__bases__) < 1:
+                raise Exception("Inheritance chain does not include level '%s'"%level)
+            base = base.__bases__[0]
+            level = base.inheritance_level()
+        return base
+    
     
 
+    def _on_method_call(self,dataUnit, *args, **kwargs):
+        """iteration method: loads DU and returns result of the component method
+        NOTE: when called from a multiprocess.Pool and MyDataGroup Class is 
+            created in another module, the super() function raises an exception
+               "TypeError: super(type, obj): obj (instance of MySweepDir) is not an 
+               instance or subtype of type (DataGroup)."
+            isinstance() does not recognize that self is an instance of DataGroup...
+            That's why the super uses its self.__class__.__bases__[0].
+            I think I solved this with the improved make_data_group method?
+            TO DO: Maybe I need to chain the inheritance better... ie not use the makeDataGroup()
+        
+        Do NOT want to pass self to this, just base class (DataUnit)
+        """
+        
+        
+        du = self.base(dataUnit) 
+        # DD = super(self.__class__.__bases__[0],self).load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
+        # DD = self.load(os.path.join(self.baseDir,dataUnit),iLevel='DU') 
+        
+        du_func = get_component_method(du,self.component_name, self.method_name)
+        
+        # this allows for handling other _override kinds
+        orKind = du_func._override
+        orLevel = du_func._level
+        orArgs = du_func._kwargs
+        
+        # if orKind == 'plot':  # ??? to do
+        #     backEnd = mpl.get_backend()
+        #     mpl.use('agg')
+        #     # print(mp.current_process())
+        #     pid = os.getpid()
+        #     kwargs['fig'] = pid
+    
+        # elif orKind != 'default':
+        #     varOverrideMethod = getattr(component,overrideKind)
+        #     varValue = varOverrideMethod()
+        #     kwargs[overrideKind] = varValue
+        
+        return du_func( *args, **kwargs )
+    
+    def __call__(self,  *args, **kwargs):
+        """parallel iterater method: loads all DDs and returns list of component method results"""
+        if 'ncPass' in kwargs:
+            ncPass = kwargs.pop('ncPass')
+        else:
+            ncPass = False
+        
+        method = methods.wrapper.parallelize_iterator_method(self._on_method_call, ncPass=ncPass)
+        
+        results = method(self.dataUnits, *args, **kwargs)
+        if self.orKind == 'DataFrame':
+            results =pd.concat(results,**self.orArgs)
+        elif self.orKind == 'dict':
+            results = combine_dicts(results)
+        return results
+    
+    
+    
+    
+###########################
+##     Helper funcs
+#############################
 def get_component_method(obj,component_name, method_name):
     if component_name == 'self':
         # the "component" is actually self

@@ -15,10 +15,15 @@ import copy
 """   Constants   """
 dataPath = '/path/'
 host= '127.0.0.1'
+port = 44444
 user = getpass.getuser()
 obj = 'MyDataUnit'
-module = file_path = os.path.splitext(os.path.realpath(__file__))[0]
+localModule = file_path = os.path.splitext(os.path.realpath(__file__))[0]
+remoteModule = '/home/***REMOVED***/Documents/developmentProjects/dmanage/tests/test_rpc'
 
+
+# module = localModule
+module = remoteModule
 class Component3:
     def func(self):
         return 'Component3 Func'
@@ -137,7 +142,7 @@ class TestAllLocal(TestCase):
         # thread.start()
         # time.sleep(3)
         #assert thread.is_alive() is True
-        uri = "PYRO:ProxyFactory@localhost:44444"
+        uri = "PYRO:ProxyFactory@localhost:%s"%port
         Factory = rpc.ProxyFactory(uri=uri)
         proxyDU = Factory.create(obj,module=module,dataPath=dataPath)
         assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())

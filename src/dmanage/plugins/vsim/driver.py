@@ -27,7 +27,7 @@ import time
 from pathlib import Path
 import natsort
 
-from dmanage.utils.utils import is_iterable
+from dmanage.utils.objinfo import is_iterable
 from dmanage.unit import make_data_unit
 from dmanage.plugins.vsim import loader
 # possible fix for zombie creation. 

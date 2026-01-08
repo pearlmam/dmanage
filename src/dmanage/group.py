@@ -155,7 +155,7 @@ class DataGroup(PurePython):
         """
         func = get_component_method(self,component_name, method_name)
         @functools.wraps(func)
-        def wrapper(_self, *args, **kwargs):
+        def wrapper(self, *args, **kwargs):
             return self.on_method_call(
                 component_name,
                 method_name,
@@ -178,8 +178,9 @@ class DataGroup(PurePython):
         
         """
         
-        # print(self.__class__.__bases__)
+        print(self.__class__)
         # print(isinstance(self,self.__class__.__bases__))
+        print('calling super()')
         # print(isinstance(self,DataGroup))
         du = super().load(os.path.join(self.baseDir,dataUnit),iLevel='DU') 
         # DD = super(self.__class__.__bases__[0],self).load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 

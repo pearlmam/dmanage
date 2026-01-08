@@ -4,7 +4,7 @@ import itertools
 from multiprocess import Pool
 import functools
 import numpy as np
-from dmanage.utils.utils import is_iterable
+from dmanage.utils.objinfo import is_iterable
 
 ##########################
 #    More pickleable

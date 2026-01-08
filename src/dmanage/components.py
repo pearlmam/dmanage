@@ -5,7 +5,7 @@ import pandas as pd
 import copy
 import io
 
-from dmanage.utils.utils import is_iterable
+from dmanage.utils.objinfo import is_iterable
 
 class SoftCache(dict):
     """This is a dict-like component used for storing data

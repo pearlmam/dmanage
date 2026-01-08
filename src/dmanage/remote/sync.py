@@ -6,7 +6,8 @@ import subprocess as sp
 import paramiko
 import os
 import sys
-from dmanage.utils.utils import is_iterable
+
+from dmanage.utils.objinfo import is_iterable
 def mkdirR(sftp, remote_directory):
     """Change to this directory, recursively making new folders if needed.
     Returns True if any folders were created.

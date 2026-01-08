@@ -5,7 +5,7 @@ import pandas as pd
 import re
 import decimal
 
-from dmanage.utils.utils import is_iterable
+from dmanage.utils.objinfo import is_iterable
 from dmanage.methods.wrapper import parallelize_iterator_method
 
 def adjusted_scientific_notation(val,num_decimals=2,exponent_pad=1):

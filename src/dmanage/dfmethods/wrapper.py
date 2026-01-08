@@ -7,7 +7,7 @@ from multiprocess import Pool
 import functools
 import numpy as np
 import pandas as pd
-from dmanage.utils.utils import is_iterable
+from dmanage.utils.objinfo import is_iterable
 
 
 # These Double wrapped methods are slow for some reason. I want to get it dont like this though so I can have concat wrappers?

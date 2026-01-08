@@ -25,7 +25,7 @@ from dmanage.decorate import override
 from dmanage.dfmethods.convert import numpy_to_df,create_bounds
 from dmanage.methods.functions import check_exist
 from dmanage.methods.vector import vrrotvec
-
+from dmanage.components import SoftCache
 
 class UniMesh():
     """
@@ -42,15 +42,15 @@ class UniMesh():
         else:
             self.file = file
         self.fileSuffix = (os.path.basename(self.file)).split('_')[-2]
-        self.M = VsHdf5.Mesh(fileName=self.file)
-        self.UB = self.M.getUpperBounds()
-        self.LB = self.M.getLowerBounds()
-        self.NC = self.M.getNumCells()
+        Mesh = VsHdf5.Mesh(fileName=self.file)
+        self.UB = Mesh.getUpperBounds()
+        self.LB = Mesh.getLowerBounds()
+        self.NC = Mesh.getNumCells()
         self.dim = len(self.NC)
-        self.kind = self.M.getKind()
+        self.kind = Mesh.getKind()
         self.axes = self._get_axes()
         self.d = (self.UB-self.LB)/self.NC
-
+        
     
     
     def get_mesh(self):
@@ -61,16 +61,17 @@ class UniMesh():
         return mesh
         
     def get_bounds(self):
+        Mesh = VsHdf5.Mesh(fileName=self.file)
         bounds = []
         if (self.kind == 'uniform') or (self.kind == 'Cartesian'):
             for i in range(len(self.NC)): 
                 bounds = bounds + [np.linspace(self.LB[i], self.UB[i], self.NC[i]+1)]
         elif self.kind == 'rectilinear':
-                bounds = bounds + [self.M.axis0.dataset]
-                if len(self.M.axis1.dataset) != 0:
-                    bounds = bounds + [self.M.axis1.dataset]
-                if len(self.M.axis2.dataset) != 0:
-                    bounds = bounds + [self.M.axis2.dataset]
+                bounds = bounds + [Mesh.axis0.dataset]
+                if len(Mesh.axis1.dataset) != 0:
+                    bounds = bounds + [Mesh.axis1.dataset]
+                if len(Mesh.axis2.dataset) != 0:
+                    bounds = bounds + [Mesh.axis2.dataset]
         else:
             raise Exception('getBounds() is not implemented for vsKind=%s'%self.kind)
         return bounds
@@ -137,7 +138,7 @@ class History():
             self.histFile = glob.glob(folder + '/*_History.h5')[0]
         else:
             self.histFile = os.path.join(folder, '') + fileName
-        self.H = VsHdf5.Mesh(fileName=self.histFile)
+        # self.H = VsHdf5.Mesh(fileName=self.histFile)
 
         h5 = tables.open_file(self.histFile)
         self.types = list(h5.root._v_children.keys())
@@ -148,11 +149,12 @@ class History():
         self.tend,self.TSTEPS,self.dt = self._read_time_info(h5)
         self.UNI = UniMesh(folder,file=uniFile)
         self.folder = folder
+        self.Cache = SoftCache()
         h5.close()
         return
     
     @override()
-    def read_series_as_df(self, baseName, concat=True, axis=1):
+    def read_series_as_df(self, baseName, concat=True, axis=1,cache=False):
         # want to include this in self.readAsDF
         histNames = [ hist for hist in self.types if baseName in hist]
         histNames = natsort.natsorted(histNames)
@@ -166,15 +168,20 @@ class History():
         return DFs,histNames
     
     @override()
-    def read_as_df(self, histNames, concat=True, axis=1, **kwargs):
+    def read_as_df(self, histNames, concat=True, axis=1,cache=False, **kwargs):
         if not type(histNames) is list: histNames = [histNames]
+        if not type(cache) is list: cache = [cache]
         DFs = []
         
         stack = False
         #if len(histNames)>1: stack = True
         
-        for histName in histNames:
-            DFs = DFs + [self._read_as_df(histName,stack=stack, **kwargs)]
+        for histName,cache in zip(histNames,cache):
+            if cache:
+                DF = self.Cache.get(histName, self._read_as_df, histName, stack=stack, **kwargs)
+            else:
+                DF = self._read_as_df(histName, stack=stack, **kwargs)
+            DFs = DFs + [DF]
         if concat and DFs:
             DFs = pd.concat(DFs,axis=axis,verify_integrity=False)
             DFs = DFs.loc[:,~DFs.columns.duplicated()].copy()

@@ -3,6 +3,9 @@
 requires = ["hatchling >= 1.26"]
 build-backend = "hatchling.build"
 
+[tool.hatch.metadata] 
+allow-direct-references = true
+
 [project]
 name = "dmanage"
 version = "0.0.1"
@@ -19,6 +22,8 @@ classifiers = [
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
 
+
+
 dependencies = [
   "tabulate",          # For generate text charts on plots?
   "scipy",             # filter options
@@ -31,7 +36,8 @@ dependencies = [
   "matplotlib",        # for plotting
   "multiprocess",      # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
   "paramiko",          # for remote implementation
-  "Pyro5",             # RPC remote implementation
+  # "Pyro5",             # RPC remote implementation
+  "Pyro5@git+https://github.com/pearlmam/Pyro5.git",  # my Pyro
 ]
 
 

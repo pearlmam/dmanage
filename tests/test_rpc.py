@@ -22,8 +22,8 @@ localModule = file_path = os.path.splitext(os.path.realpath(__file__))[0]
 remoteModule = '/home/***REMOVED***/Documents/developmentProjects/dmanage/tests/test_rpc'
 
 
-# module = localModule
-module = remoteModule
+module = localModule
+# module = remoteModule
 class Component3:
     def func(self):
         return 'Component3 Func'

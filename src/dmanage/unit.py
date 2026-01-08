@@ -79,15 +79,15 @@ class DataUnit(PurePython):
     def inheritance_level():
         return 'DU'
     
-    def load(self,dataPath=None,iLevel='DU'):
-        # step through inheritance levels
+    def load(self,dataDir=None,iLevel='DU'):
+        # step through inheretanceLevels
         base = self.__class__
         level = base.inheritance_level()
-        while not (level.lower() == 'du'):
+        while not (level.lower() == iLevel.lower()):
             if len(base.__bases__) < 1:
                 raise Exception("Inheritance chain does not include level '%s'"%level)
             base = base.__bases__[0]
             level = base.inheritance_level()
-        return base(dataPath)
+        return base(dataDir)
     
 

@@ -26,6 +26,7 @@ from dmanage.dfmethods.convert import numpy_to_df,create_bounds
 from dmanage.methods.functions import check_exist
 from dmanage.methods.vector import vrrotvec
 from dmanage.components import SoftCache
+import Pyro5.api
 
 class UniMesh():
     """
@@ -166,7 +167,7 @@ class History():
             DFs = pd.concat(DFs,axis=axis,verify_integrity=False)
             DFs = DFs.loc[:,~DFs.columns.duplicated()].copy()
         return DFs,histNames
-    
+    @Pyro5.api.expose
     @override()
     def read_as_df(self, histNames, concat=True, axis=1,cache=False, **kwargs):
         if not type(histNames) is list: histNames = [histNames]

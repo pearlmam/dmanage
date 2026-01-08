@@ -14,7 +14,7 @@ import natsort
 import functools
 
 from dmanage.decorate import override
-#import dmanage.dfmethods as dfm
+import dmanage.utils.objinfo as objinfo
 import dmanage.methods as methods
 
 class PurePython:
@@ -111,26 +111,13 @@ class DataGroup(PurePython):
         """
         return 'DG'
 
-    def load(self,dataDir=None,iLevel='DG'):
-        # step through inheretanceLevels
-        base = self.__class__
-        level = base.inheritance_level(self)
-        while not (level.lower() == 'dg'):
-            if len(base.__bases__) < 1:
-                raise Exception("Inheritance chain does not include level '%s'"%level)
-            base = base.__bases__[0]
-            level = base.inheritance_level(self)
-        return base(dataDir)
-    
     def _wrap_methods(self):
         """Scan all attributes and wrap methods of component objects and self methods"""
         for attr_name, attr_value in vars(self).items():
             if attr_name.startswith("_"):
                 continue  # skip internal attributes
-            if not hasattr(attr_value, "__class__"):
-                continue  # skip primitives
             # Detect component-like objects (skip classes, numbers, etc.)
-            if inspect.isclass(attr_value) or isinstance(attr_value, (int, float, str, dict, list, tuple)):
+            if inspect.isclass(attr_value) or objinfo.is_literal(attr_value) or objinfo.is_pandas(attr_value):
                 continue
             self._wrap_target_methods(attr_value, comp_name=attr_name)
         self._wrap_target_methods(self, comp_name=None)
@@ -151,11 +138,10 @@ class DataGroup(PurePython):
         """
         Private method which wraps the component method with call to
         on_component_call() hook. also allows access to the original method
-
         """
         func = get_component_method(self,component_name, method_name)
         @functools.wraps(func)
-        def wrapper(self, *args, **kwargs):
+        def wrapper(_self, *args, **kwargs):
             return self.on_method_call(
                 component_name,
                 method_name,
@@ -164,8 +150,20 @@ class DataGroup(PurePython):
             )
         return wrapper
     
+    def get_base(self,iLevel='DG'):
+        # step through inheretanceLevels
+        base = self.__class__
+        level = base.inheritance_level()
+        while not (level.lower() == iLevel.lower()):
+            if len(base.__bases__) < 1:
+                raise Exception("Inheritance chain does not include level '%s'"%level)
+            base = base.__bases__[0]
+            level = base.inheritance_level()
+        return base
     
-    def _on_method_call(self, dataUnit, component_name, method_name, *args, **kwargs):
+    
+    @staticmethod
+    def _on_method_call( dataUnit,base, component_name, method_name, *args, **kwargs):
         """iteration method: loads DU and returns result of the component method
         NOTE: when called from a multiprocess.Pool and MyDataGroup Class is 
             created in another module, the super() function raises an exception
@@ -176,13 +174,11 @@ class DataGroup(PurePython):
             I think I solved this with the improved make_data_group method?
             TO DO: Maybe I need to chain the inheritance better... ie not use the makeDataGroup()
         
+        Do NOT want to pass self to this, just base class (DataUnit)
         """
         
-        print(self.__class__)
-        # print(isinstance(self,self.__class__.__bases__))
-        print('calling super()')
-        # print(isinstance(self,DataGroup))
-        du = super().load(os.path.join(self.baseDir,dataUnit),iLevel='DU') 
+        
+        du = base(dataUnit) 
         # DD = super(self.__class__.__bases__[0],self).load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
         # DD = self.load(os.path.join(self.baseDir,dataUnit),iLevel='DU') 
         
@@ -218,7 +214,9 @@ class DataGroup(PurePython):
         orLevel = originalMethod._level
         orArgs = originalMethod._kwargs
         method = methods.wrapper.parallelize_iterator_method(self._on_method_call, ncPass=ncPass)
-        results = method(self.dataUnits, component_name, method_name, *args, **kwargs)
+        dataUnits = [os.path.join(self.baseDir,dataUnit) for dataUnit in self.dataUnits]
+        base = self.get_base(iLevel='du')
+        results = method(dataUnits, base, component_name, method_name, *args, **kwargs)
         if orKind == 'DataFrame':
             results =pd.concat(results,**orArgs)
         elif orKind == 'dict':

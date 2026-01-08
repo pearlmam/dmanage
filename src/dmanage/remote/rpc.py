@@ -12,27 +12,29 @@ import inspect
 from types import ModuleType
 from importlib import reload
 
-from dmanage.utils.utils import is_literal,is_iterable
+from dmanage.utils.objinfo import is_literal,is_container,is_immutable,is_pandas,has_immutable_base
 
 defaultPyroFactoryHost = "localhost"
 defaultPyroFactoryPort = 44444
 defaultPyroFactoryName = "ProxyFactory"
 
-global SECURE_LOCATION
-global RESTRICTED_LOCATIONS 
+# global SECURE_LOCATION
+# global RESTRICTED_LOCATIONS 
 RESTRICTED_LOCATIONS = ['anaconda3',]
 SECURE_LOCATIONS = [os.getenv("HOME"),]      # doesnt work for windows...
+ONLY_EXPOSED = False
 
 def set_secure_location(locs):
     """
     """
-    if not is_iterable(locs):
+    if not is_container(locs):
         locs = [locs]
     global SECURE_LOCATIONS
     SECURE_LOCATIONS = list(locs)
     
+
     
-def client_ssh_setup(user,server,localPort=44444,remotePort=44444,):
+def client_ssh_setup(user,server,localPort=44444,remotePort=44444,verbose=False):
     """sets up ssh port fowarding on the client
     only needs to be run once. only needed to connect to remote hosts.
     ssh-L [LOCAL_PORT] : [REMOTE_HOST] : [REMOTE_PORT] user@server
@@ -41,12 +43,28 @@ def client_ssh_setup(user,server,localPort=44444,remotePort=44444,):
     note here REMOTE_HOST is always localhost 127.0.0.1, so it connects through ssh
     to the server and connects to the localhost.
     This way you can run the service on the local host and easily connect.
+    Check if it worked with command "ss -ltn | grep [LOCAL PORT]"
+    COPY THIS COMMAND:
+    ssh -N -L 44444:127.0.0.1:44444 ***REMOVED***@***REMOVED***.***REMOVED***.edu
     """
-    portString = '%s:127.0.0.1:%s'%(localPort,remotePort)
-    serverString = '%s@%s'
-    command = ['ssh', '-L', portString, serverString]
-    sp.Popen(command)
 
+    portString = '%s:127.0.0.1:%s'%(localPort,remotePort)
+    serverString = '%s@%s'%(user,server)
+    command = ['ssh', '-f','-N', '-L', portString, serverString]
+    if verbose:
+        print(' '.join(command) )
+    sp.Popen(command)
+    
+
+def client_ssh_close(localPort=44444,verbose=False):
+    command = ['pkill','-f',"ssh.*%s:127.0.0.1"%localPort]
+    #command = ['pgrep','-af',"ssh.*%s:127.0.0.1"%localPort]
+    # command = ['ps','aux','|','grep','ssh']
+    if verbose:
+        print(' '.join(command) )
+    sp.Popen(command)
+    # for line in proc.stdout.readlines():
+    #     print(line.decode('ascii').rstrip('\n'))
 
 ######   server methods    #######
 @Pyro5.api.expose
@@ -67,7 +85,10 @@ class PyroFactory():
         if any([str(restrictLoc) in Path(module).parts for restrictLoc in RESTRICTED_LOCATIONS]):
             raise Exception("Restricted 'module' Location: '%s' is in one of %s"%(module, RESTRICTED_LOCATIONS))
         print("Creating pyro object: '%s'..."%obj, end= ' ' )
+        
         obj = get_object_from_module(obj,module)
+        if not ONLY_EXPOSED:
+            obj = expose_all(obj)
         obj = pyroize_object(obj)
         obj = obj(**kwargs)
         uri = self._pyroDaemon.register(obj,force=True,weak=False)
@@ -96,22 +117,25 @@ class Pyroize:
     
     @Pyro5.api.expose
     def __register_components__(self):
+        # print("Scanning Object '%s'..."%self )
         comps = get_components(self)
         for name,comp in comps.items():
             if name not in self._comp_uris.keys():
+                print("  Registering Component '%s': '%s'..."%(name,comp), end= ' ' )
                 self._comp_uris[name] = self._register_component(comp)
 
     def _register_component(self,obj,onlyExposed=False,**kwargs):
         """Need way to access onlyExposed, Maybe CONFIG FILE"""
-        print("Registering Component: '%s'..."%obj, end= ' ' )
+        # print("  Registering Component: '%s'..."%obj, end= ' ' )
         if not onlyExposed:           
             obj = expose_all(obj)
-            obj = pyroize_object(obj) 
         else:
             if not getattr(obj, '_pyroized',False):
                 raise Exception("component is not pyroized and onlyExposed=True")
             if not getattr(obj, '_pyroExposed',False):
                 raise Exception("component is not exposed and onlyExposed=True")
+        obj = pyroize_object(obj)
+        
         if inspect.isclass(obj):
             obj= obj(**kwargs)   # instantiate the class, else it's already an instance
         
@@ -121,6 +145,7 @@ class Pyroize:
         return uri
     
     ##### Attribute access  ######
+    # possibly need some check here if this is what you want
     @Pyro5.api.expose
     def __get_attribute_names__(self):
         return get_attribute_names(self)
@@ -164,9 +189,14 @@ def pyroize_object(obj):
     setattr(Obj, '__get_comp_uris__', Pyroize.__get_comp_uris__)
     setattr(Obj, '__register_components__', Pyroize.__register_components__)
     setattr(Obj, '_register_component', Pyroize._register_component)
+    
+    # possible check here if this is what you want
     setattr(Obj, '__get_attribute_names__', Pyroize.__get_attribute_names__)
     setattr(Obj, '__get_attribute__', Pyroize.__get_attribute__)
     return obj
+
+def is_exposable(obj):
+    return not has_immutable_base(obj) and hasattr(obj, '__dict__')
 
 def expose_all(obj):
     """ exposes all the class and bases
@@ -180,22 +210,43 @@ def expose_all(obj):
         Obj = obj.__class__
     else:
         Obj = obj
-        
-    if not Obj.__name__ == 'object':
+    if is_exposable(Obj):
         #print("exposing '%s'"%Obj.__name__)
         Pyro5.api.expose(Obj)    
     bases = Obj.__bases__
     for base in bases:
-        if not inspect.isroutine(base) and not base.__name__ == "object":
+        if is_exposable(base): # not inspect.isroutine(base) and
             expose_all(base)
     return obj     # should return input in case it's an instance, but I dont think anything needs to be returned
 
 
 ####### Client Methods  #########
 class ProxyFactory():
+    """Proxy connection to the PyroFactory on server"""
     def __init__(self,uri="PYRO:ProxyFactory@localhost:44444"):
+        """Connect using uri of PyroFactory"""
         self.Factory = Pyro5.api.Proxy(uri=uri)
+    
     def create(self,obj,module=None,**kwargs):
+        """create Proxy for object in file
+    
+        Parameters
+        ----------
+        obj : str,object
+            if string: Name of the object to create Pyro object and connect to Proxy.
+            else the object itself?? security issue if pickle?
+        module : str, optional
+            path to the module/file. The default is None.
+        **kwargs : TYPE
+            arguments for object instantiation.
+
+        Returns
+        -------
+        Obj : ProxyWrap
+            Proxy to the object.
+
+        """
+        
         uri = self.Factory.create(obj,module=module,**kwargs)
         Obj = ProxyWrap(uri=uri)
         return Obj
@@ -271,11 +322,12 @@ def get_components(obj):
     for name,value in vars(obj).items():
         if is_private_attribute(name):
             continue
-        if is_literal(value):
+        if is_literal(value) or is_pandas(value):
             continue
         if callable(value):
             continue
-        if not hasattr(value, "__dict__"):
+        if not is_exposable(value):
+            # excludes things like numpy arrays
             continue
         comps[name] = value
     return comps
@@ -350,7 +402,7 @@ def start_factory(name='ProxyFactory',host=None,port=44444, use_ns=False,loopCon
 def main(args=None):
     from argparse import ArgumentParser
     parser = ArgumentParser(description="D-Manage proxy factory command line launcher.")
-    parser.add_argument("-n", "--host", dest="host", help="hostname to bind server on")
+    parser.add_argument("-n", "--host", dest="host",default='127.0.0.1', help="hostname to bind server on")
     parser.add_argument("-p", "--port", dest="port", type=int,default=defaultPyroFactoryPort, help="port to bind server on (0=random)")
     #parser.add_argument("--use_ns", dest="use_ns", type=bool,default=False, help="to use a NameServer or not")
     options = parser.parse_args(args)

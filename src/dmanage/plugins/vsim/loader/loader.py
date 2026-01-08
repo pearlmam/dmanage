@@ -167,7 +167,7 @@ class History():
             DFs = pd.concat(DFs,axis=axis,verify_integrity=False)
             DFs = DFs.loc[:,~DFs.columns.duplicated()].copy()
         return DFs,histNames
-    @Pyro5.api.expose
+    #@Pyro5.api.expose
     @override()
     def read_as_df(self, histNames, concat=True, axis=1,cache=False, **kwargs):
         if not type(histNames) is list: histNames = [histNames]
@@ -846,7 +846,7 @@ class VSim():
             self.PreVars = InputVariables(self.varFile)
             self.Hists, self.Parts,self.Fields,self.Geos = self.load_components(folder)
             self.components = ['Hist','Parts','Fields','Geos','PreVars']
-   
+
     def is_valid(self, folder):
         folder = os.path.join(folder,'')
         varFile = glob.glob(folder + '/*Vars.py')

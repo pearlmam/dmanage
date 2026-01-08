@@ -7,7 +7,7 @@ import numpy as np
 from dmanage.utils.objinfo import is_iterable
 
 
-WRAPPER_TYPE = 'funcs'
+WRAPPER_TYPE = 'class'
 
 if WRAPPER_TYPE == 'class':
     ##########################
@@ -17,7 +17,8 @@ if WRAPPER_TYPE == 'class':
         def __init__(self, func,update_wrapper=True):
             self.func = func
             #self.sig = inspect.signature(func)
-            if update_wrapper: 
+            if update_wrapper:
+                self.__wrapped__ = func
                 functools.update_wrapper(self, func)
         
         def __call__(self,*args,**kwargs):
@@ -25,10 +26,10 @@ if WRAPPER_TYPE == 'class':
             bound = sig.bind(*args, **kwargs)
             bound.apply_defaults()
             result = []
-            steps = args[0]
+            steps = bound.args[0]
             iteratorType = type(steps)
             for step in steps:
-                result = result + [self.func(step,*bound.args[1:],**bound.kwargs)]
+                result.append(self.func(step,*bound.args[1:],**bound.kwargs))
             if iteratorType is np.ndarray and is_iterable(result[0]):
                 result = np.array(result)
             return result
@@ -38,7 +39,8 @@ if WRAPPER_TYPE == 'class':
             self.func = func
             self.ncPass = ncPass
             #self.sig = inspect.signature(func)
-            if update_wrapper: 
+            if update_wrapper:
+                self.__wrapped__ = func
                 functools.update_wrapper(self, func)
             
         def __call__(self,*args,**kwargs):
@@ -80,13 +82,12 @@ if WRAPPER_TYPE == 'class':
     
     class parallelize_iterator_method():
         def __init__(self,func,ncPass=False):
-            self.func = func
-            self.ncPass = ncPass
+            self.func = looperize(func,update_wrapper=False)
+            self.func = parallelize_looped_method(self.func,ncPass=ncPass,update_wrapper=False)
+            self.__wrapped__ = func
             functools.update_wrapper(self, func)
         def __call__(self,*args,**kwargs):
-            func1 = looperize(self.func,update_wrapper=False)
-            func2 = parallelize_looped_method(func1,ncPass=self.ncPass,update_wrapper=False)
-            return func2(*args,**kwargs)
+            return self.func(*args,**kwargs)
 else:
     ################   
     # Less picklable            
@@ -216,7 +217,7 @@ if __name__ == "__main__":
             return arg0
 
     values = [1,2,3,4]
-    values = addOne(values,arg1=True,nc=4)
+    values = addOne(values,arg1=True,nc=1)
     
     print(values)
 

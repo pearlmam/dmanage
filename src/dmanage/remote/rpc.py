@@ -361,29 +361,29 @@ def get_object_from_module(obj,module):
 #########  panda serialization hooks  ###########
 orient='tight'
 def df_to_dict(df):
-    print("DataFrame to dict")
+    #print("DataFrame to dict")
     data = df.to_dict(orient=orient)
     data = {'__class__':'DataFrameDict','DataFrame':data}
     return data
 
 def dict_to_df(classname, d):
-    print("dict to Dataframe")
-    #data = pd.DataFrame.from_dict(d['DataFrame'],orient=orient)
-    data = d['DataFrame']
+    #print("dict to Dataframe")
+    data = pd.DataFrame.from_dict(d['DataFrame'],orient=orient)
+    #data = d['DataFrame']
     return data
 
 def series_to_dict(series):
-    print("Series to dict")
+    #print("Series to dict")
     data = series.to_frame().to_dict(orient=orient)
     data = {'__class__':'SeriesDict','Series':data}
     return data
 
 def dict_to_series(classname, d):
-    print("dict to Series")
+    #print("dict to Series")
     data = pd.DataFrame.from_dict(d['Series'],orient=orient).iloc[:,0]
     return data
 
-Pyro5.api.config.SERIALIZER = "pickle"
+Pyro5.api.config.SERIALIZER = "serpent"
 Pyro5.api.register_class_to_dict(pd.core.frame.DataFrame, df_to_dict)
 Pyro5.api.register_dict_to_class("DataFrameDict", dict_to_df)
 Pyro5.api.register_class_to_dict(pd.core.frame.Series, series_to_dict)

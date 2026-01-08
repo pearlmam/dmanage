@@ -286,9 +286,9 @@ class DataGroup(PurePython):
             elif key == 'equal':
                 pass
  
-    def __getstate__(self):
-        raise RuntimeError("""Datagroup should not be pickled. DataGroup should only pickle 
-                           parallelism should only pickle DataUnit""")
+    # def __getstate__(self):
+    #     raise RuntimeError("""Datagroup should not be pickled. DataGroup should only pickle 
+    #                        parallelism should only pickle DataUnit""")
             
 ######################
 ##   Wrapper funcs
@@ -301,7 +301,7 @@ class make_wrapper:
         on_component_call() hook. also allows access to the original method
         """
         func = get_component_method(instance,component_name, method_name)
-        functools.update_wrapper(self, func)
+        #functools.update_wrapper(self, func)
         @functools.wraps(func)
         def wrapper(_self, *args, **kwargs):   # caller sends self
             return self.on_method_call(
@@ -322,6 +322,8 @@ class make_wrapper:
     
     @staticmethod
     def get_base(instance,iLevel='du'):
+        #super(instance,instance).__init__()
+        
         # step through inheretanceLevels
         base = instance.__class__
         level = base.inheritance_level()
@@ -332,8 +334,6 @@ class make_wrapper:
             level = base.inheritance_level()
         return base
     
-    
-
     def _on_method_call(self,dataUnit, *args, **kwargs):
         """iteration method: loads DU and returns result of the component method
         NOTE: when called from a multiprocess.Pool and MyDataGroup Class is 

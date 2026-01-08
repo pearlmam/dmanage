@@ -7,8 +7,7 @@ from multiprocess import Pool
 import functools
 import numpy as np
 import pandas as pd
-from dmanage.utils.objinfo import is_iterable
-
+import dmanage.utils.objinfo as objinfo
 
 # These Double wrapped methods are slow for some reason. I want to get it dont like this though so I can have concat wrappers?
 from dmanage.methods.wrapper import looperize as _looperize
@@ -16,7 +15,7 @@ from dmanage.methods.wrapper import parallelize_looped_method as _parallelize_lo
 from dmanage.methods.wrapper import  parallelize_iterator_method as _parallelize_iterator_method
 
 
-WRAPPER_TYPE = 'funcs'
+WRAPPER_TYPE = 'class'
 
 if WRAPPER_TYPE == 'class':
     ##########################
@@ -24,49 +23,53 @@ if WRAPPER_TYPE == 'class':
     #########################
     
     class looperize:
-        def __init__(self,func,concat=True):
-            self.func = func
+        def __init__(self,func,concat=True,update_wrapper=True):
+            self.func = _looperize(func,update_wrapper=update_wrapper)
             self.concat = concat
-            #functools.update_wrapper(self, func)
+            if update_wrapper:
+                self.__wrapped__ = func
+                functools.update_wrapper(self, func)
             
         def __call__(self,*args,**kwargs):
-            func = _looperize(self.func)
-            result = func(*args,**kwargs)
+            #print('looperize')
+            result = self.func(*args,**kwargs)
             if self.concat:
                 result = pd.concat(result)
             return result
     
     class parallelize_looped_method:
-        def __init__(self,func,concat=True,ncPass=False):
-            self.func = func
+        def __init__(self,func,concat=True,ncPass=False,update_wrapper=True):
+            self.func = _parallelize_looped_method(func,ncPass=ncPass,update_wrapper=update_wrapper)
             self.concat = concat
-            self.ncPass = ncPass
-            #functools.update_wrapper(self, func)
+            if update_wrapper:
+                self.__wrapped__ = func
+                functools.update_wrapper(self, func)
         def __call__(self,*args,**kwargs):
-            func = _parallelize_looped_method(self.func)
-            result = func(*args,**kwargs)
+            #print('parallelize_looped')
+            result = self.func(*args,**kwargs)
             if self.concat:
                 result = pd.concat(result)
             return result
     
     class parallelize_iterator_method:
         def __init__(self,func,concat=True,ncPass=False):
-            self.func = func
+            self.func = looperize(func,concat=concat,update_wrapper=False)
+            self.func = parallelize_looped_method(self.func,concat=concat,ncPass=ncPass,update_wrapper=False)
+            #self.func = _parallelize_iterator_method(func,ncPass)
             self.concat = concat
-            self.ncPass = ncPass
-            #functools.update_wrapper(self, func)
+            self.__wrapped__ = func
+            functools.update_wrapper(self, func)
             
         def __call__(self,*args,**kwargs):
-            func = _parallelize_iterator_method(self.func,self.ncPass)
-            result = func(*args,**kwargs)
-            if self.concat:
-                result = pd.concat(result)
+            result = self.func(*args,**kwargs)
+            # if self.concat:
+            #     result = pd.concat(result)
             return result
     
     class parallelize_df_method:
         def __init__(self,func):
             self.func = func
-            
+            self.__wrapped__ = func
             functools.update_wrapper(self, func)
         def __call__(self,*args,**kwargs):
             if 'nc' in kwargs.keys():
@@ -77,7 +80,7 @@ if WRAPPER_TYPE == 'class':
             bound = sig.bind(*args, **kwargs)
             bound.apply_defaults()
             if nc>1:
-                DFs = np.split(args[0], nc)
+                DFs = np.split(bound.args[0], nc)
                 variables = [(DF,)+bound.args[1:]+tuple(bound.kwargs.values()) for DF in DFs]
                 pool = Pool(processes=nc)
                 result = pool.starmap_async(self.func,variables)
@@ -104,7 +107,7 @@ else:
         @functools.wraps(func)
         def wrapper(*args,**kwargs):
             result = func(*args,**kwargs)
-            if concat:
+            if concat and objinfo.is_container(result):
                 result = pd.concat(result)
             return result
         return wrapper
@@ -119,7 +122,7 @@ else:
         @functools.wraps(func)
         def wrapper(*args,**kwargs):
             result = func(*args,**kwargs)
-            if concat:
+            if concat and objinfo.is_container(result):
                 result = pd.concat(result)
             return result
         return wrapper
@@ -176,25 +179,23 @@ else:
 if __name__ == "__main__":
     
     import time
-    def _addOne(arg0,arg1):
+    def _make_df(arg0,arg1,nc=1):
         if arg1:
-            return arg0 + 1
+            return pd.DataFrame([arg0])
         else:
-            return arg0 
+            return pd.DataFrame([1]) 
     
-    def addOne(arg0,arg1,nc=1):
-        addOne = parallelize_iterator_method(_addOne)
-        startTime = time.time()
-        if arg1:
-            if not is_iterable(arg0): arg0 = [arg0]   # determine if it is an iterable and make it one
-            nc = min(nc,len(arg0))
-            print('Adding one to values using %i cores...'%(nc), end=' ')
-            result = addOne(arg0,arg1,nc=nc)
-            executionTime = (time.time()-startTime)
-            print(' Done in %0.2f seconds'%(executionTime))
-            return result
-        else:
-            return arg0
+    def make_df(arg0,arg1,nc=1):
+        make_df = parallelize_iterator_method(_make_df)
 
+        return make_df(arg0,arg1,nc=nc)
+    
+    # def make_df(arg0,arg1,nc=1):
+    #     make_df = looperize(_make_df)
+    #     make_df = parallelize_looped_method(make_df)
+    #     return make_df(arg0,arg1,nc=nc)
     values = [1,2,3,4]
-    addOne(values,arg1=True,nc=1)
+    print(make_df(values,arg1=True,nc=4))
+    
+    
+    

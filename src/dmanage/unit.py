@@ -9,7 +9,7 @@ dataUnit stuff
 import io
 import pandas as pd
 import os
-
+from pathlib import Path
 import sys
 import inspect
 
@@ -63,7 +63,8 @@ class DataUnit(PurePython):
         super().__init__(dataPath)   # ??? do I want to have to make a component assembler?
         # define attributes
         self.processedDir = 'processed/'
-        self.unitType = os.path.isdir(dataPath)*'dir' or os.path.isfile(dataPath)*'file' or 'UNDEFINED'
+        self.unitType = (os.path.isdir(dataPath)*'dir' or os.path.isfile(dataPath)*'file'  or
+                         Path(dataPath).suffix =='.test' or 'UNDEFINED')
         if self.unitType == 'UNDEFINED':
             raise Exception("Undefined unit: '%s' is neither a directory or a file"%dataPath)
         if  self.inheritance_level() == 'DU':
@@ -79,15 +80,15 @@ class DataUnit(PurePython):
     def inheritance_level():
         return 'DU'
     
-    def load(self,dataDir=None,iLevel='DU'):
-        # step through inheretanceLevels
-        base = self.__class__
-        level = base.inheritance_level()
-        while not (level.lower() == iLevel.lower()):
-            if len(base.__bases__) < 1:
-                raise Exception("Inheritance chain does not include level '%s'"%level)
-            base = base.__bases__[0]
-            level = base.inheritance_level()
-        return base(dataDir)
+    # def load(self,dataDir=None,iLevel='DU'):
+    #     # step through inheretanceLevels
+    #     base = self.__class__
+    #     level = base.inheritance_level()
+    #     while not (level.lower() == iLevel.lower()):
+    #         if len(base.__bases__) < 1:
+    #             raise Exception("Inheritance chain does not include level '%s'"%level)
+    #         base = base.__bases__[0]
+    #         level = base.inheritance_level()
+    #     return base(dataDir)
     
 

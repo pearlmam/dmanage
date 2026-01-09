@@ -81,11 +81,12 @@ if WRAPPER_TYPE == 'class':
             return result
     
     class parallelize_iterator_method():
-        def __init__(self,func,ncPass=False):
+        def __init__(self,func,ncPass=False,update_wrapper=True):
             self.func = looperize(func,update_wrapper=False)
             self.func = parallelize_looped_method(self.func,ncPass=ncPass,update_wrapper=False)
-            self.__wrapped__ = func
-            functools.update_wrapper(self, func)
+            if update_wrapper:
+                self.__wrapped__ = func
+                functools.update_wrapper(self, func)
         def __call__(self,*args,**kwargs):
             return self.func(*args,**kwargs)
 else:

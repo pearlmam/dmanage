@@ -85,7 +85,9 @@ class DataGroup(PurePython):
         #print('Opening %s...'%baseDir, end = ' ')
         #startTime = time.time()
         self.ignoreDirs = [self.processedDir]
-        if unitType == 'dir':
+        if unitType == 'test':
+            self.dataUnits = ['file-%02.d.test'%value for value in range(0,100)]
+        elif unitType == 'dir':
             self.dataUnits = self.get_dunits(baseDir, nc=nc)
         else:
             self.dataUnits = self.get_data_files(baseDir)
@@ -301,24 +303,17 @@ class make_wrapper:
         on_component_call() hook. also allows access to the original method
         """
         func = get_component_method(instance,component_name, method_name)
-        #functools.update_wrapper(self, func)
-        @functools.wraps(func)
-        def wrapper(_self, *args, **kwargs):   # caller sends self
-            return self.on_method_call(
-                component_name,
-                method_name,
-                *args,
-                **kwargs,
-            )
-        self.wrapper = wrapper
+        self.__wrapped__ = func
+        functools.update_wrapper(self, func)
+        self.func = func
         self.dataUnits = [os.path.join(instance.baseDir,dataUnit) for dataUnit in instance.dataUnits]
         self.base = self.get_base(instance,iLevel='du')
+        #self.base = MyDataDir
         self.component_name = component_name
         self.method_name = method_name
-        originalMethod = get_component_method(instance,component_name, method_name)
-        self.orKind = originalMethod._override
-        self.orLevel = originalMethod._level
-        self.orArgs = originalMethod._kwargs
+        self.orKind = func._override
+        self.orLevel = func._level
+        self.orArgs = func._kwargs
     
     @staticmethod
     def get_base(instance,iLevel='du'):
@@ -352,7 +347,7 @@ class make_wrapper:
         du = self.base(dataUnit) 
         # DD = super(self.__class__.__bases__[0],self).load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
         # DD = self.load(os.path.join(self.baseDir,dataUnit),iLevel='DU') 
-        
+        #print('loading DataUnit Method: %s.%s'%(self.component_name, self.method_name))
         du_func = get_component_method(du,self.component_name, self.method_name)
         
         # this allows for handling other _override kinds
@@ -380,9 +375,7 @@ class make_wrapper:
             ncPass = kwargs.pop('ncPass')
         else:
             ncPass = False
-        
         method = methods.wrapper.parallelize_iterator_method(self._on_method_call, ncPass=ncPass)
-        
         results = method(self.dataUnits, *args, **kwargs)
         if self.orKind == 'DataFrame':
             results =pd.concat(results,**self.orArgs)

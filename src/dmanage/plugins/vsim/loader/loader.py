@@ -171,13 +171,12 @@ class History():
     @override()
     def read_as_df(self, histNames, concat=True, axis=1,cache=False, **kwargs):
         if not type(histNames) is list: histNames = [histNames]
-        if not type(cache) is list: cache = [cache]
         DFs = []
         
         stack = False
         #if len(histNames)>1: stack = True
         
-        for histName,cache in zip(histNames,cache):
+        for histName in histNames:
             if cache:
                 DF = self.Cache.get(histName, self._read_as_df, histName, stack=stack, **kwargs)
             else:

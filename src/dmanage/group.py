@@ -329,6 +329,7 @@ class make_wrapper:
             level = base.inheritance_level()
         return base
     
+    # @functools.wraps(self.func)
     def _on_method_call(self,dataUnit, *args, **kwargs):
         """iteration method: loads DU and returns result of the component method
         NOTE: when called from a multiprocess.Pool and MyDataGroup Class is 
@@ -349,7 +350,7 @@ class make_wrapper:
         # DD = self.load(os.path.join(self.baseDir,dataUnit),iLevel='DU') 
         #print('loading DataUnit Method: %s.%s'%(self.component_name, self.method_name))
         du_func = get_component_method(du,self.component_name, self.method_name)
-        
+
         # this allows for handling other _override kinds
         orKind = du_func._override
         orLevel = du_func._level
@@ -375,7 +376,8 @@ class make_wrapper:
             ncPass = kwargs.pop('ncPass')
         else:
             ncPass = False
-        method = methods.wrapper.parallelize_iterator_method(self._on_method_call, ncPass=ncPass)
+        # cant bind to original func because added dataUnit input.
+        method = methods.wrapper.parallelize_iterator_method(self._on_method_call, ncPass=ncPass,bind_func=None)   
         results = method(self.dataUnits, *args, **kwargs)
         if self.orKind == 'DataFrame':
             results =pd.concat(results,**self.orArgs)

@@ -3,7 +3,7 @@
 # for parallelize methods
 
 import inspect
-from multiprocessing import Pool
+from multiprocess import Pool
 import functools
 import numpy as np
 import pandas as pd
@@ -23,12 +23,13 @@ if WRAPPER_TYPE == 'class':
     #########################
     
     class looperize:
-        def __init__(self,func,concat=True,update_wrapper=True):
-            self.func = _looperize(func,update_wrapper=update_wrapper)
+        def __init__(self,func,concat=True,bind_func=None):
+            self.func = _looperize(func,bind_func=bind_func)
             self.concat = concat
-            if update_wrapper:
-                self.__wrapped__ = func
-                functools.update_wrapper(self, func)
+            if bind_func is None:
+                bind_func = func
+            self.__wrapped__ = bind_func
+            functools.update_wrapper(self, bind_func)
             
         def __call__(self,*args,**kwargs):
             #print('looperize')
@@ -38,12 +39,13 @@ if WRAPPER_TYPE == 'class':
             return result
     
     class parallelize_looped_method:
-        def __init__(self,func,concat=True,ncPass=False,update_wrapper=True):
-            self.func = _parallelize_looped_method(func,ncPass=ncPass,update_wrapper=update_wrapper)
+        def __init__(self,func,concat=True,ncPass=False,bind_func=None):
+            self.func = _parallelize_looped_method(func,ncPass=ncPass,bind_func=bind_func)
             self.concat = concat
-            if update_wrapper:
-                self.__wrapped__ = func
-                functools.update_wrapper(self, func)
+            if bind_func is None:
+                bind_func = func
+            self.__wrapped__ = bind_func
+            functools.update_wrapper(self, bind_func)
         def __call__(self,*args,**kwargs):
             #print('parallelize_looped')
             result = self.func(*args,**kwargs)
@@ -52,13 +54,15 @@ if WRAPPER_TYPE == 'class':
             return result
     
     class parallelize_iterator_method:
-        def __init__(self,func,concat=True,ncPass=False):
-            self.func = looperize(func,concat=concat,update_wrapper=False)
-            self.func = parallelize_looped_method(self.func,concat=concat,ncPass=ncPass,update_wrapper=False)
+        def __init__(self,func,concat=True,ncPass=False,bind_func=None):
+            if bind_func is None:
+                bind_func = func
+            self.__wrapped__ = bind_func
+            functools.update_wrapper(self, bind_func)
+            self.func = looperize(func,concat=concat,bind_func=bind_func)
+            self.func = parallelize_looped_method(self.func,concat=concat,ncPass=ncPass,bind_func=bind_func)
             #self.func = _parallelize_iterator_method(func,ncPass)
             self.concat = concat
-            self.__wrapped__ = func
-            functools.update_wrapper(self, func)
             
         def __call__(self,*args,**kwargs):
             result = self.func(*args,**kwargs)

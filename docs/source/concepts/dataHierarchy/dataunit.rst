@@ -20,7 +20,7 @@ DataUnit Requirements (For use with DataGroup)
    * Need to figure out if I want the user to inherit from a assembler or not.
 
 
-Adding dmanage Functionallity
+Adding dmanage Functionality
 -----------------------------
 
 Blah blah blah. 

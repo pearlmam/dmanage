@@ -18,10 +18,10 @@ Here are some techniques to deal with metadata.
 
 .. _Filenaming:
 
-Filenaming
-^^^^^^^^^^
+File Naming
+^^^^^^^^^^^
 
-One way to deal with metadata is to add the relevant parameters to the filename. This has the advantage of being immediately apparent of which data file corresponds with which input. This makes it quick to find your data in generic file explorers, and it organizes the files alpha-numerically so you can quickly preview through different data files. This disadvantage is long filenames.
+One way to deal with metadata is to add the relevant parameters to the filename. This has the advantage of being immediately apparent of which data file corresponds with which input. This makes it quick to find your data in generic file explorers, and it organizes the files alphanumerically so you can quickly preview through different data files. This disadvantage is long filenames.
 
 The best way to name a file is to follow this protocol:
 

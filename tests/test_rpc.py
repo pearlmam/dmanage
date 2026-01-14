@@ -45,6 +45,9 @@ class Component1():
     def __init__(self):
         self.attr = 'Component1 attribute'
         self.Comp = Component2()
+        
+    @Pyro5.api.expose
+    @override()
     def func(self):
         return 'Component1 Func'
 
@@ -220,7 +223,8 @@ class TestAllLocal(TestCase):
         
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=4), proxyDG.gen_DataFrame(nc=4))])
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=1), proxyDG.gen_DataFrame(nc=1))])
-        
+        assert all([(local==remote) for local, remote in zip(localDG.Comp.func(nc=1), proxyDG.Comp.func(nc=1))])
+    
     def test_factory(self):
         """Make sure factor is running with terminal command 'dmanage-factory'"""
         uri = "PYRO:ProxyFactory@localhost:44444"
@@ -253,11 +257,11 @@ class TestAllLocal(TestCase):
         
         
 if __name__ == "__main__":
-    # test = TestAllLocal()
-    # test.test_expose_all()
-    # test.test_dataUnit_proxy()
-    # test.test_dataGroup_proxy()
-    # test.test_factory()
+    test = TestAllLocal()
+    test.test_expose_all()
+    test.test_dataUnit_proxy()
+    test.test_dataGroup_proxy()
+    test.test_factory()
     
     
     
@@ -267,9 +271,9 @@ if __name__ == "__main__":
     
     #localDG = MyDataGroup(baseDir,unitType='test')
     
-    uri = "PYRO:ProxyFactory@localhost:44444"
-    Factory = rpc.ProxyFactory(uri=uri)
-    proxyDG = Factory.create(objDG,module=module,baseDir=baseDir,unitType='test')
+    # uri = "PYRO:ProxyFactory@localhost:44444"
+    # Factory = rpc.ProxyFactory(uri=uri)
+    # proxyDG = Factory.create(objDG,module=module,baseDir=baseDir,unitType='test')
     
     
     # proxyDU = Factory.create(objDU,module=module,dataPath=dataPath)

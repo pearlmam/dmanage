@@ -7,7 +7,7 @@ D-Manage has adopted the ``pandas`` ``DataFrame`` object for most of it's data p
 * A unified input data standard for data processing functions for collaboration, communication, and sharing community algorithms
 
 
-D-Manage has a subpackage ``dmanage.dfmethods`` with common processing methods for properly formated DataFrames! These are community developed methods that use DataFrame input and process data. Many of the methods are just wrappers for common functions provided by other Python packages such at scipy_, numpy_, and matplotlib_. 
+D-Manage has a subpackage ``dmanage.dfmethods`` with common processing methods for properly formatted DataFrames! These are community developed methods that use DataFrame input and process data. Many of the methods are just wrappers for common functions provided by other Python packages such at scipy_, numpy_, and matplotlib_. 
 
 Many tutorials exist on the web for learning how to use DataFrames. There are also some tutorials here.
 

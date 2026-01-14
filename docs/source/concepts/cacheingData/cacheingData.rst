@@ -1,12 +1,12 @@
-Cacheing Processed Data
+Caching Processed Data
 =======================
 
 The concept is simple, storing data for use somewhere else. Often this data is passed around as inputs to functions, but this can be a burden to micromanage data like this. So in D-Manage, we can cache the data.
 
 There are two places to "cache" data: 
 
-* RAM. This volitile memory, meaning it is short term and is gone once you terminate the program. 
-* Disk. This non-volitile memory, meaning it is long term and persists after the program is terminated AND even after the computer is shut down
+* RAM. This volatile memory, meaning it is short term and is gone once you terminate the program. 
+* Disk. This nonvolatile memory, meaning it is long term and persists after the program is terminated AND even after the computer is shut down
 
 In D-Manage, cached data stored in RAM is called *soft cache*. This is basically data stored in a component of the DataUnit. Cached data stored on the disk is called *hard cache*.
 
@@ -17,7 +17,7 @@ Sometimes we need to use the result from ``method1()`` for ``method2()`` and ``m
 
 * We need to keep our instantiation of the DataUnit class simple and fast.
 
-  * Our ``DataUnit`` class has many other methods that may not use ``method1()``, ``method2()``, or ``method3()``. So we don't want to do unessecary calculations every time we instantiate the DataUnit
+  * Our ``DataUnit`` class has many other methods that may not use ``method1()``, ``method2()``, or ``method3()``. So we don't want to do unnecessary calculations every time we instantiate the DataUnit
   * Therefore, we can't run ``method1()`` in the ``__init__()`` method
 
 * We want ``method2()`` and ``method3()`` to be self-sufficient.
@@ -30,17 +30,17 @@ Sometimes we need to use the result from ``method1()`` for ``method2()`` and ``m
   * the variable names should be short
   * Accessing the variables should be simple
   
-* ?? Refractor proof  ??
+* ?? Refactor proof  ??
   
   * The implementation should be consistent regardless of how its implemented
   * The organization might change as the complexity of your project increases. We don't want to have to find these variables all over?
   
-Here is a tutorial for how soft cahche is implemented.
+Here is a tutorial for how soft cache is implemented.
 
 Hard Cache
 ----------
 
-Sometimes we need the result from ``method1()`` that takes a long time for other methods. ``method1()`` is well-validated and does not need to be re-run every time we use the result from that method. This is a perfect application for a hard cache: we can store the result on the disk for use in other methods to minimize computation time. Lets discuss some caveats:
+Sometimes we need the result from ``method1()`` that takes a long time for other methods. ``method1()`` is validated and does not need to be re-run every time we use the result from that method. This is a perfect application for a hard cache: we can store the result on the disk for use in other methods to minimize computation time. Lets discuss some caveats:
 
 * Data storage must be as small as possible
   

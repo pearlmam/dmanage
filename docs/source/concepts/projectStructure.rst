@@ -29,7 +29,7 @@ The ideal structure for your project is:
     Contains your DataUnit and DataGroup classes. 
 
 :loader: 
-    Where user defined data loading code goes. With simple projects, this code can go directly into the core DataUnit. However, with more complicated projects, the data loading code should go here. This is espeacially usefull for data loading code that can be used for multiple projects, such as user defined code that interacts with software API. This loader directory is separate from the core and can easily be used as a D-Manage plugin.
+    Where user defined data loading code goes. With simple projects, this code can go directly into the core DataUnit. However, with more complicated projects, the data loading code should go here. This is especially useful for data loading code that can be used for multiple projects, such as user defined code that interacts with software API. This loader directory is separate from the core and can easily be used as a D-Manage plugin.
 
 
 :analysis: 

@@ -20,18 +20,18 @@ dmanage.utils.mail module
    :undoc-members:
    :show-inheritance:
 
-dmanage.utils.system module
----------------------------
+dmanage.utils.objinfo module
+----------------------------
 
-.. automodule:: dmanage.utils.system
+.. automodule:: dmanage.utils.objinfo
    :members:
    :undoc-members:
    :show-inheritance:
 
-dmanage.utils.utils module
---------------------------
+dmanage.utils.system module
+---------------------------
 
-.. automodule:: dmanage.utils.utils
+.. automodule:: dmanage.utils.system
    :members:
    :undoc-members:
    :show-inheritance:

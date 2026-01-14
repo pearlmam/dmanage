@@ -1,7 +1,7 @@
 Tutorials
 =========
 
-This is a list of the availiable tutorials
+This is a list of the available tutorials
 
 .. toctree::
    :maxdepth: 2

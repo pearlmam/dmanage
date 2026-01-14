@@ -1,7 +1,7 @@
 DataFrame Methods
 =================
 
-This is a list of the availiable tutorials on DataFrame Methods
+This is a list of the available tutorials on DataFrame Methods
 check: :py:func:`dfm.convert.rotate_cyl <dmanage.dfmethods.convert.rotate_cyl>` 
 
 .. toctree::

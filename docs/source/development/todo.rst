@@ -10,19 +10,23 @@ Rework Data Hierarchy Intro Example
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Right now the response is linearly increasing. The response should be a transfer function?
 
-Document: load() Method
-^^^^^^^^^^^^^^^^^^^^^^^
-This method instantiates the self object. Each level in the hierarchy has its load() method. The child method uses ``super().load()`` to access the parent ``load()`` method. Example: the ``DataGroup`` class needs to wrap its ````DataUnit`` parent methods with a looped ``DataUnit`` method. This uses ``inheritance_level()`` to determine if the ``super().load()`` method is the correct level to call ``load()``.
+Automatic Method Wrapping
+^^^^^^^^^^^^^^^^^^^^^^^^^
+The ``load()`` method is depreciated because of super() limitations with multiprocess/ing and RPC. 
 
-Anyway, Document this and develop a tutorial for this methodology. Also look into using an integer level rather than a string level. This way, N number of levels can be used.
+Parallelize Wrapping
+^^^^^^^^^^^^^^^^^^^^
+Rework the example to include the class based method wrapping and the advantages of it: picklable!
+
+Possibly include what should and shouldn't be wrapped, addone is a poor candidate for multiprocessing because of simplicity and python method calling. Also discuss threading and GIL?
 
 Data File Types
 ^^^^^^^^^^^^^^^
-Create a tutorial about file types: binary and ASCI files. Discuss what H5 and csv files are and how to create them. Discuss the term 'delimators'. Advantages and disadvantages.
+Create a tutorial about file types: binary and ASCII files. Discuss what H5 and csv files are and how to create them. Discuss the term 'delimiters'. Advantages and disadvantages.
 
-Cacheing Data
-^^^^^^^^^^^^^
-Create a tutorial for it. 
+Caching Data
+^^^^^^^^^^^^
+update tutorial for it to remove writing to the cache within the function, just need Cache.get() call to automatically write to cache.
 
 
 Near Term
@@ -48,22 +52,18 @@ Summary Component
 ^^^^^^^^^^^^^^^^^
 Define the summary component for creating summary files
 
-Cacheing Data
-^^^^^^^^^^^^^
+Caching Data
+^^^^^^^^^^^^
 Enhance the hard cache capabilities.
 
 Long Term
 ---------
 
-Server
-^^^^^^
-Right now interacting with a server is difficult. Right now run a server script locally, which sends all sub-project files along with a runscript, then runs the script on the server through paramiko. This requires the server script to pass the server info to the run script and run it. This is annoying because I need to edit both the server and run scripts. 
+Server Drivers
+^^^^^^^^^^^^^^
+Job Running implementation. Right now I have a Paramiko implementation, but this requires passing script inputs and the run script is ugly and difficult to maintain. I need to implement a RPC job running service!
 
-This implementation might be good for running simulations, but needs to be streamlined...
-
-Also, I need a way to run scripts on the server as if they were local: an RPC implementation.
-
-I have to deploy the dmanage_ package if I am working with dmanage; I'm kind of okay with this because the dmanage_ package should be static. Currently I have a deploy script which works rather well, But I have to remember to run it first...
+Using openMDAO or similar for running my simulations? I need a local driver too... could be the same as my RPC object...
 
 Visualization
 ^^^^^^^^^^^^^
@@ -75,10 +75,7 @@ This seems like something people would be interested in. We have all these DataU
 
 Data Refactoring
 ^^^^^^^^^^^^^^^^
-I already developed a way to "refactor" data from the DataUnit side, But I should probably develope ways to actually refactor data. I can probably develop a method to refactor metadata and csv files. Other data? Maybe h5 files...?
+I already developed a way to "refactor" data from the DataUnit side, But I should probably develop ways to actually refactor data. I can probably develop a method to refactor metadata and csv files. Other data? Maybe h5 files...?
 
-Drivers
-^^^^^^^
-I am really interested in using openMDAO or similar for running my simulations. The submit job implementation is okay, but I manually deal with the subprocess and terminal output. Maybe there is a better way.
 
 

@@ -58,9 +58,9 @@ class DirSync():
 def rsync(source,dest,source_ssh=None,dest_ssh=None,options=['-am'],includes=["*.py","*/"],excludes=['*'],verbose=False):
     """Wrapper for the rsync terminal call
     
-    The defaults include ONLY '.py' files! 
+    The defaults include ONLY `.py` files!
     It does this by excluding all files, '*', and including only python 
-    and directories,["*.py","*/"]. The -m option prevents creating empty directories.
+    and directories,`["*.py","*/"]`. The -m option prevents creating empty directories.
     
     rsync options
     -a: --archive, do recursion

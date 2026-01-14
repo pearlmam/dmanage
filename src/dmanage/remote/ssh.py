@@ -39,17 +39,17 @@ def non_block_read(output):
 class Server:
     """class for sending files and running scripts to a remote
     
-    In order to connect, you must setup ssh keys with the remote, currently
+    In order to connect, you must set up ssh keys with the remote, currently
     no password option exists for security. 
     to setup ssh keys
     
-    1. on local machine: ssh-keygen -t rsa
-	$ note if one is already created, then cancel it upon overwrite prompt
-	2. from local /$home/.ssh/id_rsa.pub append key on remote machine authorized_keys file in .ssh/authorized_keys
-	$ cat ~/.ssh/id_rsa.pub | ssh mpearlman@r1.***REMOVED***.edu 'cat >> .ssh/authorized_keys'
+    1. on local machine: `ssh-keygen -t rsa`
+	note if one is already created, then cancel it upon overwrite prompt
+	2. from local `/$home/.ssh/id_rsa.pub` append key on remote machine authorized_keys file in `.ssh/authorized_keys`
+	`$ cat ~/.ssh/id_rsa.pub | ssh mpearlman@r1.***REMOVED***.edu 'cat >> .ssh/authorized_keys'`
 	create the folder and file if needed
-	3. ESURE PROPOR PERMISSIONS: ~/.ssh/authorized_keys file needs 700 permission
-	$ chmod 700 ~/.ssh/authorized_keys
+	3. ESURE PROPOR PERMISSIONS: `~/.ssh/authorized_keys` file needs 700 permission
+	`$ chmod 700 ~/.ssh/authorized_keys`
     
     """
     def __init__(self, computer='local',user=None):
@@ -173,7 +173,7 @@ class Server:
             conda environment to activate before calling the script. The default is None.
         args : string, optional
             args for the python script. the format is the sam as if you call 
-            'python myScript.py arg0 arg1 ...'The default is ''.
+            `python myScript.py arg0 arg1 ...` The default is ''.
 
         Returns
         -------
@@ -218,7 +218,7 @@ class Server:
             path to the file.
         args : string, optional
             args for the python script. the format is the sam as if you call 
-            'python myScript.py arg0 arg1 ...'The default is ''.
+            `python myScript.py arg0 arg1 ...` The default is ''.
 
         Returns
         -------

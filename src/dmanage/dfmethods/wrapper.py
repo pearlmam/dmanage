@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import dmanage.utils.objinfo as objinfo
 
-# These Double wrapped methods are slow for some reason. I want to get it dont like this though so I can have concat wrappers?
+
 from dmanage.methods.wrapper import looperize as _looperize
 from dmanage.methods.wrapper import parallelize_looped_method as _parallelize_looped_method
 from dmanage.methods.wrapper import  parallelize_iterator_method as _parallelize_iterator_method

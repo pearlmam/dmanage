@@ -22,7 +22,7 @@ Often a python virtual environment is desired. Use Anaconda_ or venv_ to do this
 Simple Hierarchy
 ----------------
 
-Take a look here for the tutorial. This example generates the data and shows how to read and process simple csv files. This tutorial was made in Jupyter Notebooks, so you  can follow along there. The pure Python package is availiable for download in the examples section. 
+Take a look here for the tutorial. This example generates the data and shows how to read and process simple csv files. This tutorial was made in Jupyter Notebooks, so you  can follow along there. The pure Python package is available for download in the examples section. 
 
 
 Templates
@@ -39,7 +39,7 @@ There are example projects here. Sometimes the best way to learn is to look at e
 Plugins
 -------
 
-There are many plugins availiable to interact with different software packages. These are documented here. Maybe you can manage and process your data with dmanage_ and also utilize your favorite software! If the plugin doesn't exist for your software, consider helping develop one! Information about development is here.
+There are many plugins available to interact with different software packages. These are documented here. Maybe you can manage and process your data with dmanage_ and also utilize your favorite software! If the plugin doesn't exist for your software, consider helping develop one! Information about development is here.
 
 
 DataFrame Methods

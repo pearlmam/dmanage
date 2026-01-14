@@ -1,7 +1,7 @@
 Data Group
 ==========
 
-This comprises of multiple data units. This can be considdered a simulation or experimental sweep or a group of data units. 
+This comprises of multiple data units. This can be considered a simulation or experimental sweep or a group of data units. 
 
 DataGroup Class
 ---------------

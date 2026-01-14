@@ -11,14 +11,14 @@ class SoftCache(dict):
     """This is a dict-like component used for storing data
     
     inherited methods:
-    self.update()
-    self.items()
-    self.keys()
-    self.pop()
-    self.popitem()
-    self.values()
-    self.clear()
-    self.copy()
+        self.update()
+        self.items()
+        self.keys()
+        self.pop()
+        self.popitem()
+        self.values()
+        self.clear()
+        self.copy()
     
     """
     def __getattr__(self, key):
@@ -38,8 +38,9 @@ class SoftCache(dict):
        return super().__setitem__(key, value)
         
     def get(self,key,method=None,*args,**kwargs):
-        """Gets the value from the cache or the method(*args,**kwargs)
+        """Gets the value from the cache or the method(args,kwargs)
         Maybe for methods returning tuples, have way to ignore some values using None
+        
         """
         iterable = is_iterable(key)
         if not iterable:

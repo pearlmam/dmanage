@@ -30,6 +30,7 @@ extensions = [
    'sphinx.ext.doctest',      # for traditional documentation and code
    'nbsphinx',                # for notebooks
    'sphinx_rtd_dark_mode',    # Dark mode toggle for sphinx_rtd_theme
+   'sphinxcontrib.spelling',  # spell check
 ]
 
 templates_path = ['_templates']
@@ -43,6 +44,10 @@ primary_domain = 'py'
 html_theme = 'sphinx_rtd_theme'
 html_logo = './logo/dmanage-logo-inkscape.svg'
 html_static_path = ['_static']
+
+# -- Options for sphinxcontrib.spelling -----------------------------------------------------
+spelling_show_suggestions=True
+spelling_ignore_pypi_package_names=True
 
 # -- Options for nbsphinx -----------------------------------------------------
 nbsphinx_execute = "auto"   # run notebooks at build time

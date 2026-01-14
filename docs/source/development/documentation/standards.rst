@@ -5,10 +5,10 @@ This lists out the documentation standards for this project
 
 .. _Standards-docstrings:
 
-docstrings
+Docstrings
 ----------
 
-Docstrings are the comments imeadiatly following function or class definitions. These follow the numpy standard. Alternative options are google and sphinx standards, but numpy was chosen for this project. Here is an example of the `numpy docstring`_. An excert from that link is given below. 
+Docstrings are the comments immediately following function or class definitions. These follow the numpy standard. Alternative options are google and sphinx standards, but numpy was chosen for this project. Here is an example of the `numpy docstring`_. An excerpt from that link is given below. 
 
 .. _`numpy docstring`: https://www.sphinx-doc.org/en/master/usage/extensions/example_numpy.html
 
@@ -39,7 +39,7 @@ This is how you describe methods!
 Writing Documentation
 ---------------------
 
-This project uses sphinx_ to generate documentation. This package follows the "documentation as code" philosophy, where your entire project, including documentation, should be code-like. This approach takes some time to learn, but offers automatic documentation, subversion support, easy generation of HTMLS, PDFs, and other format documentation in return.
+This project uses sphinx_ to generate documentation. This package follows the "documentation as code" philosophy, where your entire project, including documentation, should be code-like. This approach takes some time to learn, but offers automatic documentation, subversion support, easy generation of HTMLs, PDFs, and other format documentation in return.
  
 reStructuredText
 ^^^^^^^^^^^^^^^^
@@ -49,27 +49,27 @@ This is what many of the documents use, including this one.
 Notebooks
 ^^^^^^^^^
 
-Jupyter notebooks are excellent candidates for demonstration of code and its functions. Many of the tutorials use notebooks for this purpose. Sphinx has an extention nbsphinx_ to suport notbook integration. It will run your notebook and generate the documentation for it. Need link.
+Jupyter notebooks are excellent candidates for demonstration of code and its functions. Many of the tutorials use notebooks for this purpose. Sphinx has an extension nbsphinx_ to support notebook integration. It will run your notebook and generate the documentation for it. Need link.
 
 .. _nbsphinx: https://nbsphinx.readthedocs.io/en/0.9.8/
 
 Markdown
 ^^^^^^^^
 
-Markdown is an alternative for reStructuredText that basically serves the same purpose. Juypeter Notebooks can include markdown cells to add text to your code, so markdown is used in this project too.
+Markdown is an alternative for reStructuredText that basically serves the same purpose. Jupyter Notebooks can include markdown cells to add text to your code, so markdown is used in this project too.
 
 
 Generate Documentation
 ----------------------
 
-To generate the documentation, some setup is needed... I'll probably need to have pakages to be installed for development, separate from base package pakages... This will have to go here too. 
+To generate the documentation, some setup is needed... I'll probably need to have packages to be installed for development, separate from base package packages... This will have to go here too. 
 
 Autodoc
 ^^^^^^^
 
 This scans your code for packages, modules and functions for docstrings for an automatic index of the project.
 
-To generate the api documentation go to the 'docs' directory and execute the following command. If module names have been renamed, but the module imports havent, errors will occur. refactorization is the term used when changing module names and all the imports. There are tools used for this. If you don't refactor correctly, import erros will occur. However, even if you refactor correctly, this command might fail. Deleting the contents of the api folder might help, and then execute this command. This is similar to the 'make clean' command for generating the documents. There is probably an equivalent for the api command. I'll figure this out later. 
+To generate the API documentation go to the 'docs' directory and execute the following command. If module names have been renamed, but the module imports haven't, errors will occur. refactorization is the term used when changing module names and all the imports. There are tools used for this. If you don't refactor correctly, import errors will occur. However, even if you refactor correctly, this command might fail. Deleting the contents of the API folder might help, and then execute this command. This is similar to the 'make clean' command for generating the documents. There is probably an equivalent for the API command. I'll figure this out later.
 
 .. code-block:: console
 

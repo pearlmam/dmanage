@@ -35,7 +35,7 @@ def set_secure_location(locs):
 
     
 def client_ssh_setup(user,server,localPort=44444,remotePort=44444,verbose=False):
-    """sets up ssh port fowarding on the client
+    """sets up ssh port forwarding on the client
     only needs to be run once. only needed to connect to remote hosts.
     ssh-L [LOCAL_PORT] : [REMOTE_HOST] : [REMOTE_PORT] user@server
     This opens [LOCAL_PORT], any connections go through ssh user@server
@@ -201,6 +201,7 @@ def is_exposable(obj):
 def expose_all(obj):
     """ exposes all the class and bases
     Caveat: 
+        
         This exposes ALL instances of the class, not just the returned one!
         classes are references and all instances reference it
         However, Proxies registering before exposing might not have access to 

@@ -31,13 +31,13 @@ We have data that consists of input and output voltages and currents versus time
     1.90E-04,2.63E+00,6.31E+00,2.63E-03,6.31E-03
     2.00E-04,2.69E+00,6.46E+00,2.69E-03,6.46E-03
 
-There are 5 columns. We are happy with the 'Time','Vin', and 'Vout' headers, but we are unhappy with the 'INPUT_CURRENT' and 'OUTPUT_CURRENT' headers. We want to change these headers to 'Iin' and 'Iout' but we have already genereated tons of data with these horrible naming scheme that doesn't work well with :ref:`Filenaming`. So, what do we do???
+There are 5 columns. We are happy with the `Time`,`Vin`, and `Vout` headers, but we are unhappy with the 'INPUT_CURRENT' and 'OUTPUT_CURRENT' headers. We want to change these headers to 'Iin' and 'Iout' but we have already generated tons of data with these horrible naming scheme that doesn't work well with :ref:`Filenaming`. So, what do we do???
 
 
-Proccess Data
+Process Data
 -------------
 
-We could attempt to actually refactor the data (changing the headers of every csv file), but sometimes this is infeasible. So we "refactor" our processing scheme. And thats what we do below. In this example we want to calculate the instantaneous input and output power of the DataUnit. To do this we must multiply voltages and currents and access them through the header. 
+We could attempt to actually refactor the data (changing the headers of every csv file), but sometimes this is infeasible. So we "refactor" our processing scheme. And that's what we do below. In this example we want to calculate the instantaneous input and output power of the DataUnit. To do this we must multiply voltages and currents and access them through the header. 
 
 .. code-block:: python
 
@@ -96,6 +96,7 @@ We could attempt to actually refactor the data (changing the headers of every cs
          
 In this implementation, instead of hard coding the header names, we setup a component ``self.VN`` of the DataUnit that contains all the variable names as attributes. The ``DataUnit.__init__()`` method checks which naming scheme it is, and passes that to our ``VarNames`` class. Now this DataUnit can handle old and new headers.
 
-**NOTE:** This version check must read the entire file to check the variable naming. And then to calculate the power, it must read the file again. This is inefficient. We might consider just reading the first line of the file to check the variable naming to be more efficient. 
+.. note::
+   This version check must read the entire file to check the variable naming. And then to calculate the power, it must read the file again. This is inefficient. We might consider just reading the first line of the file to check the variable naming to be more efficient. 
          
          

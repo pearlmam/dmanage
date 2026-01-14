@@ -11,7 +11,7 @@ Subpackages
    dmanage.metadata
    dmanage.methods
    dmanage.plugins
-   dmanage.server
+   dmanage.remote
    dmanage.utils
 
 Submodules
@@ -45,6 +45,14 @@ dmanage.group module
 --------------------
 
 .. automodule:: dmanage.group
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+dmanage.group\_old module
+-------------------------
+
+.. automodule:: dmanage.group_old
    :members:
    :undoc-members:
    :show-inheritance:

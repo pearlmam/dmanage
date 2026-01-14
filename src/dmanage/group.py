@@ -13,6 +13,7 @@ import pandas as pd
 import natsort
 import functools
 
+from pathlib import Path
 from dmanage.decorate import override
 import dmanage.utils.objinfo as objinfo
 import dmanage.methods as methods
@@ -158,7 +159,7 @@ class DataGroup(PurePython):
             # print(root)
             skip = False
             for ignoreDir in self.ignoreDirs:
-                if ignoreDir in subDir:
+                if Path(ignoreDir).name in Path(subDir).parts:
                     skip = True
             
             if self.is_valid(subDir) and not skip:

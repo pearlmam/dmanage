@@ -52,14 +52,15 @@ dependencies = [
 
 
 # for documentation
-#  nbconvert[webpdf]     # notebooks
-#  nbsphinx              # notebooks
-#  jupyter               # notebooks
-#  pandoc                # might need sudo apt-get install pandoc
-#  sphinx                # sphinx
-#  sphinx_rtd_theme      # sphinx theme
-#  sphinx-rtd-dark-mode  # dark mode extension for sphinx_rtd_theme
-#  sphinx-apidoc        # automatically generate documentation
+#  nbconvert[webpdf]       # notebooks
+#  nbsphinx                # notebooks
+#  jupyter                 # notebooks
+#  pandoc                  # might need sudo apt-get install pandoc
+#  sphinx                  # sphinx
+#  sphinx_rtd_theme        # sphinx theme
+#  sphinx-rtd-dark-mode    # dark mode extension for sphinx_rtd_theme
+#  sphinx-apidoc           # automatically generate documentation
+#  sphinxcontrib-spelling  # spell check
 
 # for plotting interactive
 #  PyQt5                  # plotting qt

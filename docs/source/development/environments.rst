@@ -1,5 +1,5 @@
-Enviroments (IDEs)
-==================
+Environments (IDEs)
+===================
 
 There are two interactive development environments (IDEs) suggested here.
 

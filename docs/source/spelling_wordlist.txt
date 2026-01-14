@@ -1,0 +1,16 @@
+parallelize
+parallelizable
+looperize
+dmanage
+metafile
+metastring
+D-Manage
+multiprocess
+spyder
+docstrings
+jupyter
+paramiko
+openMDAO
+laggy
+LabView
+picklable

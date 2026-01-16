@@ -32,6 +32,11 @@ update tutorial for it to remove writing to the cache within the function, just 
 Near Term
 ---------
 
+Make get_DataUnit() Method
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+In the DataGroup object, make a method to retrieve a DataUnit object to enable working directly on the data unit.
+If RPC is used, this needs to return a proxy. This will help with data visualization.
+
 Data Hierarchy Examples
 ^^^^^^^^^^^^^^^^^^^^^^^
 Add some example projects that use the D-Manage methodology. Also document these projects. The organization should allow for user-based code and documentation. I want to set a standard for organization and documentation for projects so they can be easily communicated and understood.
@@ -47,10 +52,6 @@ Change Name to DManage?
 ^^^^^^^^^^^^^^^^^^^^^^^
 Yup? NO?
 
-
-Summary Component
-^^^^^^^^^^^^^^^^^
-Define the summary component for creating summary files
 
 Caching Data
 ^^^^^^^^^^^^

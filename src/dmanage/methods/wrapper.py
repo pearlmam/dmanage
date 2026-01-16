@@ -39,7 +39,7 @@ if WRAPPER_TYPE == 'class':
             steps = bound.args[0]
             iteratorType = type(steps)
             result = []
-            if sys.version_info[0] >= 3 and sys.version_info[1]>=14:
+            if sys.version_info[0] >= 3 and sys.version_info[1]>=14 and False:
                 # untested
                 boundFunc = functools.partial(self.func,functools.Placeholder, *bound.args[1:],**bound.kwargs) # binding the first arg sucks, fix ???
                 for step in steps:
@@ -119,7 +119,7 @@ if WRAPPER_TYPE == 'class':
                     else:
                         result = list(itertools.chain.from_iterable(result))  # make one list from list of lists
             else:
-                if sys.version_info[0] >= 3 and sys.version_info[1]>=14:
+                if sys.version_info[0] >= 3 and sys.version_info[1]>=14 and False:
                     boundFunc = functools.partial(self.func,functools.Placeholder, *bound.args[1:],**bound.kwargs) # binding the first arg sucks, fix ???
                     result = boundFunc(steps)
                 else:

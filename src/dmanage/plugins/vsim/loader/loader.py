@@ -136,7 +136,7 @@ class History():
     """
     def __init__(self, folder, fileName = None,uniFile=None):
         if fileName is None:
-            self.histFile = glob.glob(folder + '/*_History.h5')[0]
+            self.histFile = glob.glob(os.path.join(folder, '*_History.h5'))[0]
         else:
             self.histFile = os.path.join(folder, '') + fileName
         # self.H = VsHdf5.Mesh(fileName=self.histFile)
@@ -431,7 +431,7 @@ class Particles():
         self.info = {}
         self.UNI = UniMesh(folder,file=uniFile)
         for partType in partTypes:
-            self.files[partType] = glob.glob(folder + '/*_' + partType + '_*')
+            self.files[partType] = glob.glob(os.path.join(folder, '*_'+ partType+ '_*'))
             self.files[partType] = sorted(self.files[partType],key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))
             self.steps[partType] = len(self.files[partType])
             nums = []
@@ -699,7 +699,7 @@ class Fields():
         self.stepNums = {}
         
         for fieldType in fieldTypes:
-            self.files[fieldType] = glob.glob(folder + '/*_' + fieldType + '_*')
+            self.files[fieldType] = glob.glob(os.path.join(folder, '*_' + fieldType + '_*'))
             self.files[fieldType] = sorted(self.files[fieldType],key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))
             self.steps[fieldType] = len(self.files[fieldType])
             nums = []
@@ -859,7 +859,7 @@ class VSim():
     
     def load_components(self, folder):
         ignores = ['Globals', 'universe','History']
-        files = np.array(glob.glob(folder + '/*.h5'))
+        files = np.array(glob.glob(os.path.join(folder, '*.h5')))
         types = []
         for file in files:
             if 'History' in file:

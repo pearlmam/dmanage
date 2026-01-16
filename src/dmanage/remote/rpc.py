@@ -79,7 +79,6 @@ class PyroFactory():
         
     def create(self,obj,module=None,**kwargs):
         # check if location is secure
-        
         if any([Path(secureLoc) not in Path(module).parents for secureLoc in SECURE_LOCATIONS]):
             raise Exception("Insecure 'module' Location: '%s' is not in %s"%(module, SECURE_LOCATIONS))
         if any([str(restrictLoc) in Path(module).parts for restrictLoc in RESTRICTED_LOCATIONS]):
@@ -123,7 +122,25 @@ class Pyroize:
             if name not in self._comp_uris.keys():
                 print("  Registering Component '%s': '%s'..."%(name,comp), end= ' ' )
                 self._comp_uris[name] = self._register_component(comp)
-
+    
+    def _create_pyro_uri(self,obj):
+        print("Creating pyro object: '%s'..."%obj, end= ' ' )
+        obj = pyroize_object(obj)
+        uri = self._pyroDaemon.register(obj,force=True,weak=False)
+        print("Done")
+        obj.__register_components__()
+        uri = URIHook(uri)
+        return uri
+    
+    def _create_pyro_proxy(self,obj):
+        print("Creating pyro object: '%s'..."%obj, end= ' ' )
+        obj = pyroize_object(obj)
+        uri = self._pyroDaemon.register(obj,force=True,weak=False)
+        print("Done")
+        obj.__register_components__()
+        proxy = ProxyWrap(uri)
+        return proxy
+    
     def _register_component(self,obj,onlyExposed=False,**kwargs):
         """Need way to access onlyExposed, Maybe CONFIG FILE"""
         # print("  Registering Component: '%s'..."%obj, end= ' ' )
@@ -189,7 +206,8 @@ def pyroize_object(obj):
     setattr(Obj, '__get_comp_uris__', Pyroize.__get_comp_uris__)
     setattr(Obj, '__register_components__', Pyroize.__register_components__)
     setattr(Obj, '_register_component', Pyroize._register_component)
-    
+    setattr(Obj, '_create_pyro_uri', Pyroize._create_pyro_uri)
+    setattr(Obj, '_create_pyro_proxy', Pyroize._create_pyro_proxy)
     # possible check here if this is what you want
     setattr(Obj, '__get_attribute_names__', Pyroize.__get_attribute_names__)
     setattr(Obj, '__get_attribute__', Pyroize.__get_attribute__)
@@ -302,7 +320,8 @@ class ProxyWrap():
         elif name in self._proxy_attrs:
             return self._get_proxy_attr(name) # return proxy attribute
         else:
-            return getattr(self._proxy,name)  # send proxy request
+            return getattr(self._proxy,name)  # send proxy request 
+
      
     def __reduce__(self):
         raise TypeError(
@@ -317,7 +336,6 @@ class ProxyWrap():
 
 
 #########  Helper Functions  ###########
-
 def get_components(obj):
     comps = {}
     for name,value in vars(obj).items():
@@ -357,7 +375,28 @@ def get_object_from_module(obj,module):
             raise Exception("Parameter 'module' must be a path or the module object")
         obj = getattr(module, obj)
     return obj
+#########  ProxyWrap/uri serialization hooks  ###########
+URIHook = type('URIHook', (str,), {})   # URI class
 
+## for serpent
+def uri_to_dict(uri):
+    data = str(uri)
+    data = {'__class__':'URIDict','uri':data}
+    return data
+
+def dict_to_uri(classname,d):
+    uri = URIHook(d['uri'])
+    proxyWrap = ProxyWrap(uri)
+    return proxyWrap
+Pyro5.api.register_class_to_dict(URIHook, uri_to_dict)
+Pyro5.api.register_dict_to_class("URIDict", dict_to_uri)
+
+## for pickle
+def uri_to_proxy(uri):
+    proxyWrap = ProxyWrap(uri)
+    return proxyWrap
+
+Pyro5.api.register_pickle_loads_hook("URIHook",uri_to_proxy)
 
 #########  panda serialization hooks  ###########
 orient='tight'

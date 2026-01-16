@@ -224,7 +224,29 @@ class TestAllLocal(TestCase):
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=4), proxyDG.gen_DataFrame(nc=4))])
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=1), proxyDG.gen_DataFrame(nc=1))])
         assert all([(local==remote) for local, remote in zip(localDG.Comp.func(nc=1), proxyDG.Comp.func(nc=1))])
-    
+        
+        ## test get_DataUnit()
+        proxyDU = proxyDG.get_DataUnit(0)
+        localDU = localDG.get_DataUnit(0)
+        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
+        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
+        assert proxyDU.Comp.func() == localDU.Comp.func()
+        assert proxyDU.Comp.func() == localDU.Comp.func()
+        assert proxyDU.parent_func() == localDU.parent_func()
+        assert proxyDU.parent_func() == localDU.parent_func()
+        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
+        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
+        Pyro5.api.config.SERIALIZER = "pickle"
+        proxyDU = proxyDG.get_DataUnit(0)
+        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
+        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
+        assert proxyDU.Comp.func() == localDU.Comp.func()
+        assert proxyDU.Comp.func() == localDU.Comp.func()
+        assert proxyDU.parent_func() == localDU.parent_func()
+        assert proxyDU.parent_func() == localDU.parent_func()
+        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
+        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
+        
     def test_factory(self):
         """Make sure factor is running with terminal command 'dmanage-factory'"""
         uri = "PYRO:ProxyFactory@localhost:44444"
@@ -263,18 +285,24 @@ if __name__ == "__main__":
     test.test_dataGroup_proxy()
     test.test_factory()
     
+    # Pyro5.api.config.SERIALIZER = "pickle"
+    
+    # # localDU = MyDataUnit(dataPath)
+    # # comps = rpc.get_components(localDU)
+    # # print(comps)
+    # uri = "PYRO:ProxyFactory@localhost:%s"%port
+    # Factory = rpc.ProxyFactory(uri=uri)
+    # proxyDU = Factory.create(objDU,module=module,dataPath=dataPath)
+    # print(proxyDU.gen_DataFrame())
     
     
-    # localDU = MyDataUnit(dataPath)
-    # comps = rpc.get_components(localDU)
-    # print(comps)
     
-    #localDG = MyDataGroup(baseDir,unitType='test')
-    
+    # localDG = MyDataGroup(baseDir,unitType='test')
     # uri = "PYRO:ProxyFactory@localhost:44444"
     # Factory = rpc.ProxyFactory(uri=uri)
     # proxyDG = Factory.create(objDG,module=module,baseDir=baseDir,unitType='test')
-    
+    # proxyDU = proxyDG.get_DataUnit(0)
+    # DF = proxyDG.gen_DataFrame()
     
     # proxyDU = Factory.create(objDU,module=module,dataPath=dataPath)
     # proxyDU = Factory.create(objDU,module='/Some/Insecure/Path',dataPath=dataPath)

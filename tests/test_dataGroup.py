@@ -33,27 +33,42 @@ class MySweepDir(SweepDir):
     pass
 
 if __name__ == "__main__":
-    folder = './test_data/vsim_data/VDC-87.8e3/'
-    DD = MyDataDir(folder)
+    unitfolder = './test_data/vsim_data/VDC-87.8e3/'
+    DD = MyDataDir(unitfolder)
     
-    folder = './test_data/vsim_data/'
-    SD = MySweepDir(folder)
+    sweepfolder = './test_data/vsim_data/'
+    SD = MySweepDir(sweepfolder)
     
     histName = 'Pout'
-    DF = SD.Hists.read_as_df(histName, nc=1)
+    DD = SD.get_DataUnit(0)
+    DF = DD.Hists.read_as_df(histName)
     print(DF)
     
-    histName = 'Vout'
-    DF = SD.Hists.read_as_df(histName, nc=2)
+    # DD = SD.get_DataUnit(unitfolder)
+    # DF = DD.Hists.read_as_df(histName)
+    # print(DF)
+    
+    DD = SD.get_DataUnit('VDC-87.8e3')
+    DF = DD.Hists.read_as_df(histName)
     print(DF)
     
-    partName = 'electronsT'
-    DF = SD.Parts.read_as_df(steps=None, partType=partName, nc=4, ncPass=True)
-    print(DF)
     
-    SD.PreVars.read('VDC')
     
-    scalars = SD.get_scalars('VDC')
+    # histName = 'Pout'
+    # DF = SD.Hists.read_as_df(histName, nc=1)
+    # print(DF)
+    
+    # histName = 'Vout'
+    # DF = SD.Hists.read_as_df(histName, nc=2)
+    # print(DF)
+    
+    # partName = 'electronsT'
+    # DF = SD.Parts.read_as_df(steps=None, partType=partName, nc=4, ncPass=True)
+    # print(DF)
+    
+    # SD.PreVars.read('VDC')
+    
+    # scalars = SD.get_scalars('VDC')
     
     
     

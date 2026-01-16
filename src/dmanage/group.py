@@ -17,6 +17,7 @@ from pathlib import Path
 from dmanage.decorate import override
 import dmanage.utils.objinfo as objinfo
 import dmanage.methods as methods
+from dmanage.remote import rpc
 
 class PurePython:
     """
@@ -137,7 +138,30 @@ class DataGroup(PurePython):
             
             # types.MethodType() includes self in the method call, or something like that
             setattr(target, method_name, wrapped)
-            
+    
+    def get_DataUnit(self,dataUnit=0):
+        base = get_base(self,iLevel='du')
+        if isinstance(dataUnit,int):
+            dataUnit = Path(os.path.join(self.baseDir,self.dataUnits[dataUnit]))
+        elif isinstance(dataUnit,(str,Path)):
+            dataUnit = Path(dataUnit)
+        else:
+            raise TypeError("'dataUnit' must be int or path-like.")
+        
+        if Path(self.baseDir) not in dataUnit.parents:
+            dataUnit = os.path.join(self.baseDir,dataUnit)
+        
+        du = base(dataUnit)
+
+        if hasattr(self,'_pyroDaemon'): 
+            uri = self._create_pyro_uri(du)
+            # proxy = self._create_pyro_proxy(du)
+            return uri
+        else:
+            # return DataUnit
+            return du
+        
+    
     def get_data_files(self, baseDir=None):
         if type(baseDir) == type(None):
             baseDir = self.baseDir
@@ -308,27 +332,13 @@ class make_wrapper:
         functools.update_wrapper(self, func)
         self.func = func
         self.dataUnits = [os.path.join(instance.baseDir,dataUnit) for dataUnit in instance.dataUnits]
-        self.base = self.get_base(instance,iLevel='du')
+        self.base = get_base(instance,iLevel='du')
         #self.base = MyDataDir
         self.component_name = component_name
         self.method_name = method_name
         self.orKind = func._override
         self.orLevel = func._level
         self.orArgs = func._kwargs
-    
-    @staticmethod
-    def get_base(instance,iLevel='du'):
-        #super(instance,instance).__init__()
-        
-        # step through inheretanceLevels
-        base = instance.__class__
-        level = base.inheritance_level()
-        while not (level.lower() == iLevel.lower()):
-            if len(base.__bases__) < 1:
-                raise Exception("Inheritance chain does not include level '%s'"%level)
-            base = base.__bases__[0]
-            level = base.inheritance_level()
-        return base
     
     # @functools.wraps(self.func)
     def _on_method_call(self,dataUnit, *args, **kwargs):
@@ -392,6 +402,20 @@ class make_wrapper:
 ###########################
 ##     Helper funcs
 #############################
+
+def get_base(instance,iLevel='du'):
+    #super(instance,instance).__init__()
+    
+    # step through inheretanceLevels
+    base = instance.__class__
+    level = base.inheritance_level()
+    while not (level.lower() == iLevel.lower()):
+        if len(base.__bases__) < 1:
+            raise Exception("Inheritance chain does not include level '%s'"%level)
+        base = base.__bases__[0]
+        level = base.inheritance_level()
+    return base
+
 def get_component_method(obj,component_name, method_name):
     if component_name == 'self':
         # the "component" is actually self

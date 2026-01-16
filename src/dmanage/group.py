@@ -139,7 +139,7 @@ class DataGroup(PurePython):
             # types.MethodType() includes self in the method call, or something like that
             setattr(target, method_name, wrapped)
     
-    def get_DataUnit(self,dataUnit=0):
+    def get_DataUnit(self,dataUnit=0,args=(),kwargs={}):
         base = get_base(self,iLevel='du')
         if isinstance(dataUnit,int):
             dataUnit = Path(os.path.join(self.baseDir,self.dataUnits[dataUnit]))
@@ -151,8 +151,9 @@ class DataGroup(PurePython):
         if Path(self.baseDir) not in dataUnit.parents:
             dataUnit = os.path.join(self.baseDir,dataUnit)
         
-        du = base(dataUnit)
-
+        du = base(dataUnit,*args,**kwargs)
+        
+        # check if proxy and Pyroize
         if hasattr(self,'_pyroDaemon'): 
             uri = self._create_pyro_uri(du)
             # proxy = self._create_pyro_proxy(du)

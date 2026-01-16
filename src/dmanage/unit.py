@@ -42,7 +42,7 @@ def make_data_unit(base=PurePython):
     
 class DataUnit(PurePython):
     
-    def __init__(self,dataPath):
+    def __init__(self,dataPath,*args,**kwargs):
         """Loads components of the DataUnit (folder or file)
         This is the base data unit class which consists of components and methods inherited from a base class. The base class is unique to each simulation, experiment, or application.
 

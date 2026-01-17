@@ -167,6 +167,7 @@ class History():
             DFs = pd.concat(DFs,axis=axis,verify_integrity=False)
             DFs = DFs.loc[:,~DFs.columns.duplicated()].copy()
         return DFs,histNames
+    
     #@Pyro5.api.expose
     @override()
     def read_as_df(self, histNames, concat=True, axis=1,cache=False, **kwargs):
@@ -795,7 +796,7 @@ class InputVariables():
         self.varFile = varFile
         self.preName = os.path.basename(varFile).replace('Vars.py','')
         
-    @override()
+    @override('dict')
     def read(self, varList,asString=False,warn=False):
         """
         extracts variables in varList from the Vars.py file. Only the last variable 

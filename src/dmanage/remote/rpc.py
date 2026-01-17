@@ -2,6 +2,7 @@
 # from Pyro5.api import Daemon, serve, expose, behavior, current_context
 import Pyro5.api
 from Pyro5.server import is_private_attribute
+import Pyro5.serializers
 
 from pathlib import Path
 import os
@@ -11,6 +12,8 @@ import subprocess as sp
 import inspect
 from types import ModuleType
 from importlib import reload
+import time
+
 
 from dmanage.utils.objinfo import is_literal,is_container,is_immutable,is_pandas,has_immutable_base
 
@@ -76,24 +79,39 @@ class PyroFactory():
         # self.secureLoc=secureLoc
         self._secureLocs = SECURE_LOCATIONS
         self._restrictLocs = RESTRICTED_LOCATIONS
+        self._pyro_uris = {}
         
-    def create(self,obj,module=None,**kwargs):
+    def create(self,obj,module=None,name=None,reload=False,args=(),kwargs={}):
         # check if location is secure
         if any([Path(secureLoc) not in Path(module).parents for secureLoc in SECURE_LOCATIONS]):
             raise Exception("Insecure 'module' Location: '%s' is not in %s"%(module, SECURE_LOCATIONS))
         if any([str(restrictLoc) in Path(module).parts for restrictLoc in RESTRICTED_LOCATIONS]):
             raise Exception("Restricted 'module' Location: '%s' is in one of %s"%(module, RESTRICTED_LOCATIONS))
-        print("Creating pyro object: '%s'..."%obj, end= ' ' )
+        if name is None:
+            if isinstance(obj,str):
+                name = obj
+            elif inspect.isclass(obj):
+                name = obj.__name__
+            else:
+                name = type(obj).__name__
+
+        if name in self._pyro_uris and not reload:
+            print("Object '%s' already shared, 'reload=False': using cached uri"%name)
+            return self._pyro_uris[name]
+        elif name in self._pyro_uris and reload:
+            print("Object '%s' already shared, 'reload=True': recreating uri"%name)
         
+        print("Creating pyro object: '%s'..."%obj, end= ' ' )
         obj = get_object_from_module(obj,module)
         if not ONLY_EXPOSED:
             obj = expose_all(obj)
         obj = pyroize_object(obj)
-        obj = obj(**kwargs)
-        uri = self._pyroDaemon.register(obj,force=True,weak=False)
+        obj = obj(*args,**kwargs)
+        uri = str(self._pyroDaemon.register(obj,force=True,weak=False))
         print("Done")
         obj.__register_components__()
         
+        self._pyro_uris[name] = uri
         return uri
     
     @classmethod    
@@ -108,6 +126,7 @@ class Pyroize:
     """Use with PyroWrap. Inherit from this so Proxies can access components and attributes"""
     _comp_uris = {}
     _pyroized = True
+    _generated_uris={}
     
     #####  Component Access  #####
     @Pyro5.api.expose
@@ -123,23 +142,35 @@ class Pyroize:
                 print("  Registering Component '%s': '%s'..."%(name,comp), end= ' ' )
                 self._comp_uris[name] = self._register_component(comp)
     
-    def _create_pyro_uri(self,obj):
+    def _create_pyro_uri(self,obj,name):
+        
+        if name is None:
+            if inspect.isclass(obj):
+                name = obj.__name__
+            else:
+                name = type(obj).__name__
+                
+        if name in self._generated_uris:
+            print("Object '%s' already shared, 'reload=False': using cached uri"%name)
+            return URIHook(self._generated_uris[name])
+        
         print("Creating pyro object: '%s'..."%obj, end= ' ' )
         obj = pyroize_object(obj)
-        uri = self._pyroDaemon.register(obj,force=True,weak=False)
+        uri = str(self._pyroDaemon.register(obj,force=True,weak=False))
         print("Done")
         obj.__register_components__()
+        self._generated_uris[name]=uri
         uri = URIHook(uri)
         return uri
     
-    def _create_pyro_proxy(self,obj):
-        print("Creating pyro object: '%s'..."%obj, end= ' ' )
-        obj = pyroize_object(obj)
-        uri = self._pyroDaemon.register(obj,force=True,weak=False)
-        print("Done")
-        obj.__register_components__()
-        proxy = ProxyWrap(uri)
-        return proxy
+    # def _create_pyro_proxy(self,obj):
+    #     print("Creating pyro object: '%s'..."%obj, end= ' ' )
+    #     obj = pyroize_object(obj)
+    #     uri = str(self._pyroDaemon.register(obj,force=True,weak=False))
+    #     print("Done")
+    #     obj.__register_components__()
+    #     proxy = ProxyWrap(uri)
+    #     return proxy
     
     def _register_component(self,obj,onlyExposed=False,**kwargs):
         """Need way to access onlyExposed, Maybe CONFIG FILE"""
@@ -156,7 +187,7 @@ class Pyroize:
         if inspect.isclass(obj):
             obj= obj(**kwargs)   # instantiate the class, else it's already an instance
         
-        uri = self._pyroDaemon.register(obj,force=True,weak=False)
+        uri = str(self._pyroDaemon.register(obj,force=True,weak=False))
         print("Done")
         obj.__register_components__()
         return uri
@@ -202,12 +233,18 @@ def pyroize_object(obj):
         Obj = obj
     else:
         Obj = obj.__class__
+    # internal attrs
     setattr(Obj, '_comp_uris', {})
+    setattr(Obj, '_pyroized', True)
+    setattr(Obj, '_generated_uris', {})
+    
+    # methods
     setattr(Obj, '__get_comp_uris__', Pyroize.__get_comp_uris__)
     setattr(Obj, '__register_components__', Pyroize.__register_components__)
     setattr(Obj, '_register_component', Pyroize._register_component)
     setattr(Obj, '_create_pyro_uri', Pyroize._create_pyro_uri)
-    setattr(Obj, '_create_pyro_proxy', Pyroize._create_pyro_proxy)
+    #setattr(Obj, '_create_pyro_proxy', Pyroize._create_pyro_proxy)
+    
     # possible check here if this is what you want
     setattr(Obj, '__get_attribute_names__', Pyroize.__get_attribute_names__)
     setattr(Obj, '__get_attribute__', Pyroize.__get_attribute__)
@@ -246,7 +283,7 @@ class ProxyFactory():
         """Connect using uri of PyroFactory"""
         self.Factory = Pyro5.api.Proxy(uri=uri)
     
-    def create(self,obj,module=None,**kwargs):
+    def create(self,obj,module=None,reload=False,args=(),kwargs={}):
         """create Proxy for object in file
     
         Parameters
@@ -265,18 +302,21 @@ class ProxyFactory():
             Proxy to the object.
 
         """
-        
-        uri = self.Factory.create(obj,module=module,**kwargs)
+        startTime = time.time()
+        print("creating proxy for '%s'..."%obj,end=' ')
+        uri = self.Factory.create(obj,module=module,reload=reload,args=args,kwargs=kwargs)
         Obj = ProxyWrap(uri=uri)
+        executionTime = time.time() - startTime
+        print("done in %0.2f seconds"%(executionTime))
         return Obj
     
 class ProxyWrap():
     """Wraps a proxy so that component classes and attributes can be accessed"""
     def __init__(self,uri):
+        # print("ProxyWrap URI Type: %s"%type(uri))
         self._proxy = Pyro5.api.Proxy(uri)
         self._comp_cache = {}       # dict of the created component proxies
         self._get_component_proxies()
-        
         self._proxy_attrs = set(self._proxy.__get_attribute_names__())
         self._proxy_methods = set(dir(self._proxy))
         self._comp_names = set(self._comp_cache)
@@ -376,8 +416,8 @@ def get_object_from_module(obj,module):
         obj = getattr(module, obj)
     return obj
 #########  ProxyWrap/uri serialization hooks  ###########
-URIHook = type('URIHook', (str,), {})   # URI class
 
+URIHook = type('URIHook', (str,), {})   # URI class
 ## for serpent
 def uri_to_dict(uri):
     data = str(uri)
@@ -385,14 +425,16 @@ def uri_to_dict(uri):
     return data
 
 def dict_to_uri(classname,d):
-    uri = URIHook(d['uri'])
+    uri = str(d['uri'])
     proxyWrap = ProxyWrap(uri)
     return proxyWrap
+
 Pyro5.api.register_class_to_dict(URIHook, uri_to_dict)
 Pyro5.api.register_dict_to_class("URIDict", dict_to_uri)
 
 ## for pickle
 def uri_to_proxy(uri):
+    uri = str(uri)
     proxyWrap = ProxyWrap(uri)
     return proxyWrap
 
@@ -406,9 +448,12 @@ def df_to_dict(df):
     data = {'__class__':'DataFrameDict','DataFrame':data}
     return data
 
+
 def dict_to_df(classname, d):
     #print("dict to Dataframe")
-    data = pd.DataFrame.from_dict(d['DataFrame'],orient=orient)
+    serializer = Pyro5.serializers.serializers[Pyro5.api.config.SERIALIZER]  # recreate any strange objects insode class
+    data = serializer.recreate_classes(d['DataFrame'])
+    data = pd.DataFrame.from_dict(data,orient=orient)
     #data = d['DataFrame']
     return data
 
@@ -420,6 +465,8 @@ def series_to_dict(series):
 
 def dict_to_series(classname, d):
     #print("dict to Series")
+    serializer = Pyro5.serializers.serializers[Pyro5.api.config.SERIALIZER]
+    data = serializer.recreate_classes(d['DataFrame'])
     data = pd.DataFrame.from_dict(d['Series'],orient=orient).iloc[:,0]
     return data
 

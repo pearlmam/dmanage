@@ -6,18 +6,20 @@ Created on Mon May 10 16:14:34 2021
 SweepDir
 @author: marcus
 """
-import inspect, types
+
 import os
-import time
+import inspect
 import pandas as pd
 import natsort
 import functools
 
 from pathlib import Path
-from dmanage.decorate import override
+
 import dmanage.utils.objinfo as objinfo
 import dmanage.methods as methods
-from dmanage.remote import rpc
+import dmanage.combine as combine
+
+
 
 class PurePython:
     """
@@ -151,15 +153,17 @@ class DataGroup(PurePython):
         if Path(self.baseDir) not in dataUnit.parents:
             dataUnit = os.path.join(self.baseDir,dataUnit)
         
+        uriKey = str(dataUnit)
+        uriKey = uriKey.replace(self.baseDir,'')
+        
         du = base(dataUnit,*args,**kwargs)
         
         # check if proxy and Pyroize
         if hasattr(self,'_pyroDaemon'): 
-            uri = self._create_pyro_uri(du)
+            uri = self._create_pyro_uri(du,uriKey)
             # proxy = self._create_pyro_proxy(du)
             return uri
         else:
-            # return DataUnit
             return du
         
     
@@ -392,9 +396,9 @@ class make_wrapper:
         method = methods.wrapper.parallelize_iterator_method(self._on_method_call, ncPass=ncPass,bind_func=None)   
         results = method(self.dataUnits, *args, **kwargs)
         if self.orKind == 'DataFrame':
-            results =pd.concat(results,**self.orArgs)
+            results = pd.concat(results,**self.orArgs)
         elif self.orKind == 'dict':
-            results = combine_dicts(results)
+            results = combine.combine_dicts(results)
         return results
     
     
@@ -428,14 +432,11 @@ def get_component_method(obj,component_name, method_name):
     func = getattr(component,method_name)
     return func
 
-def combine_dicts(dictList):
-    for i,dictionary in enumerate(dictList):
-        if i == 0:
-            outDict = dictionary
-        else:
-            for key in dictionary.keys():
-                if not type(outDict[key]) is list: outDict[key] = [outDict[key]]
-                if not type(dictionary[key]) is list: dictionary[key] = [dictionary[key]]
-                outDict[key] = outDict[key] + dictionary[key]
-    return outDict
+
+        
+
+    
+    
+    
+    
 

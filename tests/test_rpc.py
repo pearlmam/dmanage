@@ -18,6 +18,8 @@ from dmanage.decorate import override
 """   Constants   """
 baseDir = '/path/to/baseDir/'
 dataPath = 'path.test'
+kwargsDU = {'dataPath':dataPath}
+kwargsDG = {'baseDir':baseDir,'unitType':'test'}
 host= '127.0.0.1'
 port = 44444
 user = getpass.getuser()
@@ -172,7 +174,8 @@ class TestAllLocal(TestCase):
         #assert thread.is_alive() is True
         uri = "PYRO:ProxyFactory@localhost:%s"%port
         Factory = rpc.ProxyFactory(uri=uri)
-        proxyDU = Factory.create(objDU,module=module,dataPath=dataPath)
+        
+        proxyDU = Factory.create(objDU,module=module,kwargs=kwargsDU)
         assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
         assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
         assert proxyDU.Comp.func() == localDU.Comp.func()
@@ -219,7 +222,7 @@ class TestAllLocal(TestCase):
         
         uri = "PYRO:ProxyFactory@localhost:%s"%port
         Factory = rpc.ProxyFactory(uri=uri)
-        proxyDG = Factory.create(objDG,module=module,baseDir=baseDir,unitType='test')
+        proxyDG = Factory.create(objDG,module=module,kwargs=kwargsDG)
         
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=4), proxyDG.gen_DataFrame(nc=4))])
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=1), proxyDG.gen_DataFrame(nc=1))])
@@ -257,11 +260,11 @@ class TestAllLocal(TestCase):
         secureLocation = module
         insecureLocation = '/Some/Insecure/Path'
         restrictedLocation = os.path.join(rpc.SECURE_LOCATIONS[0],'Some/Path/In/%s/Directory'%rpc.RESTRICTED_LOCATIONS[0])
-        Factory.create(objDU,module=secureLocation,dataPath=dataPath)
+        Factory.create(objDU,module=secureLocation,kwargs=kwargsDU)
         with pytest.raises(Exception):
-            Factory.create(objDU,module=insecureLocation,dataPath=dataPath)
+            Factory.create(objDU,module=insecureLocation,kwargs=kwargsDU)
         with pytest.raises(Exception): 
-            Factory.create(objDU,module=restrictedLocation,dataPath=dataPath)
+            Factory.create(objDU,module=restrictedLocation,kwargs=kwargsDU)
         
         
         ###### Cant currently set secure locations without hard coding in rpc... Config file?
@@ -269,12 +272,12 @@ class TestAllLocal(TestCase):
         # nowNotSecureLocation = secureLocation
         # rpc.set_secure_location(['/somewhere/outside/home/directory'])
         # with pytest.raises(Exception): 
-        #     Factory.create(objDU,module=nowNotSecureLocation,dataPath=dataPath)
+        #     Factory.create(objDU,module=nowNotSecureLocation,kwargs=kwargsDU)
         
         # rpc.set_secure_location(['/somewhere/outside/home/directory'])
         # # Should work again
         # rpc.set_secure_location(originalSECURE_LOCATIONS)
-        # Factory.create(objDU,module=secureLocation,dataPath=dataPath)
+        # Factory.create(objDU,module=secureLocation,kwargs=kwargsDU)
         
         
         
@@ -285,7 +288,7 @@ if __name__ == "__main__":
     test.test_dataGroup_proxy()
     test.test_factory()
     
-    # Pyro5.api.config.SERIALIZER = "pickle"
+    
     
     # # localDU = MyDataUnit(dataPath)
     # # comps = rpc.get_components(localDU)
@@ -295,12 +298,13 @@ if __name__ == "__main__":
     # proxyDU = Factory.create(objDU,module=module,dataPath=dataPath)
     # print(proxyDU.gen_DataFrame())
     
-    
+    # Pyro5.api.config.SERIALIZER = "pickle"
     
     # localDG = MyDataGroup(baseDir,unitType='test')
     # uri = "PYRO:ProxyFactory@localhost:44444"
     # Factory = rpc.ProxyFactory(uri=uri)
-    # proxyDG = Factory.create(objDG,module=module,baseDir=baseDir,unitType='test')
+    
+    # proxyDG = Factory.create(objDG,module=module,kwargs=kwargsDG)
     # proxyDU = proxyDG.get_DataUnit(0)
     # DF = proxyDG.gen_DataFrame()
     

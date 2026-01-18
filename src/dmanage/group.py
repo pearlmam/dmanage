@@ -55,7 +55,7 @@ class DataGroup(PurePython):
     
     """
     
-    def __init__(self, baseDir, unitType='dir', nc=1):
+    def __init__(self, baseDir, unitType='dir', nc=1,testN=100):
         """
         
 
@@ -90,7 +90,7 @@ class DataGroup(PurePython):
         #startTime = time.time()
         self.ignoreDirs = [self.processedDir]
         if unitType == 'test':
-            self.dataUnits = ['file-%02.d.test'%value for value in range(0,100)]
+            self.dataUnits = ['file-%02.d.test'%value for value in range(0,testN)]
         elif unitType == 'dir':
             self.dataUnits = self.get_dunits(baseDir, nc=nc)
         else:
@@ -371,6 +371,7 @@ class make_wrapper:
         orKind = du_func._override
         orLevel = du_func._level
         orArgs = du_func._kwargs
+        ncPass = du_func._ncPass
         
         # if orKind == 'plot':  # ??? to do
         #     backEnd = mpl.get_backend()

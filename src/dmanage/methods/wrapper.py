@@ -2,7 +2,7 @@ import inspect
 import itertools
 
 from concurrent.futures import ThreadPoolExecutor
-from multiprocess import Pool
+from multiprocessing import Pool
 import functools
 import numpy as np
 from dmanage.utils.objinfo import is_iterable

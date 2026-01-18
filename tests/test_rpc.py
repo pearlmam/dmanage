@@ -12,14 +12,16 @@ import getpass
 import os
 import copy
 
-from dmanage.unit import make_data_unit
-from dmanage.group import make_data_group
-from dmanage.decorate import override
+from testObjects import MyDataUnit
+from testObjects import MyDataGroup
+from testObjects import Parent
+
 """   Constants   """
 baseDir = '/path/to/baseDir/'
 dataPath = 'path.test'
+testN = 100
 kwargsDU = {'dataPath':dataPath}
-kwargsDG = {'baseDir':baseDir,'unitType':'test'}
+kwargsDG = {'baseDir':baseDir,'unitType':'test','testN':testN}
 host= '127.0.0.1'
 port = 44444
 user = getpass.getuser()
@@ -29,108 +31,13 @@ localModule = file_path = os.path.splitext(os.path.realpath(__file__))[0]
 remoteModule = '/home/***REMOVED***/Documents/developmentProjects/dmanage/tests/test_rpc'
 
 
+parallelDUInput = np.linspace(0,100,101)
+#parallelDGInput = [parallelDUInput]*4
+
+
+
 module = localModule
 # module = remoteModule
-class Component3:
-    def func(self):
-        return 'Component3 Func'
-
-class Component2():
-    """To test component of component"""
-    def __init__(self):
-        self.attr = 'Component2 attribute'
-    def func(self):
-        return 'Component2 Func'
-
-class Component1():
-    """To test component"""
-    def __init__(self):
-        self.attr = 'Component1 attribute'
-        self.Comp = Component2()
-        
-    @Pyro5.api.expose
-    @override()
-    def func(self):
-        return 'Component1 Func'
-
-class Parent():
-    """To test inherited methods"""
-    def __init__(self,*args,**kwargs):
-        self.parentAttr = 'Parent attribute'
-    def parent_func(self):
-        return 'Parent Func'
-
-DataUnit = make_data_unit(Parent)
-length = 100
-class MyDataUnit(DataUnit):
-    """Class to share and proxy"""
-    def __init__(self,dataPath='path.test'):
-        super().__init__(dataPath)
-        self.Comp = Component1()  
-    
-    def is_valid(self):
-        return '.test' in dataPath
-    @override()
-    def gen_DataFrame(self,variant=1):
-        """To test DataFrame transfer"""
-        if variant == 1:
-            data = pd.DataFrame({'A':1.2,'B':"I'm a string",'C':True,'D':[x for x in range(10)]})
-        elif variant == 2:
-            index = np.linspace(0,100,length)
-            values = index*2
-            data = pd.DataFrame({'current':values},index=index)
-            data.index.name = 'voltage'
-        else:
-            time = np.linspace(0,100,length)
-            x = np.linspace(0,1,length)
-            X,T = np.meshgrid(x,time)
-            voltage = -X**2+0.5+T
-            data = pd.DataFrame(voltage,columns=x,index=time)
-            data.columns.name = 'x'
-            data.index.name = 'Time'
-            data = data.stack()
-            data.name = 'voltage'
-            data = pd.DataFrame(data)
-        return data
-    
-    #@Pyro5.api.expose
-    @override()
-    def gen_Series(self):
-        """To test Series transfer"""
-        time = np.linspace(0,100,length)
-        x = np.linspace(0,1,100)
-        X,T = np.meshgrid(x,time)
-        voltage = -X**2+0.5+T
-        data = pd.DataFrame(voltage,columns=x,index=time)
-        data.columns.name = 'x'
-        data.index.name = 'Time'
-        data = data.stack()
-        data.name = 'voltage'
-        return data
-    
-    @override()
-    def gen_numpy(self,):
-        """Numpy should only work with dill and pickle serialization"""
-        data = np.linspace(0,10,100)
-        # data = {'A':data}
-        return data
-    
-    @override()
-    def _private_method(self):
-        return 'Private Method'
-    
-    def add_component(self):
-        self.AddedComp = Component3()
-
-DataGroup = make_data_group(MyDataUnit)
-
-class MyDataGroup(DataGroup):
-    def __init__(self,baseDir,unitType='test'):
-        super().__init__(baseDir,unitType='test')
-    
-    def access_priviate_method(self):
-        # should be wrapped
-        return self._private_method()
 
 class TestAllLocal(TestCase):
     run = True
@@ -185,6 +92,10 @@ class TestAllLocal(TestCase):
         assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
         assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
         
+        Pyro5.api.config.SERIALIZER = "pickle"
+        assert all(proxyDU.parallel_method(parallelDUInput,nc=4) == localDU.parallel_method(parallelDUInput,nc=4))
+        Pyro5.api.config.SERIALIZER = "serpent"
+        
         # test get_components
         localDU.add_component()
         proxyDU.add_component()
@@ -198,8 +109,6 @@ class TestAllLocal(TestCase):
         # localAttrs.remove('parentAttr')
         
         assert proxyAttrs == localAttrs
-        
-        
         
         # test numpy
         with pytest.raises(TypeError):
@@ -218,7 +127,7 @@ class TestAllLocal(TestCase):
         #assert thread.is_alive() is False
         
     def test_dataGroup_proxy(self):
-        localDG = MyDataGroup(baseDir,unitType='test')
+        localDG = MyDataGroup(baseDir,unitType='test',testN=testN)
         
         uri = "PYRO:ProxyFactory@localhost:%s"%port
         Factory = rpc.ProxyFactory(uri=uri)
@@ -227,6 +136,16 @@ class TestAllLocal(TestCase):
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=4), proxyDG.gen_DataFrame(nc=4))])
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=1), proxyDG.gen_DataFrame(nc=1))])
         assert all([(local==remote) for local, remote in zip(localDG.Comp.func(nc=1), proxyDG.Comp.func(nc=1))])
+        
+        # numpy arrays doent work with serpent yet
+        Pyro5.api.config.SERIALIZER = "pickle"
+        assert all([all(local==remote) for local, remote in 
+                    zip(proxyDG.parallel_method(parallelDUInput,ncPass=True,nc=4),
+                        localDG.parallel_method(parallelDUInput,ncPass=True,nc=4))])
+        assert all([all(local==remote) for local, remote in 
+                    zip(proxyDG.parallel_method(parallelDUInput,ncPass=False,nc=4),
+                        localDG.parallel_method(parallelDUInput,ncPass=False,nc=4))])
+        Pyro5.api.config.SERIALIZER = "serpent"
         
         ## test get_DataUnit()
         proxyDU = proxyDG.get_DataUnit(0)
@@ -249,6 +168,9 @@ class TestAllLocal(TestCase):
         assert proxyDU.parent_func() == localDU.parent_func()
         assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
         assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
+        
+        
+        
         
     def test_factory(self):
         """Make sure factor is running with terminal command 'dmanage-factory'"""
@@ -288,27 +210,24 @@ if __name__ == "__main__":
     test.test_dataGroup_proxy()
     test.test_factory()
     
+    #localDU = MyDataUnit(dataPath)
     
-    
-    # # localDU = MyDataUnit(dataPath)
     # # comps = rpc.get_components(localDU)
     # # print(comps)
     # uri = "PYRO:ProxyFactory@localhost:%s"%port
     # Factory = rpc.ProxyFactory(uri=uri)
-    # proxyDU = Factory.create(objDU,module=module,dataPath=dataPath)
-    # print(proxyDU.gen_DataFrame())
+    # proxyDU = Factory.create(objDU,module=module,kwargs=kwargsDU)
     
     # Pyro5.api.config.SERIALIZER = "pickle"
     
     # localDG = MyDataGroup(baseDir,unitType='test')
-    # uri = "PYRO:ProxyFactory@localhost:44444"
-    # Factory = rpc.ProxyFactory(uri=uri)
+    uri = "PYRO:ProxyFactory@localhost:44444"
+    Factory = rpc.ProxyFactory(uri=uri)
     
-    # proxyDG = Factory.create(objDG,module=module,kwargs=kwargsDG)
+    proxyDG = Factory.create(objDG,module=module,kwargs=kwargsDG)
+    
     # proxyDU = proxyDG.get_DataUnit(0)
     # DF = proxyDG.gen_DataFrame()
     
-    # proxyDU = Factory.create(objDU,module=module,dataPath=dataPath)
-    # proxyDU = Factory.create(objDU,module='/Some/Insecure/Path',dataPath=dataPath)
-    # proxyDU = Factory.create(objDU,module='/home***REMOVED***Some/Path/In/anaconda3/Directory',dataPath=dataPath)
+
     

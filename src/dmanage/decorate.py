@@ -13,7 +13,7 @@ class add_attribute:
         setattr(func, self.name, self.value)
         return func
 
-def override(kind='default',level=None,**kwargs):
+def override(kind='default',level=None,ncPass=False,**kwargs):
     """
     
 
@@ -39,6 +39,8 @@ def override(kind='default',level=None,**kwargs):
         add_attr = add_attribute('_override',kind)
         func = add_attr(func)
         add_attr = add_attribute('_level',level)
+        func = add_attr(func)
+        add_attr = add_attribute('_ncPass',ncPass)
         func = add_attr(func)
         add_attr = add_attribute('_kwargs',kwargs)
         func = add_attr(func)

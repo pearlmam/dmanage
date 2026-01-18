@@ -3,7 +3,7 @@
 # for parallelize methods
 
 import inspect
-from multiprocess import Pool
+from multiprocessing import Pool
 import functools
 import numpy as np
 import pandas as pd

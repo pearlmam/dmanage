@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-
-# -*- coding: utf-8 -*-
-import pandas as pd
-import numpy as np
 import dmanage.remote.rpc as rpc
 import Pyro5.api
+
+import pandas as pd
+import numpy as np
 
 import pytest
 from unittest import TestCase
@@ -136,7 +135,7 @@ class TestAllLocal(TestCase):
         
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=4), proxyDG.gen_DataFrame(nc=4))])
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=1), proxyDG.gen_DataFrame(nc=1))])
-        assert all([(local==remote) for local, remote in zip(localDG.Comp.func(nc=1), proxyDG.Comp.func(nc=1))])
+        assert all([(local==remote) for local, remote in zip(localDG.Comp.func_override(nc=1), proxyDG.Comp.func_override(nc=1))])
         
         ### parallel methods and nc pass through
         assert all([local==remote for local, remote in 
@@ -188,7 +187,7 @@ class TestAllLocal(TestCase):
         
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=4), proxyDG.gen_DataFrame(nc=4))])
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=1), proxyDG.gen_DataFrame(nc=1))])
-        assert all([(local==remote) for local, remote in zip(localDG.Comp.func(nc=1), proxyDG.Comp.func(nc=1))])
+        assert all([(local==remote) for local, remote in zip(localDG.Comp.func_override(nc=1), proxyDG.Comp.func_override(nc=1))])
         
         # multiple inheritance
         assert all([all(local==remote) for local, remote in zip(localDG.process_df(nc=4), proxyDG.process_df(nc=4))])

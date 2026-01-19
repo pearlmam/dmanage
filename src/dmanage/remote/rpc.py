@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-# from Pyro5.api import Daemon, serve, expose, behavior, current_context
-import Pyro5.api
-from Pyro5.server import is_private_attribute
-import Pyro5.serializers
+try:
+    import Pyro5.api
+    from Pyro5.server import is_private_attribute
+    import Pyro5.serializers
+except ImportError:
+    raise ImportError("Module 'Pyro5' must be installed to use the rpc package, use 'pip install dmanage[Pyro5]'")
 
 from pathlib import Path
 import os
@@ -13,7 +15,6 @@ import inspect
 from types import ModuleType
 from importlib import reload
 import time
-
 
 from dmanage.utils.objinfo import is_literal,is_container,is_immutable,is_pandas,has_immutable_base
 

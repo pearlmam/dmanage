@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
-import Pyro5.api
+# import Pyro5.api
 
 from dmanage.methods import wrapper
 from dmanage.unit import make_data_unit
@@ -21,19 +21,26 @@ class Component2():
     """To test component of component"""
     def __init__(self):
         self.attr = 'Component2 attribute'
+    
     def func(self):
         return 'Component2 Func'
+    
+    @override()
+    def func_override(self):
+        return 'Component2 Func overriden'
 
 class Component1():
     """To test component"""
     def __init__(self):
         self.attr = 'Component1 attribute'
         self.Comp = Component2()
-        
-    #@Pyro5.api.expose
-    @override()
+    
     def func(self):
         return 'Component1 Func'
+    
+    @override()
+    def func_override(self):
+        return 'Component1 Func overriden'
     
     @override()
     def parallel_method(self,arg0,nc=1):
@@ -45,8 +52,13 @@ class Parent():
     """To test inherited methods"""
     def __init__(self,*args,**kwargs):
         self.parentAttr = 'Parent attribute'
+    
     def parent_func(self):
         return 'Parent Func'
+    
+    @override()
+    def parent_func_override(self):
+        return 'Parent Func overriden'
 
 DataUnit = make_data_unit(Parent)
 length = 11

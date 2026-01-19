@@ -384,8 +384,8 @@ class make_wrapper:
         #     varOverrideMethod = getattr(component,overrideKind)
         #     varValue = varOverrideMethod()
         #     kwargs[overrideKind] = varValue
-        
-        return du_func( *args, **kwargs )
+        result = du_func( *args, **kwargs )
+        return result
     
     def __call__(self,  *args, **kwargs):
         """parallel iterater method: loads all DDs and returns list of component method results"""

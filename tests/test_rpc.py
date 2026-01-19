@@ -12,8 +12,8 @@ import getpass
 import os
 import copy
 
-from testObjects import MyDataUnit
-from testObjects import MyDataGroup
+from testObjects import MyDataUnit,MyNewDataUnit
+from testObjects import MyDataGroup,MyNewDataGroup
 from testObjects import Parent
 
 """   Constants   """
@@ -27,11 +27,13 @@ port = 44444
 user = getpass.getuser()
 objDU = 'MyDataUnit'
 objDG = 'MyDataGroup'
+objNDU = 'MyNewDataUnit'
+objNDG = 'MyNewDataGroup'
 localModule = file_path = os.path.splitext(os.path.realpath(__file__))[0]
 remoteModule = '/home/***REMOVED***/Documents/developmentProjects/dmanage/tests/test_rpc'
 
 
-parallelDUInput = np.linspace(0,100,101)
+parallelDUInput = np.linspace(0,100,101).tolist()
 #parallelDGInput = [parallelDUInput]*4
 
 
@@ -72,6 +74,7 @@ class TestAllLocal(TestCase):
     
     def test_dataUnit_proxy(self):
         """Make sure factor is running with terminal command 'dmanage-factory'"""
+        Pyro5.api.config.SERIALIZER = "serpent"
         localDU = MyDataUnit(dataPath)
         # start Factory
         # # thread = Thread(target=self._start_factory)
@@ -91,10 +94,7 @@ class TestAllLocal(TestCase):
         assert proxyDU.parent_func() == localDU.parent_func()
         assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
         assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
-        
-        Pyro5.api.config.SERIALIZER = "pickle"
-        assert all(proxyDU.parallel_method(parallelDUInput,nc=4) == localDU.parallel_method(parallelDUInput,nc=4))
-        Pyro5.api.config.SERIALIZER = "serpent"
+        assert (proxyDU.parallel_method(parallelDUInput,nc=4) == localDU.parallel_method(parallelDUInput,nc=4))
         
         # test get_components
         localDU.add_component()
@@ -127,6 +127,7 @@ class TestAllLocal(TestCase):
         #assert thread.is_alive() is False
         
     def test_dataGroup_proxy(self):
+        Pyro5.api.config.SERIALIZER = "serpent"
         localDG = MyDataGroup(baseDir,unitType='test',testN=testN)
         
         uri = "PYRO:ProxyFactory@localhost:%s"%port
@@ -137,15 +138,13 @@ class TestAllLocal(TestCase):
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=1), proxyDG.gen_DataFrame(nc=1))])
         assert all([(local==remote) for local, remote in zip(localDG.Comp.func(nc=1), proxyDG.Comp.func(nc=1))])
         
-        # numpy arrays doent work with serpent yet
-        Pyro5.api.config.SERIALIZER = "pickle"
-        assert all([all(local==remote) for local, remote in 
+        ### parallel methods and nc pass through
+        assert all([local==remote for local, remote in 
                     zip(proxyDG.parallel_method(parallelDUInput,ncPass=True,nc=4),
                         localDG.parallel_method(parallelDUInput,ncPass=True,nc=4))])
-        assert all([all(local==remote) for local, remote in 
+        assert all([local==remote for local, remote in 
                     zip(proxyDG.parallel_method(parallelDUInput,ncPass=False,nc=4),
                         localDG.parallel_method(parallelDUInput,ncPass=False,nc=4))])
-        Pyro5.api.config.SERIALIZER = "serpent"
         
         ## test get_DataUnit()
         proxyDU = proxyDG.get_DataUnit(0)
@@ -168,9 +167,97 @@ class TestAllLocal(TestCase):
         assert proxyDU.parent_func() == localDU.parent_func()
         assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
         assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
+        Pyro5.api.config.SERIALIZER = "serpent"
         
+    def test_dataUnit_multiple_inheritance(self):
+        Pyro5.api.config.SERIALIZER = "serpent"
+        localDU = MyNewDataUnit()
         
+        uri = "PYRO:ProxyFactory@localhost:%s"%port
+        Factory = rpc.ProxyFactory(uri=uri)
+        proxyDU = Factory.create(objNDU,module=module,kwargs=kwargsDU)
+        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
+        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
+        assert proxyDU.Comp.func() == localDU.Comp.func()
+        assert proxyDU.Comp.func() == localDU.Comp.func()
+        assert proxyDU.parent_func() == localDU.parent_func()
+        assert proxyDU.parent_func() == localDU.parent_func()
+        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
+        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
+        assert proxyDU.process_df().equals(localDU.process_df())
+        assert proxyDU.process_series().equals(localDU.process_series())
+        assert proxyDU.parallel_method(parallelDUInput,nc=4) == localDU.parallel_method(parallelDUInput,nc=4)
+
         
+        # test get_components
+        localDU.add_component()
+        proxyDU.add_component()
+        proxyDU._register_components()
+        
+        # check dir() implementation
+        proxyAttrs = [attr for attr in dir(proxyDU) if not attr.startswith('_')]
+        localAttrs = [attr for attr in dir(localDU) if not attr.startswith('_')]
+        assert proxyAttrs == localAttrs
+        
+        # test numpy
+        with pytest.raises(TypeError):
+            proxyDU.gen_numpy()
+        Pyro5.api.config.SERIALIZER = "pickle"
+        assert np.array_equal(proxyDU.gen_numpy(),localDU.gen_numpy())
+        Pyro5.api.config.SERIALIZER = "serpent"
+        with pytest.raises(TypeError):
+            proxyDU.gen_numpy()
+        
+    def test_dataGroup_multiple_inheritance(self):
+        localDG = MyNewDataGroup(baseDir,unitType='test',testN=testN)
+        
+        uri = "PYRO:ProxyFactory@localhost:%s"%port
+        Factory = rpc.ProxyFactory(uri=uri)
+        proxyDG = Factory.create(objNDG,module=module,kwargs=kwargsDG)
+        
+        assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=4), proxyDG.gen_DataFrame(nc=4))])
+        assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=1), proxyDG.gen_DataFrame(nc=1))])
+        assert all([(local==remote) for local, remote in zip(localDG.Comp.func(nc=1), proxyDG.Comp.func(nc=1))])
+        
+        # multiple inheritance
+        assert all([all(local==remote) for local, remote in zip(localDG.process_df(nc=4), proxyDG.process_df(nc=4))])
+        assert all([all(local==remote) for local, remote in zip(localDG.process_df(nc=1), proxyDG.process_df(nc=1))])
+        assert all([all(local==remote) for local, remote in zip(localDG.process_series(nc=4), proxyDG.process_series(nc=4))])
+        assert all([all(local==remote) for local, remote in zip(localDG.process_series(nc=1), proxyDG.process_series(nc=1))])
+        
+        ### parallel methods and nc pass through
+        assert all([local==remote for local, remote in 
+                    zip(proxyDG.parallel_method(parallelDUInput,ncPass=True,nc=4),
+                        localDG.parallel_method(parallelDUInput,ncPass=True,nc=4))])
+        assert all([local==remote for local, remote in 
+                    zip(proxyDG.parallel_method(parallelDUInput,ncPass=False,nc=4),
+                        localDG.parallel_method(parallelDUInput,ncPass=False,nc=4))])
+        
+        ## test get_DataUnit()
+        proxyDU = proxyDG.get_DataUnit(0)
+        localDU = localDG.get_DataUnit(0)
+        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
+        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
+        assert proxyDU.Comp.func() == localDU.Comp.func()
+        assert proxyDU.Comp.func() == localDU.Comp.func()
+        assert proxyDU.parent_func() == localDU.parent_func()
+        assert proxyDU.parent_func() == localDU.parent_func()
+        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
+        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
+        Pyro5.api.config.SERIALIZER = "pickle"
+        proxyDU = proxyDG.get_DataUnit(0)
+        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
+        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
+        assert proxyDU.Comp.func() == localDU.Comp.func()
+        assert proxyDU.Comp.func() == localDU.Comp.func()
+        assert proxyDU.parent_func() == localDU.parent_func()
+        assert proxyDU.parent_func() == localDU.parent_func()
+        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
+        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()  
+        
+        # multiple inheritance
+        assert proxyDU.process_df().equals(localDU.process_df())
+        assert proxyDU.process_series().equals(localDU.process_series())
         
     def test_factory(self):
         """Make sure factor is running with terminal command 'dmanage-factory'"""
@@ -208,6 +295,8 @@ if __name__ == "__main__":
     test.test_expose_all()
     test.test_dataUnit_proxy()
     test.test_dataGroup_proxy()
+    test.test_dataUnit_multiple_inheritance()
+    test.test_dataGroup_multiple_inheritance()
     test.test_factory()
     
     #localDU = MyDataUnit(dataPath)
@@ -221,10 +310,10 @@ if __name__ == "__main__":
     # Pyro5.api.config.SERIALIZER = "pickle"
     
     # localDG = MyDataGroup(baseDir,unitType='test')
-    uri = "PYRO:ProxyFactory@localhost:44444"
-    Factory = rpc.ProxyFactory(uri=uri)
+    # uri = "PYRO:ProxyFactory@localhost:44444"
+    # Factory = rpc.ProxyFactory(uri=uri)
     
-    proxyDG = Factory.create(objDG,module=module,kwargs=kwargsDG)
+    # proxyDG = Factory.create(objDG,module=module,kwargs=kwargsDG)
     
     # proxyDU = proxyDG.get_DataUnit(0)
     # DF = proxyDG.gen_DataFrame()

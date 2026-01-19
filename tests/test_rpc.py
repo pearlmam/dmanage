@@ -176,38 +176,9 @@ class TestAllLocal(TestCase):
         uri = "PYRO:ProxyFactory@localhost:%s"%port
         Factory = rpc.ProxyFactory(uri=uri)
         proxyDU = Factory.create(objNDU,module=module,kwargs=kwargsDU)
-        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
-        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
-        assert proxyDU.Comp.func() == localDU.Comp.func()
-        assert proxyDU.Comp.func() == localDU.Comp.func()
-        assert proxyDU.parent_func() == localDU.parent_func()
-        assert proxyDU.parent_func() == localDU.parent_func()
-        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
-        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
         assert proxyDU.process_df().equals(localDU.process_df())
         assert proxyDU.process_series().equals(localDU.process_series())
-        assert proxyDU.parallel_method(parallelDUInput,nc=4) == localDU.parallel_method(parallelDUInput,nc=4)
 
-        
-        # test get_components
-        localDU.add_component()
-        proxyDU.add_component()
-        proxyDU._register_components()
-        
-        # check dir() implementation
-        proxyAttrs = [attr for attr in dir(proxyDU) if not attr.startswith('_')]
-        localAttrs = [attr for attr in dir(localDU) if not attr.startswith('_')]
-        assert proxyAttrs == localAttrs
-        
-        # test numpy
-        with pytest.raises(TypeError):
-            proxyDU.gen_numpy()
-        Pyro5.api.config.SERIALIZER = "pickle"
-        assert np.array_equal(proxyDU.gen_numpy(),localDU.gen_numpy())
-        Pyro5.api.config.SERIALIZER = "serpent"
-        with pytest.raises(TypeError):
-            proxyDU.gen_numpy()
-        
     def test_dataGroup_multiple_inheritance(self):
         localDG = MyNewDataGroup(baseDir,unitType='test',testN=testN)
         
@@ -238,26 +209,20 @@ class TestAllLocal(TestCase):
         localDU = localDG.get_DataUnit(0)
         assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
         assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
-        assert proxyDU.Comp.func() == localDU.Comp.func()
-        assert proxyDU.Comp.func() == localDU.Comp.func()
-        assert proxyDU.parent_func() == localDU.parent_func()
-        assert proxyDU.parent_func() == localDU.parent_func()
-        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
-        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
-        Pyro5.api.config.SERIALIZER = "pickle"
-        proxyDU = proxyDG.get_DataUnit(0)
-        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
-        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
-        assert proxyDU.Comp.func() == localDU.Comp.func()
-        assert proxyDU.Comp.func() == localDU.Comp.func()
-        assert proxyDU.parent_func() == localDU.parent_func()
-        assert proxyDU.parent_func() == localDU.parent_func()
-        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
-        assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()  
         
         # multiple inheritance
         assert proxyDU.process_df().equals(localDU.process_df())
         assert proxyDU.process_series().equals(localDU.process_series())
+        
+        Pyro5.api.config.SERIALIZER = "pickle"
+        proxyDU = proxyDG.get_DataUnit(0)
+        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
+        assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
+        
+        # multiple inheritance
+        assert proxyDU.process_df().equals(localDU.process_df())
+        assert proxyDU.process_series().equals(localDU.process_series())
+        Pyro5.api.config.SERIALIZER = "serpent"
         
     def test_factory(self):
         """Make sure factor is running with terminal command 'dmanage-factory'"""

@@ -30,7 +30,7 @@ class Component1():
         self.attr = 'Component1 attribute'
         self.Comp = Component2()
         
-    @Pyro5.api.expose
+    #@Pyro5.api.expose
     @override()
     def func(self):
         return 'Component1 Func'

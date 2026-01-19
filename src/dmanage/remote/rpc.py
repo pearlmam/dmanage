@@ -466,7 +466,7 @@ def series_to_dict(series):
 def dict_to_series(classname, d):
     #print("dict to Series")
     serializer = Pyro5.serializers.serializers[Pyro5.api.config.SERIALIZER]
-    data = serializer.recreate_classes(d['DataFrame'])
+    data = serializer.recreate_classes(d['Series'])
     data = pd.DataFrame.from_dict(d['Series'],orient=orient).iloc[:,0]
     return data
 

@@ -30,17 +30,19 @@ dependencies = [
   "natsort",           # for numerically sorting of filenames 
   "python-xlib",       # ?
   "tables",            # for h5 file reading and writing
-  "openpyxl",          # ?
+  "openpyxl",          # for pandas excel functionality
   "numpy",             # data manipulation
   "pandas",            # data manipulation
   "matplotlib",        # for plotting
   "multiprocess",      # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
   "paramiko",          # for remote implementation
   # "Pyro5",             # RPC remote implementation
-  "Pyro5@git+https://github.com/pearlmam/Pyro5.git",  # my Pyro
 ]
 
-
+[project.optional-dependencies]
+vsim = ["dmanage-vsim"]
+Pyro5 = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git"]
+all = ["dmanage-vsim","Pyro5@git+https://github.com/pearlmam/Pyro5.git"]
 
 # unused dependances to be used
 #  "dask", 

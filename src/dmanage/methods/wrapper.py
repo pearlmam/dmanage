@@ -16,6 +16,13 @@ def split_range(a, n):
     k, m = divmod(len(a), n)
     return (a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n))
 
+def split_integer(a, n):
+    k, m = divmod(a, n)
+    return ( (i*k+min(i, m),(i+1)*k+min(i+1, m) ) for i in range(n))
+
+def split_integer2(a, n):
+    k, m = divmod(a, n)
+    return [ ( (i+1)*k+min(i+1, m)) - (i*k+min(i, m)) for i in range(n) ]
 
 if WRAPPER_TYPE == 'class':
     ##########################
@@ -49,9 +56,7 @@ if WRAPPER_TYPE == 'class':
                     result.append(self.func(step,*bound.args[1:], **bound.kwargs))   # SLOW 
                     # result.append(self.func(step,**bound.arguments))# almost as fast and binds args
                     #result.append(self.func(step,*args[1:], **kwargs))   # fastest
-            if iteratorType is np.ndarray and is_iterable(result[0]):
-                # attempt to reformat the result to input
-                result = np.array(result)
+            """ attempt to coerce the type back to something nice here???, no?"""
             return result
            
             # for step in args[0]:
@@ -114,7 +119,7 @@ if WRAPPER_TYPE == 'class':
                         result = list(ex.map(lambda v: self.func(*v), variables))
     
                 if is_iterable(result[0]):
-                    if iteratorType is np.ndarray:
+                    if isinstance(result[0], np.ndarray):
                         result = np.concatenate(result)
                     else:
                         result = list(itertools.chain.from_iterable(result))  # make one list from list of lists

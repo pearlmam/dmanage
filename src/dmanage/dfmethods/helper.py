@@ -25,7 +25,7 @@ def mi_iloc(DF,indices):
 
 
 
-##### might noet be needed in preference for np.array_split()?
+##### might not be needed in preference for np.array_split()?
 def split_by(DF, N, indices=[], axis=0):
     if not type(indices) is list:
         indices = [indices]
@@ -243,7 +243,7 @@ def weighted_concat(DFlist, col='weight', nc=1):
     return DF
         
 def _weighted_concat(DFlist, col='weight'):
-    """
+    """Not a concat, its adding weighted averages
     requires column named 'weight'
     """
     DF = pd.concat(DFlist)

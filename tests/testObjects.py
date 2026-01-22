@@ -105,7 +105,7 @@ class MyDataUnit(DataUnit):
     @override()
     def gen_Series(self,variant=1):
         if variant == 1:
-            data = pd.Series(np.linspace(0,10,length).tolist())
+            data = pd.Series(np.linspace(0,10,length).tolist(),name='data')
             
         if variant == 2:
             """To test Series transfer"""
@@ -118,6 +118,9 @@ class MyDataUnit(DataUnit):
             data.index.name = 'Time'
             data = data.stack()
             data.name = 'voltage'
+        if variant == 3:
+            data = pd.Series(np.linspace(0,10,length).tolist())
+            
         #data = pd.DataFrame(data)
         #print(data)
         return data

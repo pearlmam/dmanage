@@ -24,7 +24,10 @@ import warnings
 from cryptography.utils import CryptographyDeprecationWarning
 with warnings.catch_warnings():
     warnings.filterwarnings('ignore', category=CryptographyDeprecationWarning)
-    import paramiko
+    try:
+        import paramiko
+    except ImportError:
+        raise ImportError("Module 'paramiko' must be installed to use the sync module, use 'pip install dmanage[paramiko]'")
 
 
 def non_block_read(output):

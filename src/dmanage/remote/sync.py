@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-
-
-
 import subprocess as sp
-import paramiko
 import os
 import sys
+
+try:
+    import paramiko
+except ImportError:
+    raise ImportError("Module 'paramiko' must be installed to use the sync module, use 'pip install dmanage[paramiko]'")
 
 from dmanage.utils.objinfo import is_iterable
 def mkdirR(sftp, remote_directory):

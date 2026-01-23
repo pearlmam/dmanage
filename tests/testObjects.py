@@ -61,7 +61,6 @@ class Parent():
         return 'Parent Func overriden'
 
 DataUnit = make_data_unit(Parent)
-length = 11
 class MyDataUnit(DataUnit):
     """Class to share and proxy"""
     def __init__(self,dataPath='path.test'):
@@ -78,19 +77,19 @@ class MyDataUnit(DataUnit):
         return func(arg0,nc=nc)
     
     @override()
-    def gen_DataFrame(self,variant=1):
+    def gen_DataFrame(self,variant=0,size=10):
         """To test DataFrame transfer"""
-        if variant == 1:
-            data = pd.DataFrame({'A':1.2,'B':["I'm a string '%d'"%x for x in range(10)],'C':True,'D':[x for x in range(10)]})
-        elif variant == 2:
-            index = np.linspace(0,100,length)
+        if variant == 0:
+            data = pd.DataFrame({'A':1.2,'B':["I'm a string '%d'"%x for x in range(size)],'C':True,'D':[x for x in range(size)]})
+        elif variant == 1:
+            index = np.linspace(0,100,size)
             values = index*2
             data = pd.DataFrame({'current':values},index=index)
             data.index.name = 'voltage'
-        else:
+        else: # variant == 2:
             # MultiIndex DataFrame
-            time = np.linspace(0,100,length)
-            x = np.linspace(0,1,length)
+            time = np.linspace(0,100,size)
+            x = np.linspace(0,1,size)
             X,T = np.meshgrid(x,time)
             voltage = -X**2+0.5+T
             data = pd.DataFrame(voltage,columns=x,index=time)
@@ -103,14 +102,14 @@ class MyDataUnit(DataUnit):
     
     #@Pyro5.api.expose
     @override()
-    def gen_Series(self,variant=1):
-        if variant == 1:
-            data = pd.Series(np.linspace(0,10,length).tolist(),name='data')
+    def gen_Series(self,variant=0,size=10):
+        if variant == 0:
+            data = pd.Series(np.linspace(0,10,size).tolist(),name='data')
             
-        if variant == 2:
+        elif variant == 1:
             """To test Series transfer"""
-            time = np.linspace(0,100,length)
-            x = np.linspace(0,1,length)
+            time = np.linspace(0,100,size)
+            x = np.linspace(0,1,size)
             X,T = np.meshgrid(x,time)
             voltage = -X**2+0.5+T
             data = pd.DataFrame(voltage,columns=x,index=time)
@@ -118,17 +117,17 @@ class MyDataUnit(DataUnit):
             data.index.name = 'Time'
             data = data.stack()
             data.name = 'voltage'
-        if variant == 3:
-            data = pd.Series(np.linspace(0,10,length).tolist())
+        else: # variant == 2:
+            data = pd.Series(np.linspace(0,10,size).tolist())
             
         #data = pd.DataFrame(data)
         #print(data)
         return data
     
     @override()
-    def gen_numpy(self,):
+    def gen_numpy(self,size=10):
         """Numpy should only work with dill and pickle serialization"""
-        data = np.linspace(0,10,length)
+        data = np.linspace(0,10,size)
         # data = {'A':data}
         return data
     

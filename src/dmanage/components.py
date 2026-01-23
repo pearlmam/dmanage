@@ -5,8 +5,9 @@ import copy
 import io
 import threading
 import shutil
-
+import time
 from dmanage.utils.objinfo import is_iterable
+from pathlib import Path
 
 class SoftCache(dict):
     """This is a dict-like component used for storing data
@@ -64,8 +65,157 @@ class SoftCache(dict):
                 results = tuple(self[k] for k in key)
             return results
 
-class HardCache():
+class ParquetCache:
+    """
+    this needs to block reads until write is finished: No inherit blocking.
+    The atomic write requires thread blocking on save
+    """
+    
+    def __init__(self,path='./cache.parq',compression ="snappy"):
+        try: 
+            os.mkdir(path)
+        except:
+            pass
+        self.root = Path(path)
+        self.compression = compression
+        
+        # define supported types
+        self.groups = {'DataFrame':self.root / 'dfs/',
+                          'Series':self.root / 'series/',
+                          'array':self.root / 'arrays/',
+                          'literal':self.root / 'literals/',
+                          'container':self.root / 'containers/'}
+        self.exts = {'DataFrame':'.par',
+                          'Series':'.par',
+                          'array':'.par',
+                          'literal':'.json',
+                          'container':'.json'}
+        assert set(self.groups) == set(self.exts)  # ensure these are synced 
+        
+        # define thread related attributes
+        self.threadRegistry = {}
+        self.timeout = 20
+        self.checkTime = .1
+        self.loopout = self.timeout/self.checkTime
+        
+    def keys(self,kind='all'):
+        """Gets the keys of data of type 'kind'"""
+        if kind == "all":
+            out = {}
+            for k in self.groups:
+                path = self.groups[k]
+                if not path.exists():
+                    out[k] = []
+                    continue
+                ext = self.exts[k]
+                out[k] = [p.stem for p in path.glob(f"*{ext}")]
+            return out
+        
+        path = self.root / self.groups[kind]
+        if not path.exists():
+            return []
+        return [p.stem for p in path.glob(".%s"%self.exts[kind])]
+    
+    def keys_flat(self):
+        flat = {}
+        grouped = self.keys(kind="all")
+    
+        for kind, keys in grouped.items():
+            for key in keys:
+                if key in flat:
+                    raise ValueError(
+                        f"Key '{key}' exists in multiple kinds: "
+                        f"{flat[key]} and {kind}"
+                    )
+                flat[key] = kind
+        return flat
+    
+    def checkThreadRegistry(self,name):
+        if name in self.threadRegistry:
+            t = self.threadRegistry[name]
+            i = 0
+            while t.is_alive() and i < self.loopout:
+                #print('thread still active')
+                time.sleep(1)
+                i+=1
+            #print('Thread Done!')
+            self.threadRegistry.pop(name)
+            return
+        
+    def save(self,data,name,compression=None, thread=False):
+        self.checkThreadRegistry(name)
+        if thread:
+            kwargs={'data':data,'name':name}
+            t = threading.Thread(target=self._save,kwargs=kwargs)
+            self.threadRegistry[name] = t
+            t.start()
+        else:
+            self._save(data,name)
+    
+    def _save(self,data,name,compression=None):
+        if compression is None:
+            compression = self.compression
+        #print('writing %s'%name)
+        if isinstance(data,(pd.core.frame.DataFrame)):
+            writePath = self.groups['DataFrame'] / (name + self.exts['DataFrame'])
+        elif isinstance(data,pd.core.series.Series):
+            writePath = self.groups['Series'] / (name + self.exts['Series'])
+            if data.name is None:
+                data.name = 'data'
+            data = data.to_frame()
+            
+            
+        # atomic write to prevent trying to read corrupted data  
+        writePath.parent.mkdir(parents=True, exist_ok=True)
+        tmpPath = str(writePath) + '.tmp'
+        # path.parent.mkdir(parents=True, exist_ok=True)
+        data.to_parquet(tmpPath,compression=compression)
+        os.replace(tmpPath, writePath)
+            
+    def remove(self,name):
+        if name in self.keys():
+            os.remove()
+        else:
+            raise Warning("No '%s' in Hard Cache, ignoring... Availiable keys: %s"%(name,self.keys()))
+        
+    def get(self,name,method=None,*args,**kwargs):
+        self.checkThreadRegistry(name)
+        variables = self.keys_flat()
+        if name in variables:
+            grp = variables[name]
+            if grp == 'DataFrame':
+                data = pd.read_parquet(self.groups['DataFrame'] / (name + self.exts['DataFrame']))
+            elif grp == 'Series':
+                data = pd.read_parquet(self.groups['Series'] / (name + self.exts['Series']))
+                data = data.iloc[:,0]
+            else:
+                data = None
+        elif method is not None:
+            data = method(*args, **kwargs)
+            self.save(data)
+        else:
+            data = None
+            # raise Exception("No '%s' in keys and method=None, Define method to generate and hard cache the data."%(name))
+        return data
+
+    def delete_all(self):
+        if os.path.exists(self.path):
+            shutil.rmtree(self.path)
+
+
+
+
+class ZarrCache():
     """This is a component that stores data in an zarr file on the disk
+    thread writes can be used, and the reads on the same data are blocked until write is done.
+    zarr inherently has read blocking until done writing, but if the read is too soon,
+    It will get corrupted data.
+    writing over data being written, will override and stop the original write,
+    so no thread registry check is needed for saves.
+    gets can benefit from threads, but requires too much micromanaging,
+    generally when you read, you need the data right away, but with some foresight,
+    you can start reading the data, do some other things, then process the read data.
+    
     """
     def __init__(self,path='./cache.zarr'):
         try:
@@ -78,8 +228,13 @@ class HardCache():
                 "HardCache requires the 'zarr' and 'xarray' package. "
                 "Install it with: pip install dmanage['hardcache']"
             ) from e
+        
         self.loc = os.path.dirname(path)
         self.path = path
+        self.threadRegistry = {}
+        self.timeout = 20
+        self.checkTime = .1
+        self.loopout = self.timeout/self.checkTime
         try:
             self.root = self._zarr.open(self.path,mode='r')
         except:
@@ -88,16 +243,36 @@ class HardCache():
     
     def keys(self):
         """Gets the keys of the availiable data"""
-        if self.root: 
-            return list(self.root.group_keys())
-        else: 
-            return []
+        return list(self.root.group_keys())
+        
+    def checkThreadRegistry(self,name):
+        if name in self.threadRegistry:
+            t = self.threadRegistry[name]
+            i = 0
+            while t.is_alive() and i < self.loopout:
+                #print('thread still active')
+                time.sleep(1)
+                i+=1
+            #print('Thread Done!')
+            self.threadRegistry.pop(name)
+            return
         
     def save(self,data,name,thread=False):
+        
+        if thread:
+            kwargs={'data':data,'name':name}
+            t = threading.Thread(target=self._save,kwargs=kwargs)
+            self.threadRegistry[name] = t
+            t.start()
+        else:
+            self._save(data,name)
+    
+    def _save(self,data,name):
         # self.open()
         """ this can be done using threading!!!!! 
 
         """
+        #print('writing %s'%name)
         if isinstance(data,(pd.core.frame.DataFrame)):
             xs = data.to_xarray()
             xs.attrs['dtype'] = 'DataFrame'
@@ -109,20 +284,14 @@ class HardCache():
             xs.to_zarr(store=self.path,group=name, mode="w", consolidated=True)
             
     def remove(self,name):
-        if not self.root:
-            raise Warning("No Hard Cache at path '%s', ignoring..."%self.path)
-            return
         if name in self.root:
             del self.root[name]
         else:
             raise Warning("No '%s' in Hard Cache, ignoring... Availiable keys: %s"%(name,self.keys()))
         
     def get(self,name,method=None,*args,**kwargs):
-        if not self.root:
-            raise Warning("No Hard Cache at path '%s', ignoring..."%self.path)
-            return
-        
-        if name in self.root.group_keys():
+        self.checkThreadRegistry(name)
+        if name in self.root:
             grp = self.root[name]
             if grp.attrs.get("dtype") == 'DataFrame':
                 data = self._xr.open_zarr(store=grp.store,group=grp.path)

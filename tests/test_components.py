@@ -15,13 +15,13 @@ zarrLoc = 'cache.zarr'
 parquetLoc = 'cache.parq'
 
 class TestHardCache:
-    def __init__(self,cacheType,compression = "snappy"):
+    def __init__(self,cacheType,compression = "snappy",debug=False):
         self.cacheType = cacheType
         if cacheType == 'zarr':
             self.hardCache = ZarrCache(zarrLoc)
         else:
             compression = compression
-            self.hardCache = ParquetCache(parquetLoc,compression=compression)
+            self.hardCache = ParquetCache(parquetLoc,compression=compression,debug=debug)
     def test_df_write_read(self):
         DU = testObjects.MyDataUnit()
         N = 3
@@ -47,32 +47,51 @@ class TestHardCache:
     def test_threading(self):
         DU = testObjects.MyDataUnit()
         N = 3
-        dfs = []
+        thread = True
+        size = 10000
+        print("Writing and getting, wait to finish: thread = %s ..."%thread)
         startTime = time.time()
-        thread = False
-        print("Writing large files thread = %s ..."%thread)
-        for i,j in enumerate(range(0,N)):
-            dfs.append(DU.gen_DataFrame(j,size=10000))
+        dfs = []
+        for i in range(0,N):
+            dfs.append(DU.gen_DataFrame(i,size=size))
             self.hardCache.save(dfs[i],'dfLarge%d'%i,thread=thread)
-        
-        print('  reading files while writing...', end = ' ' )
         assert all(self.hardCache.get('dfLarge0') == dfs[0])
         assert all(self.hardCache.get('dfLarge1') == dfs[1])
-        print('Done')
-        startTimeWait = time.time()
-        print('  waiting for dfLarge2 to write...',end = ' ')
-        assert all(self.hardCache.get('dfLarge2') == dfs[2])
-        executionTime = time.time() - startTimeWait
+        assert all(self.hardCache.get('dfLarge2') == dfs[2])  # this needs to wait
+        self.hardCache.flush()
+        executionTime = time.time() - startTime
         print("Done in %.2f seconds"%executionTime)
         
         
-        
-        for i,j in enumerate(range(0,N)):
-            dfs.append(DU.gen_Series(j,size=10000))
-            self.hardCache.save(dfs[i],'seriesLarge%d'%i,thread=thread)
-        
+        print('###########################################')
+        print("Writing and writing thread = %s ..."%thread)
+        startTime = time.time()
+        self.hardCache.save(dfs[2],'dfLarge2',thread=thread)  # write large file
+        for i in range(0,N-1):
+            self.hardCache.save(dfs[i],'dfLarge%d'%i,thread=thread)
+        seriess = []
+        for i in range(0,N):
+            seriess.append(DU.gen_Series(i,size=size))
+            self.hardCache.save(seriess[i],'seriesLarge%d'%i,thread=thread)
+        self.hardCache.flush()
         executionTime = time.time() - startTime
-        print("Writing large files Done in %.2f seconds"%executionTime)
+        print("Done in %.2f seconds"%executionTime)
+        
+        
+        print('###########################################')
+        print("Writing and getting, no waiting thread = %s ..."%thread)
+        startTime = time.time()
+        dfs = []
+        for i in range(0,N):
+            dfs.append(DU.gen_DataFrame(i,size=size))
+            self.hardCache.save(dfs[i],'dfLarge%d'%i,thread=thread)
+
+        assert all(self.hardCache.get('seriesLarge0') == seriess[0])
+        assert all(self.hardCache.get('seriesLarge1') == seriess[1])
+        assert all(self.hardCache.get('seriesLarge2') == seriess[2])  # this needs to wait
+        self.hardCache.flush()
+        executionTime = time.time() - startTime
+        print("Done in %.2f seconds"%executionTime)
         
 if __name__ == "__main__":
     Test = TestHardCache(cacheType='zarr')
@@ -80,7 +99,7 @@ if __name__ == "__main__":
     Test.test_series_write_read()
     Test.test_threading()
     
-    Test = TestHardCache(cacheType='parquet',compression="zstd" )
+    Test = TestHardCache(cacheType='parquet',compression='snappy')
     Test.test_df_write_read()
     Test.test_series_write_read()
     Test.test_threading()
@@ -91,9 +110,11 @@ if __name__ == "__main__":
     
     # DU = testObjects.MyDataUnit()
     # hardCache = ParquetCache(parquetLoc)
-    # n=3
+    # n=2
     # df = DU.gen_DataFrame(n,size=10000)
-    # hardCache.save(df,'dfLarge%d'%n,thread=True)
+    # hardCache.remove('dfLarge%d'%n)
+    # hardCache._save(df,'dfLarge%d'%n)
+    # hardCache._save(df,'dfLarge%d'%n)
     # print('after save')
     # time.sleep(.5)
     # hardCache.save(df,'dfLarge%d'%n,thread=False)

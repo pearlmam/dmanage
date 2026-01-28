@@ -28,6 +28,9 @@ RESTRICTED_LOCATIONS = ['anaconda3',]
 SECURE_LOCATIONS = [os.getenv("HOME"),]      # doesnt work for windows...
 ONLY_EXPOSED = False
 
+__all__ = ["PyroFactory", "Pyroize", "ProxyFactory", "ProxyWrap"]
+
+
 def set_secure_location(locs):
     """
     """

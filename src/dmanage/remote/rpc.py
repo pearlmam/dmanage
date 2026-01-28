@@ -27,7 +27,7 @@ defaultPyroFactoryName = "ProxyFactory"
 RESTRICTED_LOCATIONS = ['anaconda3',]
 SECURE_LOCATIONS = [os.getenv("HOME"),]      # doesnt work for windows...
 ONLY_EXPOSED = False
-
+Pyro5.api.config.PICKLE_ENABLE = True
 __all__ = ["PyroFactory", "Pyroize", "ProxyFactory", "ProxyWrap"]
 
 

@@ -40,6 +40,9 @@ parallelDUInput = np.linspace(0,100,101).tolist()
 module = localModule
 # module = remoteModule
 
+Pyro5.api.config.PICKLE_ENABLE=True
+
+
 class TestAllLocal(TestCase):
     run = True
     def _run(self):
@@ -112,6 +115,7 @@ class TestAllLocal(TestCase):
         # test numpy
         with pytest.raises(TypeError):
             proxyDU.gen_numpy()
+        
         Pyro5.api.config.SERIALIZER = "pickle"
         assert np.array_equal(proxyDU.gen_numpy(),localDU.gen_numpy())
         Pyro5.api.config.SERIALIZER = "serpent"

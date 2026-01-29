@@ -13,7 +13,7 @@ authors = [
   { name="Marcus Pearlman", email="***REMOVED***@***REMOVED***.edu" },
 ]
 description = "A package for generating, organizing, and processing data."
-readme = "README.md"
+readme = "README.rst"
 requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -22,38 +22,51 @@ classifiers = [
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
 
-
-
 dependencies = [
-  "tabulate",          # For generate text charts on plots?
-  "scipy",             # filter options
   "natsort",           # for numerically sorting of filenames 
-  "python-xlib",       # ?
-  "tables",            # for h5 file reading and writing
+  "scipy",             # filter options
   "numpy",             # data manipulation
   "pandas",            # data manipulation
   "matplotlib",        # for plotting
-  "multiprocess",      # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
-  # "Pyro5",             # RPC remote implementation
+  "tabulate",          # For generate text charts on plots?
 ]
 
 [project.optional-dependencies]
-Pyro5 = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git"]
-paramiko=["paramiko"]
-zarr = ["zarr"]
-xarray = ["xarray"]
-openpyxl = ["openpyxl"]          # for pandas excel functionality
-fastparquet = ["fastparquet"]
-zarrcache = ["xarray","zarr"]
-parquetcache = ["fastparquet"]
+#### Not currently being used, but might need to be
+multiprocess = ["multiprocess"]  # for multiprocessing with dill instead of pickle
+
+#### DataFrame packages
+# pandas = ["pandas"]             # pandas DataFrames
+polars = ["polars"]               # polars DataFrames
+xarray = ["xarray"]               # xarray is like a dataframe
+
+#### remote packages
 remote = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git", "paramiko"]
+Pyro5 = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git"]    # for rpc functionality
+paramiko=["paramiko"]            # ssh functionality
+xlib = ["python-xlib"]           # for ssh and passing x, currently not woking
+
+#### file related packages
+zarrcache = ["xarray","zarr"]      # for reading/writing zarr files
+zarr = ["zarr"]                    # for reading/writing zarr files
+# xarray = ["xarray"]                # intermeadiary for zarr writes and reads, defined above
+fastparquet = ["fastparquet"]      # reading/writing parquet files
+parquetcache = ["fastparquet"]     # reading/writing parquet files
+h5py = ["h5py"]                    # for reading/writing h5 files
+tables = ["tables"]                # for reading/writing h5 files, alternate
+openpyxl = ["openpyxl"]            # for pandas excel functionality
+
+#### dmanage derived packages
+vsim = ["dmanage-vsim@git+https://github.com/pearlmam/dmanage-vsim.git"]
+
 
 all = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",
        "paramiko",
        "xarray",
        "zarr",
-       "openpyxl",
        "fastparquet",
+       "tables",
+       "h5py",
 ]
 
 # unused dependances to be used
@@ -61,7 +74,7 @@ all = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",
 #  "openmdao",
 #  "hvplot", 
 #  "seaborn", 
-#  "rpyc"               # or equivalent
+# "polars"
 
 
 

@@ -10,7 +10,7 @@ from pathlib import Path
 from dataclasses import dataclass
 
 
-__all__ = ["HardCache", "ParquetCache", "ZarrCache", "SoftCache"]
+__all__ = ["HardCache", "ParquetCache", "ZarrCache", "SoftCache", "Summary"]
 
 class SoftCache(dict):
     """This is a dict-like component used for storing data

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# for parallelize methods
+# for parallelize arrays
 
 import inspect
 from multiprocessing import Pool
@@ -10,10 +10,8 @@ import pandas as pd
 import dmanage.utils.objinfo as objinfo
 
 
-from dmanage.methods.wrapper import looperize as _looperize
-from dmanage.methods.wrapper import parallelize_looped_method as _parallelize_looped_method
-from dmanage.methods.wrapper import  parallelize_iterator_method as _parallelize_iterator_method
-
+from dmanage.parallel import looperize as _looperize
+from dmanage.parallel import parallelize_looped_method as _parallelize_looped_method
 
 WRAPPER_TYPE = 'class'
 
@@ -182,7 +180,6 @@ else:
 
 if __name__ == "__main__":
     
-    import time
     def _make_df(arg0,arg1,nc=1):
         if arg1:
             return pd.DataFrame([arg0])

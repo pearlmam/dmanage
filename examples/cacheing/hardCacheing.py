@@ -5,15 +5,14 @@ import shutil
 import os
 from pathlib import Path
 import tables as tb
-import time
 import copy
 
 # necessary packages for data hierarchy
-from dmanage.group import make_data_group
-from dmanage.unit import make_data_unit
-from dmanage.decorate import override
-from dmanage.metadata.metastring import compose,parse
-import dmanage.dfmethods as dfm
+from dmanage.strata.group import make_data_group
+from dmanage.strata.unit import make_data_unit
+from dmanage.strata.decorate import override
+from dmanage.strata.metadata import compose
+
 
 def sineStep(t,risetime):
     return np.sin(0.5*np.pi*np.maximum(0.0,np.minimum(1.0,t/risetime)))**2
@@ -208,21 +207,21 @@ if __name__ == "__main__":
     
     # generate_data(folder)
     
-    # # instantiate the data unit for testing unit methods
+    # # instantiate the data unit for testing unit arrays
     # DU = MyDataUnit(filepath)
     
-    # # test group methods, this does  utilize the cache, because the DataUnit 
+    # # test group arrays, this does  utilize the cache, because the DataUnit
     # # gets modified after every call...
     # tStart = DU.get_startup()
     # Pavg = DU.get_avg()
     # freq = DU.get_freq()
     # summary = DU.gen_summary()
     
-    # # instantiate the data group for testing group methods
+    # # instantiate the data group for testing group arrays
     # DG = MyDataGroup(folder)
     # DG.plot_waveform()
     
-    # # test group methods, this does not actually utilize the cache, because
+    # # test group arrays, this does not actually utilize the cache, because
     # # the DataUnits get instantiated for each call...
     # startTime = time.time()
     # tStarts = DG.get_startup()

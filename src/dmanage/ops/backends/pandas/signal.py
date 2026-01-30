@@ -6,11 +6,10 @@ import copy
 from scipy import signal
 from scipy.optimize import curve_fit
 
-import dmanage.methods.signal
-from dmanage.dfmethods.convert import numpy_to_df,df_to_numpy
-from dmanage.methods import functions as func
-from dmanage.dfmethods.fft import fft, fft_amplitude
-from dmanage.dfmethods import plot
+import dmanage.ops.arrays.signal
+from dmanage.ops.backends.pandas.convert import numpy_to_df,df_to_numpy
+from dmanage.ops.backends.pandas.fft import fft, fft_amplitude
+from dmanage.ops.backends.pandas import plot
 
 
 def find_pks(DF, maxPks=20, hRatio=None, pRatio=None, tRatio=None, height=None, **kwargs):
@@ -28,7 +27,7 @@ def find_pks(DF, maxPks=20, hRatio=None, pRatio=None, tRatio=None, height=None, 
     iName = list(bounds.keys())[len(y.shape)-1]
     x = bounds[iName]
     
-    xpks,ypks,props = dmanage.methods.signal.find_peaks(x, y, hRatio=hRatio, pRatio=pRatio, tRatio=tRatio, height=height, **kwargs)
+    xpks,ypks,props = dmanage.compute.methods.signal.find_peaks(x, y, hRatio=hRatio, pRatio=pRatio, tRatio=tRatio, height=height, **kwargs)
     
     # shorten peak list to < maxPks
     if len(ypks)>maxPks:
@@ -65,7 +64,7 @@ def windowed_period(DF, win=None, overlap=0.5, window='hanning', inverse=False):
     array,bounds = df_to_numpy(DF)
     iName = list(bounds.keys())[len(array.shape)-1]
     x = bounds[iName]
-    Ts,xs = dmanage.methods.signal.get_windowed_period(array, x, win=win, overlap = overlap, window=window)
+    Ts,xs = dmanage.compute.methods.signal.get_windowed_period(array, x, win=win, overlap = overlap, window=window)
     
     if inverse: 
         if type(Ts) !=type(None): Ts=1/Ts
@@ -93,7 +92,8 @@ def get_phase(DF, refSignal='cos', period=None, hRatio=0.4, pRatio=0.3, phiRange
         array,bounds = df_to_numpy(DF[col])
         iName = list(bounds.keys())[len(array.shape)-1]
         x = bounds[iName]
-        phi = phi + [dmanage.methods.signal.get_phase(array, x=x, refSignal=refSignal, period=period, hRatio=hRatio, pRatio=pRatio, debug=debug, fignum=fignum)]
+        phi = phi + [
+            dmanage.compute.methods.signal.get_phase(array, x=x, refSignal=refSignal, period=period, hRatio=hRatio, pRatio=pRatio, debug=debug, fignum=fignum)]
         if type(col) is tuple:
             theCol = col[-1]
         else:
@@ -135,7 +135,7 @@ def get_period(DF, hRatio=0.5, pRatio=0.5, window='hanning', periodicPad=False, 
         array,bounds = df_to_numpy(DF[col])
         iName = list(bounds.keys())[len(array.shape)-1]
         x = bounds[iName]
-        T = T + [dmanage.methods.signal.get_period(array, x=x, hRatio=hRatio, pRatio=pRatio, window=window, periodicPad=periodicPad, strictCheck=strictCheck, debug=debug)]
+        T = T + [dmanage.compute.methods.signal.get_period(array, x=x, hRatio=hRatio, pRatio=pRatio, window=window, periodicPad=periodicPad, strictCheck=strictCheck, debug=debug)]
     if len(DF.columns)==1:
         T = T[0]    
     # DF = pd.DataFrame(T)
@@ -449,7 +449,7 @@ def check_stability(DF, method='fft', debug=False, **kwargs):
 
 def apply_filter(DF, method, cutoff, order=5, axis=-1, modLabels=True):
     '''
-    methods = 'low', 'high', 'band'
+    arrays = 'low', 'high', 'band'
     
     '''
     

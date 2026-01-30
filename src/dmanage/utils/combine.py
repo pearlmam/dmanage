@@ -59,8 +59,3 @@ if __name__ == "__main__":
     
     df = combine_dfs(dfs,var=sweepVar,axis=0)
     print(df)
-    
-    
-    
-    
-    

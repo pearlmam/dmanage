@@ -5,18 +5,8 @@ Created on Thu Aug  4 12:16:40 2022
 
 @author: marcus
 """
-from dmanage.methods.signal import get_phase, get_period
-from dmanage.methods.vector import curl
-
-
-def check_exist(diaNames, types, output=False):
-    if not type(diaNames) is list: diaNames = [diaNames]
-    for diaName in diaNames:
-        if not diaName in types:
-            if output: print('%s is not availiable'%(diaName))
-            return False
-            #if output: print('%s is availiable'%(diaName))
-    return True
+from dmanage.ops.arrays.signal import get_phase, get_period
+from dmanage.ops.arrays.vector import curl
 
 import numpy as np
 import glob

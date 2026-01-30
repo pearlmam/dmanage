@@ -2,15 +2,13 @@
 
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
-
 
 import copy
 
-# my package methods
-from dmanage.methods import functions as func
-from dmanage.dfmethods.convert import numpy_to_df,df_to_numpy
-from dmanage.dfmethods.linalg import norm
+# my package arrays
+from dmanage.ops.arrays import functions as func
+from dmanage.ops.backends.pandas.convert import df_to_numpy
+from dmanage.ops.backends.pandas.linalg import norm
 
 
 # plot1D,plot1DWPks,scatter,drawFig
@@ -200,7 +198,7 @@ def _reduce(DF,iName=None,method='mean',iApply=False,inplace=False,block=False,*
     elif method in iMethods:
         if 'refCol' in kwargs: refCol = kwargs['refCol'] 
         elif len(cols)==1: refCol = cols[0]
-        else: raise Exception("With a multiple column DataFrame, the reference column 'refCol' must be specified for index methods")
+        else: raise Exception("With a multiple column DataFrame, the reference column 'refCol' must be specified for index arrays")
         if len(DF.index.names) == 1:
             I = eval('DF[refCol].idx%s()'%method[1:])
             i = pd.Index([I],name=DF.index.names[0])
@@ -214,7 +212,7 @@ def _reduce(DF,iName=None,method='mean',iApply=False,inplace=False,block=False,*
     # elif method[0] == 'i':   #### OBSOLETE
     #     if 'refCol' in kwargs: refCol = kwargs['refCol'] 
     #     elif len(cols)==1: refCol = cols[0]
-    #     else: raise Exception("With a multiple column DataFrame, the reference column 'refCol' must be specified for index methods")
+    #     else: raise Exception("With a multiple column DataFrame, the reference column 'refCol' must be specified for index arrays")
     #     if len(DF.index.names) == 1:
     #         I = DF[refCol].subtract(reduce(DF,iName,method=method[1:])[refCol]).abs().idxmin(axis=1)
     #         i = pd.Index([I],name=DF.index.names[0])
@@ -357,7 +355,7 @@ def get_stable_data(DF, method, iSweep, checkCols=[], stableCol='stable'):
 
 def bin_df(DF, binVars, bins, inplace=False):
     """
-    This bins the DataFrame by the column labeled <var> by the <bins> and the agregation in methods
+    This bins the DataFrame by the column labeled <var> by the <bins> and the agregation in arrays
     bins can be an integer representing the number of bins, or a list of the bin breaks
 
     Parameters

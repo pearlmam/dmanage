@@ -5,15 +5,13 @@ import shutil
 import os
 import matplotlib.pyplot as plt
 from pathlib import Path
-import multiprocess as mp
 
+from dmanage.strata.group import make_data_group
+from dmanage.strata.unit import make_data_unit
+from dmanage.strata.decorate import override
+from dmanage.strata.metadata import parse
+from dmanage.ops.backends.pandas import plot
 
-from dmanage.group import make_data_group
-from dmanage.unit import make_data_unit
-from dmanage.decorate import override
-from dmanage.metadata.metastring import parse
-from dmanage.dfmethods import plot
-import dmanage.dfmethods as dfm
 
 def generate_data(saveloc):
     """Generate example data for the project
@@ -54,10 +52,10 @@ def generate_data(saveloc):
 DataUnit = make_data_unit()
 class DataFile(DataUnit):
     """
-    This is where the waveform processing methods live. The waveform is the only 
+    This is where the waveform processing arrays live. The waveform is the only
     component of the DataUnit, so this implementation uses no components for simplicity.
     The @override decorators flag the method for DataGroup method wrapping. These
-    methods will be overriden in the DataGroup class for steping through each dataUnit.
+    arrays will be overriden in the DataGroup class for steping through each dataUnit.
     """
     def __init__(self,filepath):
         self.dataUnit = filepath
@@ -116,7 +114,7 @@ class DataFile(DataUnit):
            os.makedirs(saveloc)
         savetag = self.savetag()
         df = self.read_waveform()
-        fig,ax = plot.plot1d(df,fig=fig)
+        fig,ax = plot.plot1d(df, fig=fig)
         savename = savename + savetag + '.' + plot.Defs.saveType
         fig.savefig(saveloc + savename, bbox_inches='tight', format=plot.Defs.saveType)
 

@@ -73,7 +73,7 @@ def client_ssh_close(localPort=44444,verbose=False):
     # for line in proc.stdout.readlines():
     #     print(line.decode('ascii').rstrip('\n'))
 
-######   server methods    #######
+######   server arrays    #######
 @Pyro5.api.expose
 @Pyro5.api.behavior(instance_mode="single", instance_creator=lambda clazz : clazz.create_instance(None))
 class PyroFactory():
@@ -124,7 +124,7 @@ class PyroFactory():
         #obj.correlation_id = current_context.correlation_id
         return obj 
     
-######### Pyro methods to inject   #######    
+######### Pyro arrays to inject   #######
 
 class Pyroize:
     """Use with PyroWrap. Inherit from this so Proxies can access components and attributes"""
@@ -207,7 +207,7 @@ class Pyroize:
         return getattr(self,name)
 
 def pyroize_object(obj):
-    """adds Factory methods and exposes object
+    """adds Factory arrays and exposes object
     
 
     Parameters
@@ -242,7 +242,7 @@ def pyroize_object(obj):
     setattr(Obj, '_pyroized', True)
     setattr(Obj, '_generated_uris', {})
     
-    # methods
+    # arrays
     setattr(Obj, '__get_comp_uris__', Pyroize.__get_comp_uris__)
     setattr(Obj, '__register_components__', Pyroize.__register_components__)
     setattr(Obj, '_register_component', Pyroize._register_component)
@@ -264,7 +264,7 @@ def expose_all(obj):
         This exposes ALL instances of the class, not just the returned one!
         classes are references and all instances reference it
         However, Proxies registering before exposing might not have access to 
-        methods even after exposing
+        arrays even after exposing
     """
     if not inspect.isclass(obj):
         Obj = obj.__class__
@@ -334,7 +334,7 @@ class ProxyWrap():
     def _get_proxy_attr(self,name):
         return self._proxy.__get_attribute__(name)
     
-    ###### metadata methods to update proxy   ######
+    ###### metadata arrays to update proxy   ######
     def _register_components(self):
         self._proxy.__register_components__()
         self._get_component_proxies()
@@ -342,7 +342,7 @@ class ProxyWrap():
     def _get_attribute_names(self):
         self._proxy_attrs = self._proxy.__get_attribute_names__()
         
-    ######   private dunder methods
+    ######   private dunder arrays
     def __dir__(self):
         return sorted(set(super().__dir__()) | 
                       self._comp_names | 
@@ -351,10 +351,10 @@ class ProxyWrap():
 
     def __getattr__(self, name):
         """Changes the getattr behavior to access proxy components
-        private methods of ProxyWrap are returned
+        private arrays of ProxyWrap are returned
         exposed class components of the proxy are returned as it's own proxy
         The shared object on the server must have __exposed_comps__ and __get_comp_uri__
-        methods defined, see ExposeComps class in server.py/
+        arrays defined, see ExposeComps class in server.py/
         """
 
         if is_private_attribute(name):

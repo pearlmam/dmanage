@@ -59,7 +59,6 @@ openpyxl = ["openpyxl"]            # for pandas excel functionality
 #### dmanage derived packages
 vsim = ["dmanage-vsim@git+https://github.com/pearlmam/dmanage-vsim.git"]
 
-
 all = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",
        "paramiko",
        "xarray",

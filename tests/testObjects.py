@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
-# import Pyro5.api
+import Pyro5.api
 
-from dmanage.methods import wrapper
-from dmanage.unit import make_data_unit
-from dmanage.group import make_data_group
-from dmanage.decorate import override
+from dmanage.parallel import parallelize_iterator_method
+from dmanage.strata import make_data_unit, make_data_group, override
 
 
 def iteration_method(arg0):
@@ -24,7 +22,7 @@ class Component2():
     
     def func(self):
         return 'Component2 Func'
-    
+    # @Pyro5.api.expose
     @override()
     def func_override(self):
         return 'Component2 Func overriden'
@@ -37,7 +35,7 @@ class Component1():
     
     def func(self):
         return 'Component1 Func'
-    
+    # @Pyro5.api.expose
     @override()
     def func_override(self):
         return 'Component1 Func overriden'
@@ -45,11 +43,11 @@ class Component1():
     @override()
     def parallel_method(self,arg0,nc=1):
         #print("nc=%d"%nc)
-        func = wrapper.parallelize_iterator_method(iteration_method)
+        func = parallelize_iterator_method(iteration_method)
         return func(arg0,nc=nc)
 
 class Parent():
-    """To test inherited methods"""
+    """To test inherited arrays"""
     def __init__(self,*args,**kwargs):
         self.parentAttr = 'Parent attribute'
     
@@ -73,7 +71,7 @@ class MyDataUnit(DataUnit):
     @override()
     def parallel_method(self,arg0,nc=1):
         #print("nc=%d"%nc)
-        func = wrapper.parallelize_iterator_method(iteration_method)
+        func = parallelize_iterator_method(iteration_method)
         return func(arg0,nc=nc)
     
     @override()
@@ -100,7 +98,6 @@ class MyDataUnit(DataUnit):
             data = pd.DataFrame(data)
         return data
     
-    #@Pyro5.api.expose
     @override()
     def gen_Series(self,variant=0,size=10):
         if variant == 0:

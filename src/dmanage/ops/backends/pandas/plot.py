@@ -14,8 +14,8 @@ import warnings as warn
 import subprocess as sp
 import shutil
 
-from dmanage.dfmethods.signal import find_pks
-from dmanage.dfmethods.convert import mi_to_index,numpy_to_df,df_to_numpy,rotate_cart
+from dmanage.ops.backends.pandas.signal import find_pks
+from dmanage.ops.backends.pandas.convert import mi_to_index, df_to_numpy,rotate_cart
 
 
 warn.filterwarnings("ignore", message="Ignoring specified arguments in this call because figure with num:*") # ignore warning for fig = plt.figure(fig, figsize=figsize)

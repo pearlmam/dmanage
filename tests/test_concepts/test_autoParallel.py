@@ -67,7 +67,7 @@ class parallelFunctions(serialFunctions):
     def __init__(self):
         super().__init__()
         
-    # code to make parallel versions for inhereted methods
+    # code to make parallel versions for inhereted arrays
     def paralellize_v2(func):
         def wrapper(self,*args,**kwargs):
             # allInputVars = func.__code__.co_varnames[:func.__code__.co_argcount]

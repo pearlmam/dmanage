@@ -15,7 +15,7 @@ __all__ = ["HardCache", "ParquetCache", "ZarrCache", "SoftCache", "Summary"]
 class SoftCache(dict):
     """This is a dict-like component used for storing data
     
-    inherited methods:
+    inherited arrays:
         self.update()
         self.items()
         self.keys()
@@ -44,7 +44,7 @@ class SoftCache(dict):
         
     def get(self,key,method=None,*args,**kwargs):
         """Gets the value from the cache or the method(args,kwargs)
-        Maybe for methods returning tuples, have way to ignore some values using None
+        Maybe for arrays returning tuples, have way to ignore some values using None
         
         """
         iterable = is_iterable(key)

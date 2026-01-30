@@ -94,7 +94,7 @@ class C2():
         return 'C'
     
     def _apply_component_overrides(self):
-        """Attach decorated override methods to their corresponding components."""
+        """Attach decorated override arrays to their corresponding components."""
         for name, method in inspect.getmembers(self, predicate=inspect.ismethod):
             if hasattr(method, "_component_override"):
                 component_name, method_name = method._component_override
@@ -150,7 +150,7 @@ class C3():
         return 'C'
     
     def _apply_component_overrides(self):
-        """Attach decorated override methods to their corresponding components."""
+        """Attach decorated override arrays to their corresponding components."""
         for name, method in inspect.getmembers(self, predicate=inspect.ismethod):
             if not hasattr(method, "_component_override"):
                 continue
@@ -238,7 +238,7 @@ class C4():
         return 'C'
     
     def _wrap_component_methods(self):
-        """Scan all attributes and wrap methods of component-like objects."""
+        """Scan all attributes and wrap arrays of component-like objects."""
         for attr_name, attr_value in vars(self).items():
             if attr_name.startswith("_"):
                 continue  # skip internal attributes
@@ -249,12 +249,12 @@ class C4():
             if inspect.isclass(attr_value) or isinstance(attr_value, (int, float, str, dict, list, tuple)):
                 continue
 
-            # Wrap all public methods of the component
+            # Wrap all public arrays of the component
             for method_name, method in inspect.getmembers(attr_value, predicate=inspect.isroutine):
                 if method_name.startswith("_"):
-                    continue  # skip private methods
+                    continue  # skip private arrays
                 elif not hasattr(method, "_component_override"):
-                    continue  # skip methods without '_component_override' attribute
+                    continue  # skip arrays without '_component_override' attribute
                 original_func = method
                 wrapped = self._make_wrapper(attr_name, method_name, original_func)
                 setattr(attr_value, method_name, types.MethodType(wrapped, attr_value))
@@ -327,7 +327,7 @@ class D5(C5):
         return 'D' + super().func()  # returns 'DC'
     
     def _wrap_component_methods(self):
-        """Scan all attributes and wrap methods of component-like objects."""
+        """Scan all attributes and wrap arrays of component-like objects."""
         for attr_name, attr_value in vars(self).items():
             if attr_name.startswith("_"):
                 continue  # skip internal attributes
@@ -338,12 +338,12 @@ class D5(C5):
             if inspect.isclass(attr_value) or isinstance(attr_value, (int, float, str, dict, list, tuple)):
                 continue
 
-            # Wrap all public methods of the component
+            # Wrap all public arrays of the component
             for method_name, method in inspect.getmembers(attr_value, predicate=inspect.isroutine):
                 if method_name.startswith("_"):
-                    continue  # skip private methods
+                    continue  # skip private arrays
                 elif not hasattr(method, "_component_override"):
-                    continue  # skip methods without '_component_override' attribute
+                    continue  # skip arrays without '_component_override' attribute
                 original_func = method
                 wrapped = self._make_wrapper(attr_name, method_name, original_func)
                 setattr(attr_value, method_name, types.MethodType(wrapped, attr_value))

@@ -6,7 +6,9 @@ import re
 import decimal
 
 from dmanage.utils.objinfo import is_iterable
-from dmanage.methods.wrapper import parallelize_iterator_method
+from dmanage.parallel import parallelize_iterator_method
+
+__all__ = ["compose","parse","smartString"]
 
 def adjusted_scientific_notation(val,num_decimals=2,exponent_pad=1):
     exponent_template = "{:0>%d}" % exponent_pad

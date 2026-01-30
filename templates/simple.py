@@ -1,12 +1,8 @@
 # common packages
-import pandas as pd
-import numpy as np
-import os
 
 # necessary packages for data hierarchy
-from dmanage.group import make_data_group
-from dmanage.unit import make_data_unit
-from dmanage.decorate import override
+from dmanage.strata.group import make_data_group
+from dmanage.strata.unit import make_data_unit
 
 DataUnit = make_data_unit()
 class MyDataUnit(DataUnit):
@@ -45,8 +41,8 @@ if __name__ == "__main__":
     unitpath = '/path/to/dataUnit'
     grouppath = '/path/to/dataGroup'
     
-    # instantiate the data unit for testing unit methods
+    # instantiate the data unit for testing unit arrays
     DU = MyDataUnit(unitpath)
     
-    # instantiate the data group for testing group methods
+    # instantiate the data group for testing group arrays
     DG = MyDataUnit(grouppath)

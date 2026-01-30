@@ -2,10 +2,8 @@
 
 import testObjects
 import warnings
-import zarr
-import xarray as xr
 import time
-from dmanage.components import ZarrCache, ParquetCache
+from dmanage.strata.components import ZarrCache, ParquetCache
 
 warnings.filterwarnings("ignore",
     message="Consolidated metadata is currently not part",
@@ -94,10 +92,10 @@ class TestHardCache:
         print("Done in %.2f seconds"%executionTime)
         
 if __name__ == "__main__":
-    Test = TestHardCache(cacheType='zarr')
-    Test.test_df_write_read()
-    Test.test_series_write_read()
-    Test.test_threading()
+    # Test = TestHardCache(cacheType='zarr')
+    # Test.test_df_write_read()
+    # Test.test_series_write_read()
+    # Test.test_threading()
     
     Test = TestHardCache(cacheType='parquet',compression='snappy')
     Test.test_df_write_read()

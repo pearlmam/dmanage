@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-
+__all__ = ["override"]
 class add_attribute:
     """Decorator that adds an attribute to a function without wrapping or renaming it.
     To Do: make it so you can add more attrs at once or over multiple calls

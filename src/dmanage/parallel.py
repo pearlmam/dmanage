@@ -242,7 +242,7 @@ else:
     
     def parallelize_iterator_method(func,ncPass=False):
         """
-        These methods are more generic to any iterator, the DF method wraps a concat capability.
+        These arrays are more generic to any iterator, the DF method wraps a concat capability.
         I should put these somewhere else.
         """
         func = looperize(func)

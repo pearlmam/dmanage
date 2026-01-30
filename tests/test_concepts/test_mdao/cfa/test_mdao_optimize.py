@@ -3,8 +3,8 @@ import numpy as np
 import openmdao.api as om
 import pandas as pd
 
-from test_mdao_run import DataDir,SweepDir,MyDataDir,MySweepDir,CFA2
-from dmanage.dfmethods import plot
+from test_mdao_run import MyDataDir,MySweepDir,CFA2
+from dmanage.ops.backends.pandas import plot
 
 if __name__ == "__main__":
 

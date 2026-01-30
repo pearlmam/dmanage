@@ -141,7 +141,7 @@ class TestAllLocal(TestCase):
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=1), proxyDG.gen_DataFrame(nc=1))])
         assert all([(local==remote) for local, remote in zip(localDG.Comp.func_override(nc=1), proxyDG.Comp.func_override(nc=1))])
         
-        ### parallel methods and nc pass through
+        ### parallel arrays and nc pass through
         assert all([local==remote for local, remote in 
                     zip(proxyDG.parallel_method(parallelDUInput,ncPass=True,nc=4),
                         localDG.parallel_method(parallelDUInput,ncPass=True,nc=4))])
@@ -199,7 +199,7 @@ class TestAllLocal(TestCase):
         assert all([all(local==remote) for local, remote in zip(localDG.process_series(nc=4), proxyDG.process_series(nc=4))])
         assert all([all(local==remote) for local, remote in zip(localDG.process_series(nc=1), proxyDG.process_series(nc=1))])
         
-        ### parallel methods and nc pass through
+        ### parallel arrays and nc pass through
         assert all([local==remote for local, remote in 
                     zip(proxyDG.parallel_method(parallelDUInput,ncPass=True,nc=4),
                         localDG.parallel_method(parallelDUInput,ncPass=True,nc=4))])

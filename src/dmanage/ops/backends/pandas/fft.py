@@ -3,10 +3,10 @@
 import pandas as pd
 import numpy as np
 
-import dmanage.methods.fft
-from dmanage.dfmethods.helper import cut_range
-from dmanage.dfmethods.convert import numpy_to_df,df_to_numpy,replace_bounds
-from dmanage.methods import functions as func
+import dmanage.ops.arrays.fft
+from dmanage.ops.backends.pandas.helper import cut_range
+from dmanage.ops.backends.pandas.convert import numpy_to_df,df_to_numpy,replace_bounds
+
 
 def fft_phase(DF):
     cols = DF.columns
@@ -51,7 +51,7 @@ def fft(DF, theRange=[0.0, 1.0], axis=-1, window='hanning', ang=False, upsample=
     array,bounds = df_to_numpy(DF)
     iName = list(bounds.keys())[axis]
     x = bounds[iName]
-    freq,FFT = dmanage.methods.fft.fft(array, x, axis=axis, upsample=upsample, window=window)
+    freq,FFT = dmanage.compute.methods.fft.fft(array, x, axis=axis, upsample=upsample, window=window)
 
     bounds = replace_bounds(bounds, iName, 'freq', vals=freq)
     FFT = numpy_to_df(FFT, bounds, 0)
@@ -70,7 +70,7 @@ def fft2d(DF):
     dxy = []
     for value in bounds.values():
         dxy = dxy + [value[1]-value[0]]
-    ft,x,y = dmanage.methods.fft.fft2d(array, dxy=dxy)
+    ft,x,y = dmanage.compute.methods.fft.fft2d(array, dxy=dxy)
     mi = pd.MultiIndex.from_product([x,y],names=['fx','fy'])
     # mi = pd.MultiIndex.from_product([y,x],names=['fy','fx'])
     DF = pd.DataFrame(ft.flatten(),index=mi,columns=[colName])
@@ -94,7 +94,7 @@ def windowed_fft(DF, win=None, overlap = 0.5):
     iName = DF.index.names[0]
     array,bounds = df_to_numpy(DF)
     x = bounds[iName]
-    array,freq,x = dmanage.methods.fft.get_windowed_fft(array, x, win=win, overlap=overlap)
+    array,freq,x = dmanage.compute.methods.fft.get_windowed_fft(array, x, win=win, overlap=overlap)
     bounds = {iName:x,'freq':freq}
     DF = numpy_to_df(array, bounds, colName='amp')
     return DF

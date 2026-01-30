@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
-import tables as tb
-from tables import StringCol,Int64Col,UInt16Col,UInt8Col,Int32Col,Float32Col,Float64Col,IsDescription
 import pandas as pd
 import numpy as np
-import os
 
-
-from dmanage.components import HardCache
+from dmanage.strata.components import HardCache
 
 def generate_data():
     # waveform parameters

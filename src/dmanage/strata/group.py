@@ -16,11 +16,10 @@ import functools
 from pathlib import Path
 
 import dmanage.utils.objinfo as objinfo
-import dmanage.methods as methods
-import dmanage.combine as combine
+import dmanage.utils.combine as combine
+from dmanage.parallel import parallelize_iterator_method, parallelize_looped_method
 
-
-
+__all__ = ["make_data_group"]
 class PurePython:
     """
     Inheritance class to make DataUnit a pure python class rather than inheriting 
@@ -109,7 +108,7 @@ class DataGroup(PurePython):
 
     @staticmethod
     def inheritance_level():
-        """qualifier to determine the hierarchy level for wrapping methods
+        """qualifier to determine the hierarchy level for wrapping arrays
         no self input parameter because calling it like below gives error:
         base = self.__class__
         level = base.inheritance_level()
@@ -118,7 +117,7 @@ class DataGroup(PurePython):
         return 'DG'
 
     def _wrap_methods(self):
-        """Scan all attributes and wrap methods of component objects and self methods"""
+        """Scan all attributes and wrap arrays of component objects and self arrays"""
         for attr_name, attr_value in vars(self).items():
             if attr_name.startswith("_"):
                 continue  # skip internal attributes
@@ -129,12 +128,12 @@ class DataGroup(PurePython):
         self._wrap_target_methods(self, comp_name=None)
         
     def _wrap_target_methods(self,target,comp_name=None):
-        # Wrap all public methods of the component
+        # Wrap all public arrays of the component
         for method_name, method in inspect.getmembers(target, predicate=inspect.isroutine):
             # if method_name.startswith("_"):
-            #     continue  # skip private methods?
+            #     continue  # skip private arrays?
             if not hasattr(method, "_override"):
-                continue  # skip methods without '_override' attribute
+                continue  # skip arrays without '_override' attribute
             # if method._override == 'default': # ??? Apply the correct wrapper
             wrapped = make_wrapper(self,comp_name or "self", method_name)
             
@@ -215,7 +214,7 @@ class DataGroup(PurePython):
             DESCRIPTION.
 
         """
-        get_dunits_ = methods.wrapper.parallelize_looped_method(self._get_dunits, ncPass=False)
+        get_dunits_ = parallelize_looped_method(self._get_dunits, ncPass=False)
         if type(baseDir) == type(None):
             baseDir = self.baseDir
         subDirs = list(list(zip(*os.walk(baseDir,followlinks=True)))[0])
@@ -394,7 +393,7 @@ class make_wrapper:
         else:
             ncPass = False
         # cant bind to original func because added dataUnit input.
-        method = methods.wrapper.parallelize_iterator_method(self._on_method_call, ncPass=ncPass,bind_func=None)   
+        method = parallelize_iterator_method(self._on_method_call, ncPass=ncPass, bind_func=None)
         results = method(self.dataUnits, *args, **kwargs)
         if self.orKind == 'DataFrame':
             results = pd.concat(results,**self.orArgs)

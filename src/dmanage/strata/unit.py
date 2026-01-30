@@ -13,6 +13,8 @@ from pathlib import Path
 import sys
 import inspect
 
+__all__ = ["make_data_unit"]
+
 class PurePython:
     """
     Inheritance class to make DataUnit a pure python class, for __bases__ assignment in makeDataUnit()
@@ -44,7 +46,7 @@ class DataUnit(PurePython):
     
     def __init__(self,dataPath,*args,**kwargs):
         """Loads components of the DataUnit (folder or file)
-        This is the base data unit class which consists of components and methods inherited from a base class. The base class is unique to each simulation, experiment, or application.
+        This is the base data unit class which consists of components and arrays inherited from a base class. The base class is unique to each simulation, experiment, or application.
 
         Parameters
         ----------

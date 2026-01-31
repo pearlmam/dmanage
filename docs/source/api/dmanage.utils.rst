@@ -4,6 +4,14 @@ dmanage.utils package
 Submodules
 ----------
 
+dmanage.utils.combine module
+----------------------------
+
+.. automodule:: dmanage.utils.combine
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 dmanage.utils.constants module
 ------------------------------
 

@@ -85,7 +85,8 @@ class HardCache:
     
     def save(self,data,name,compression=None, thread=False):
         """Calls self._save() defined be baseclass
-        Use the following if thread check is neccessary:
+        
+        Use the following code if thread check is neccessary:
             self._checkThreads(name)
             super().save(data,name,compression=compression,thread=thread)
         

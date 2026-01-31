@@ -7,60 +7,27 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   dmanage.dfmethods
-   dmanage.metadata
-   dmanage.methods
-   dmanage.plugins
+   dmanage.file
+   dmanage.ops
    dmanage.remote
+   dmanage.strata
    dmanage.utils
 
 Submodules
 ----------
 
-dmanage.base module
--------------------
-
-.. automodule:: dmanage.base
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-dmanage.components module
--------------------------
-
-.. automodule:: dmanage.components
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-dmanage.decorate module
+dmanage.parallel module
 -----------------------
 
-.. automodule:: dmanage.decorate
+.. automodule:: dmanage.parallel
    :members:
    :undoc-members:
    :show-inheritance:
 
-dmanage.group module
---------------------
+dmanage.plugins module
+----------------------
 
-.. automodule:: dmanage.group
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-dmanage.group\_old module
--------------------------
-
-.. automodule:: dmanage.group_old
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-dmanage.unit module
--------------------
-
-.. automodule:: dmanage.unit
+.. automodule:: dmanage.plugins
    :members:
    :undoc-members:
    :show-inheritance:

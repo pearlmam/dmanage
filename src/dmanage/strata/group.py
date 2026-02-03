@@ -316,10 +316,10 @@ class DataGroup(PurePython):
                 pass
             elif key == 'equal':
                 pass
- 
-    # def __getstate__(self):
-    #     raise RuntimeError("""Datagroup should not be pickled. DataGroup should only pickle 
-    #                        parallelism should only pickle DataUnit""")
+            
+    # this is here mainly for testing?? The user may want to pickle dataGroups, but for strata testing we dont? 
+    def __getstate__(self):
+        raise RuntimeError("""Datagroup should not be pickled. Parallelism should only pickle DataUnit""")
             
 ######################
 ##   Wrapper funcs
@@ -332,11 +332,12 @@ class make_wrapper:
         on_component_call() hook. also allows access to the original method
         """
         func = get_component_method(instance,component_name, method_name)
-        self.__wrapped__ = func
         functools.update_wrapper(self, func)
-        self.func = func
+        del self.__wrapped__   # delete actual function to have zero connection to DataGroup. no pickling groups!!!
+        
         self.dataUnits = [os.path.join(instance.baseDir,dataUnit) for dataUnit in instance.dataUnits]
         self.base = get_base(instance,iLevel='du')
+        
         #self.base = MyDataDir
         self.component_name = component_name
         self.method_name = method_name

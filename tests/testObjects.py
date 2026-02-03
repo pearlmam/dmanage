@@ -22,6 +22,7 @@ class Component2():
     
     def func(self):
         return 'Component2 Func'
+    
     # @Pyro5.api.expose
     @override()
     def func_override(self):
@@ -35,6 +36,7 @@ class Component1():
     
     def func(self):
         return 'Component1 Func'
+    
     # @Pyro5.api.expose
     @override()
     def func_override(self):
@@ -141,9 +143,10 @@ class MyDataGroup(DataGroup):
     def __init__(self,baseDir,unitType='test',**kwargs):
         super().__init__(baseDir,unitType='test',**kwargs)
     
-    def access_priviate_method(self):
+    def access_private_method(self,nc=1):
         # should be wrapped
-        return self._private_method()
+        return self._private_method(nc=nc)
+    
     # NO override here to process sweep data
     def process_df_sweep(self):
         dfList = self.gen_DataFrame()

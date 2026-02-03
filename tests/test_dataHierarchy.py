@@ -48,8 +48,16 @@ class TestAll(TestCase):
         assert DG.Comp.func_override() == [DU.Comp.func_override()]*testN
         assert DG.parent_func() == DU.parent_func()
         assert DG.parent_func_override() == [DU.parent_func_override()]*testN
+        
+        
+        # parallel
+        assert all([all(resultDG == resultDU) for (resultDG,resultDU) in zip(DG.gen_DataFrame(nc=4), ([DU.gen_DataFrame()]*testN))])
+        assert DG.Comp.func_override(nc=4) == [DU.Comp.func_override()]*testN
+        assert DG.parent_func_override(nc=4) == [DU.parent_func_override()]*testN
+        assert DG.access_private_method(nc=4) == [DU._private_method()]*testN
+        
         with pytest.raises(AssertionError):
-            # components of components are note currently overridden, so this throws an error
+            # components of components are not currently overridden, so this throws an error
             # when it doesn't, I will have successfully wrapped all sub components.
             assert DG.Comp.Comp.func_override() == [DU.Comp.Comp.func_override()]*testN
         assert DG.Comp.Comp.func() == DU.Comp.Comp.func()

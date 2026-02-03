@@ -136,7 +136,6 @@ class TestAllLocal(TestCase):
         uri = "PYRO:ProxyFactory@localhost:%s"%port
         Factory = rpc.ProxyFactory(uri=uri)
         proxyDG = Factory.create(objDG,module=module,kwargs=kwargsDG)
-        
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=4), proxyDG.gen_DataFrame(nc=4))])
         assert all([all(local==remote) for local, remote in zip(localDG.gen_DataFrame(nc=1), proxyDG.gen_DataFrame(nc=1))])
         assert all([(local==remote) for local, remote in zip(localDG.Comp.func_override(nc=1), proxyDG.Comp.func_override(nc=1))])
@@ -148,6 +147,9 @@ class TestAllLocal(TestCase):
         assert all([local==remote for local, remote in 
                     zip(proxyDG.parallel_method(parallelDUInput,ncPass=False,nc=4),
                         localDG.parallel_method(parallelDUInput,ncPass=False,nc=4))])
+        
+        # this tests access to private DataUnit methods from the DataGroup with multiprocessing
+        assert (localDG.access_private_method(nc=4) == proxyDG.access_private_method(nc=4))
         
         ## test get_DataUnit()
         proxyDU = proxyDG.get_DataUnit(0)

@@ -42,22 +42,22 @@ xarray = ["xarray"]               # xarray is like a dataframe
 
 #### remote packages
 remote = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git", "paramiko"]
-Pyro5 = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git"]    # for rpc functionality
-paramiko=["paramiko"]            # ssh functionality
-xlib = ["python-xlib"]           # for ssh and passing x, currently not woking
+Pyro5 = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",]    # for rpc functionality
+paramiko=["paramiko",]            # ssh functionality
+xlib = ["python-xlib",]           # for ssh and passing x, currently not woking
 
 #### file related packages
-zarrcache = ["xarray","zarr"]      # for reading/writing zarr files
-zarr = ["zarr"]                    # for reading/writing zarr files
+zarrcache = ["xarray","zarr",]      # for reading/writing zarr files
+zarr = ["zarr",]                    # for reading/writing zarr files
 # xarray = ["xarray"]                # intermeadiary for zarr writes and reads, defined above
-fastparquet = ["fastparquet"]      # reading/writing parquet files
-parquetcache = ["fastparquet"]     # reading/writing parquet files
-h5py = ["h5py"]                    # for reading/writing h5 files
-tables = ["tables"]                # for reading/writing h5 files, alternate
-openpyxl = ["openpyxl"]            # for pandas excel functionality
+fastparquet = ["fastparquet",]      # reading/writing parquet files
+parquetcache = ["fastparquet",]     # reading/writing parquet files
+h5py = ["h5py",]                    # for reading/writing h5 files
+tables = ["tables",]                # for reading/writing h5 files, alternate
+openpyxl = ["openpyxl",]            # for pandas excel functionality
 
 #### dmanage derived packages
-vsim = ["dmanage-vsim@git+https://github.com/pearlmam/dmanage-vsim.git"]
+vsim = ["dmanage-vsim@git+https://github.com/pearlmam/dmanage-vsim.git",]
 
 all = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",
        "paramiko",
@@ -68,6 +68,17 @@ all = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",
        "h5py",
 ]
 
+dev = ["nbconvert[webpdf]",       # notebooks
+       "nbsphinx",                # notebooks
+       "jupyter",                 # notebooks
+       "pandoc",                  # might need sudo apt-get install pandoc
+       "sphinx",                  # sphinx
+       "sphinx_rtd_theme",        # sphinx theme
+       "sphinx-rtd-dark-mode",    # dark mode extension for sphinx_rtd_theme
+       "sphinx-apidoc",           # automatically generate documentation
+       "sphinxcontrib-spelling",  # spell check
+]
+
 # unused dependances to be used
 #  "dask", 
 #  "openmdao",
@@ -75,22 +86,8 @@ all = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",
 #  "seaborn", 
 # "polars"
 
-
-
-# for documentation
-#  nbconvert[webpdf]       # notebooks
-#  nbsphinx                # notebooks
-#  jupyter                 # notebooks
-#  pandoc                  # might need sudo apt-get install pandoc
-#  sphinx                  # sphinx
-#  sphinx_rtd_theme        # sphinx theme
-#  sphinx-rtd-dark-mode    # dark mode extension for sphinx_rtd_theme
-#  sphinx-apidoc           # automatically generate documentation
-#  sphinxcontrib-spelling  # spell check
-
 # for plotting interactive
 #  PyQt5                  # plotting qt
-
 
 # Depriciated
 #  "pathos",            # for multiprocessing with dill instead of pickle, can multiprocess function wrappers

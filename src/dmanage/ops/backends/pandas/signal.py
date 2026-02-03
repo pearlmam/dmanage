@@ -27,7 +27,7 @@ def find_pks(DF, maxPks=20, hRatio=None, pRatio=None, tRatio=None, height=None, 
     iName = list(bounds.keys())[len(y.shape)-1]
     x = bounds[iName]
     
-    xpks,ypks,props = dmanage.compute.methods.signal.find_peaks(x, y, hRatio=hRatio, pRatio=pRatio, tRatio=tRatio, height=height, **kwargs)
+    xpks,ypks,props = dmanage.ops.arrays.signal.find_peaks(x, y, hRatio=hRatio, pRatio=pRatio, tRatio=tRatio, height=height, **kwargs)
     
     # shorten peak list to < maxPks
     if len(ypks)>maxPks:
@@ -64,7 +64,7 @@ def windowed_period(DF, win=None, overlap=0.5, window='hanning', inverse=False):
     array,bounds = df_to_numpy(DF)
     iName = list(bounds.keys())[len(array.shape)-1]
     x = bounds[iName]
-    Ts,xs = dmanage.compute.methods.signal.get_windowed_period(array, x, win=win, overlap = overlap, window=window)
+    Ts,xs = dmanage.ops.arrays.signal.get_windowed_period(array, x, win=win, overlap = overlap, window=window)
     
     if inverse: 
         if type(Ts) !=type(None): Ts=1/Ts
@@ -93,7 +93,7 @@ def get_phase(DF, refSignal='cos', period=None, hRatio=0.4, pRatio=0.3, phiRange
         iName = list(bounds.keys())[len(array.shape)-1]
         x = bounds[iName]
         phi = phi + [
-            dmanage.compute.methods.signal.get_phase(array, x=x, refSignal=refSignal, period=period, hRatio=hRatio, pRatio=pRatio, debug=debug, fignum=fignum)]
+            dmanage.ops.arrays.signal.get_phase(array, x=x, refSignal=refSignal, period=period, hRatio=hRatio, pRatio=pRatio, debug=debug, fignum=fignum)]
         if type(col) is tuple:
             theCol = col[-1]
         else:
@@ -135,7 +135,7 @@ def get_period(DF, hRatio=0.5, pRatio=0.5, window='hanning', periodicPad=False, 
         array,bounds = df_to_numpy(DF[col])
         iName = list(bounds.keys())[len(array.shape)-1]
         x = bounds[iName]
-        T = T + [dmanage.compute.methods.signal.get_period(array, x=x, hRatio=hRatio, pRatio=pRatio, window=window, periodicPad=periodicPad, strictCheck=strictCheck, debug=debug)]
+        T = T + [dmanage.ops.arrays.signal.get_period(array, x=x, hRatio=hRatio, pRatio=pRatio, window=window, periodicPad=periodicPad, strictCheck=strictCheck, debug=debug)]
     if len(DF.columns)==1:
         T = T[0]    
     # DF = pd.DataFrame(T)

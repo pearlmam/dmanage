@@ -18,7 +18,7 @@ def curl(DF):
     s = array.shape
     keys = list(bounds.keys())
     dsteps = [bounds[key][1] - bounds[key][0] for key in keys[:len(s)-1]]
-    array = dmanage.compute.methods.vector.curl(array, dsteps)
+    array = dmanage.ops.arrays.vector.curl(array, dsteps)
     DF = numpy_to_df(array, bounds, colName='curl(%s)' % name)
     
     return DF

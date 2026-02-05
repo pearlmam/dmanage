@@ -34,7 +34,7 @@ if WRAPPER_TYPE == 'class':
             # self.sig = inspect.signature(func)
             if bind_func is None:
                 bind_func = func
-            self.__wrapped__ = bind_func
+            # self.__wrapped__ = bind_func
             functools.update_wrapper(self, bind_func)
         
         def __call__(self,*args,**kwargs):
@@ -77,7 +77,7 @@ if WRAPPER_TYPE == 'class':
             """
             if bind_func is None:
                 bind_func = func
-            self.__wrapped__ = bind_func
+            # self.__wrapped__ = bind_func
             functools.update_wrapper(self, bind_func)
                 
             
@@ -136,7 +136,7 @@ if WRAPPER_TYPE == 'class':
         def __init__(self,func,ncPass=False,bind_func=None):
             if bind_func is None:
                 bind_func = func
-            self.__wrapped__ = bind_func
+            # self.__wrapped__ = bind_func
             functools.update_wrapper(self, bind_func)
             self.func = looperize(func,bind_func=bind_func)
             self.func = parallelize_looped_method(self.func,ncPass=ncPass,bind_func=bind_func)

@@ -15,6 +15,15 @@ def combine_dicts(dictList):
                 outDict[key] = outDict[key] + dictionary[key]
     return outDict
 
+def decombine_dicts(dictionary):
+    n = len(next(iter(dictionary.values())))
+    out = [dict() for _ in range(n)]
+
+    for key, values in dictionary.items():
+        for i, v in enumerate(values):
+            out[i][key] = v
+    return out
+
 def combine_dfs(dfList,var=None,axis=1):
     """
     combine dicts. right now it is untested with MultiIndex

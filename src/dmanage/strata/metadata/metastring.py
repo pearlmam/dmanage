@@ -33,15 +33,17 @@ def smartString(val,numDecimals=3):
 
 
 
-def compose(dataStruct, equiv='-', sep='_', order=False,numDecimals=3):
+def compose(dataStruct, equiv='-', sep='_', order=False,format=None,numDecimals=3):
     outString = ''
     if type(dataStruct) is dict:
         if order: keys = natsort.natsorted(list(dataStruct.keys()))
         else: keys = list(dataStruct.keys())
         for key in keys:
             value = dataStruct[key]
-            if type(value) is not str:
+            if type(value) is not str and format is None:
                 value = smartString(value,numDecimals)
+            elif format is not None:
+                value = format%value
             outString = outString + key + equiv + value + sep
         
     elif type(dataStruct) is list:

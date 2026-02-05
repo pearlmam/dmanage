@@ -334,7 +334,7 @@ class make_wrapper:
         func = get_component_method(instance,component_name, method_name)
         functools.update_wrapper(self, func)
         del self.__wrapped__   # delete actual function to have zero connection to DataGroup. no pickling groups!!!
-        
+        self.__signature__ = inspect.signature(func)  # allows signature to be called? Although we dont use in __call__...
         self.dataUnits = [os.path.join(instance.baseDir,dataUnit) for dataUnit in instance.dataUnits]
         self.base = get_base(instance,iLevel='du')
         
@@ -367,7 +367,7 @@ class make_wrapper:
         #print('loading DataUnit Method: %s.%s'%(self.component_name, self.method_name))
         du_func = get_component_method(du,self.component_name, self.method_name)
 
-        # this allows for handling other _override kinds
+        # this allows for handling other _override kinds, UNUSED
         orKind = du_func._override
         orLevel = du_func._level
         orArgs = du_func._kwargs
@@ -393,7 +393,7 @@ class make_wrapper:
             ncPass = kwargs.pop('ncPass')
         else:
             ncPass = False
-        # cant bind to original func because added dataUnit input.
+        # cant bind to original func because added dataUnit input. May be able to modify __signature__ to include dataUnits.
         method = parallelize_iterator_method(self._on_method_call, ncPass=ncPass, bind_func=None)
         results = method(self.dataUnits, *args, **kwargs)
         if self.orKind == 'DataFrame':

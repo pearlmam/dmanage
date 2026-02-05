@@ -5,15 +5,15 @@ import pandas as pd
 from dmanage.utils import objinfo
 
 def combine_dicts(dictList):
-    for i,dictionary in enumerate(dictList):
-        if i == 0:
-            outDict = dictionary
-        else:
-            for key in dictionary.keys():
-                if not type(outDict[key]) is list: outDict[key] = [outDict[key]]
-                if not type(dictionary[key]) is list: dictionary[key] = [dictionary[key]]
-                outDict[key] = outDict[key] + dictionary[key]
+    outDict = {}
+    for dictionary in dictList:
+        for key, value in dictionary.items():
+            v_new = value if isinstance(value, list) else [value]
+            v_old = outDict.get(key, [])
+            v_old = v_old if isinstance(v_old, list) else [v_old]
+            outDict[key] = v_old + v_new
     return outDict
+
 
 def decombine_dicts(dictionary):
     n = len(next(iter(dictionary.values())))

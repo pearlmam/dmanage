@@ -32,7 +32,20 @@ this package provides:
 D-Manage as a Methodology
 -------------------------
 
-The methodology utilizes a hierarchical class structure to conceptualize and organize your data processing so that data processing can be deployed on a massive scale. The methodology on it's own is powerful in its own right and does not require use of the dmanage_ package; however, the package provides tools to make coding **easy**!
+There are many aspects to the philosophy, but the crux of it is based on the data hierarchy. The hierarchy currently consists of two levels: the data unit and data group levels. Usually, the data unit represents one simulation/experimental run, but it can be defined in any way that suites the problem. The data group consists of multiple data units. Usually, the data group represents simulation/experimental sweeps. The D-Manage approach allows users to focus on processing the data unit, and dmanage automatically can deploy the methods to the entire data group efficiently. Other aspects of the philosophy focus on best practices and tools/components to aid in processing data efficiently, like parallel processing, caching data, and remote data access. The basics steps for the methodology are given below.
+
+#. Generate Data
+
+   Generate the data and store following D-Manage guidelines. The actual data of the unit can be a file or directory that contains the data. 
+
+#. Create DataUnit
+
+   Create a DataUnit (DU) object that can read and process all simulation/experimental data from one run. The user develops this code for their specification. D-Manage provides best practices and components to help make the DataUnit object.
+
+#. Create DataGroup
+
+   Use dmanage to convert the DataUnit into a DataGroup object automatically. Now the DataGroup object can identify all data units within the directory scope, apply DataUnit methods to each unit, and collect the results in one place. In this way, access to the raw data is readily available and a summary of all the data can be generated for application of machine learning methods.  
+
 
 D-Manage as a Community
 -----------------------

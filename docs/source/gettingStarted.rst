@@ -22,7 +22,7 @@ Often a python virtual environment is desired. Use Anaconda_ or venv_ to do this
 Simple Hierarchy
 ----------------
 
-Take a look here for the tutorial. This example generates the data and shows how to read and process simple csv files. This tutorial was made in Jupyter Notebooks, so you  can follow along there. The pure Python package is available for download in the examples section. 
+Take a look here for the tutorial. This example generates the data and shows how to read and process simple csv files. This tutorial was made in Jupyter Notebooks, so you can follow along there. The pure Python package is available for download in the examples section. 
 
 
 Templates

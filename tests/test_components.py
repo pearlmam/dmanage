@@ -3,23 +3,26 @@
 import testObjects
 import warnings
 import time
-from dmanage.strata.components import ZarrCache, ParquetCache
-
+from dmanage.strata.components import ZarrCache, ParquetCache,JSONCache
+import pytest
 warnings.filterwarnings("ignore",
     message="Consolidated metadata is currently not part",
     category=UserWarning)
 
 zarrLoc = 'cache.zarr'
 parquetLoc = 'cache.parq'
+jsonLoc = 'cache.json'
 
 class TestHardCache:
     def __init__(self,cacheType,compression = "snappy",debug=False):
         self.cacheType = cacheType
         if cacheType == 'zarr':
             self.hardCache = ZarrCache(zarrLoc)
-        else:
+        elif cacheType == 'parquet':
             compression = compression
             self.hardCache = ParquetCache(parquetLoc,compression=compression,debug=debug)
+        else:
+            self.hardCache = JSONCache(jsonLoc,debug=debug)
     def test_df_write_read(self):
         DU = testObjects.MyDataUnit()
         N = 3
@@ -41,7 +44,27 @@ class TestHardCache:
         for i in range(0,N):
             df = self.hardCache.get('seriesVariant%d'%i)
             assert all(df == dfs[i])
-            
+    
+    def test_primitive_write_read(self):
+        N = 3
+        for i in range(0,N):
+            self.hardCache.save(i,'primitiveVariant%d'%i)
+        for i in range(0,N):
+            value = self.hardCache.get('primitiveVariant%d'%i)
+            assert value == i
+    
+    def test_container_write_read(self):
+        values = [[0,1,2,3],(0,11,22,33)]
+        for i,value in enumerate(values):
+            self.hardCache.save(value,'containerVariant%d'%i)
+        for i in range(0,len(values)):
+            value = self.hardCache.get('containerVariant%d'%i)
+            assert value == values[i]
+        self.hardCache.save(values,'containerVariants')
+        with pytest.raises(AssertionError):
+            # right now, nested tuples in lists gets saved as nested lists
+            assert values == self.hardCache.get('containerVariants')
+        
     def test_threading(self):
         DU = testObjects.MyDataUnit()
         N = 3
@@ -92,17 +115,20 @@ class TestHardCache:
         print("Done in %.2f seconds"%executionTime)
         
 if __name__ == "__main__":
-    # Test = TestHardCache(cacheType='zarr')
-    # Test.test_df_write_read()
-    # Test.test_series_write_read()
-    # Test.test_threading()
+    Test = TestHardCache(cacheType='zarr')
+    Test.test_df_write_read()
+    Test.test_series_write_read()
+    Test.test_threading()
     
     Test = TestHardCache(cacheType='parquet',compression='snappy')
     Test.test_df_write_read()
     Test.test_series_write_read()
     Test.test_threading()
     
-    
+    Test = TestHardCache(cacheType='json')
+    Test.test_primitive_write_read()
+    Test.test_container_write_read()
+    # # Test.test_threading()
     
     
     

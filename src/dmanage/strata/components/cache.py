@@ -5,12 +5,14 @@ import threading
 import shutil
 
 import atexit
-from dmanage.utils.objinfo import is_iterable
+from dmanage.utils.objinfo import is_iterable,is_primitive
+
 from pathlib import Path
 from dataclasses import dataclass
+import json
 
 
-__all__ = ["HardCache", "ParquetCache", "ZarrCache", "SoftCache", "Summary"]
+__all__ = ["HardCache", "ParquetCache", "ZarrCache", "JSONCache", "SoftCache", "Summary"]
 
 class SoftCache(dict):
     """This is a dict-like component used for storing data
@@ -126,12 +128,38 @@ class HardCache:
         
 @dataclass(frozen=True)
 class GroupInfo:
+    """This may be used for unified cache to dispatch appropriate caching method...
+    """
     path: Path
     ext: str
     
     def file(self,name: str) -> Path:
         return self.path / f"{name}.{self.ext}"
-    
+  
+# define supported types
+# self.groups = {
+#     'DataFrame':GroupInfo(
+#         path = self.path / 'dfs/',
+#         ext = 'par',
+#         ),
+#     'Series':GroupInfo(
+#         path = self.path / 'series/',
+#         ext = 'par',
+#         ),
+#     'array':GroupInfo(
+#         path = self.path / 'arrays/',
+#         ext = 'par',
+#         ),
+#     'primitive':GroupInfo(
+#         path = self.path / 'primitives/',
+#         ext = 'json',
+#         ),
+#     'container':GroupInfo(
+#         self.path / 'containers/',
+#         ext = 'json',
+#         )
+#     }
+  
 class ParquetCache(HardCache):
     """
     this needs to block reads until write is finished: No inherit blocking.
@@ -148,47 +176,29 @@ class ParquetCache(HardCache):
         
         self.compression = compression
         self.debug = debug
-        # define supported types
         self.groups = {
-            'DataFrame':GroupInfo(
-                path = self.path / 'dfs/',
-                ext = 'par',
-                ),
-            'Series':GroupInfo(
-                path = self.path / 'series/',
-                ext = 'par',
-                ),
-            'array':GroupInfo(
-                path = self.path / 'arrays/',
-                ext = 'par',
-                ),
-            'literal':GroupInfo(
-                path = self.path / 'literals/',
-                ext = 'json',
-                ),
-            'container':GroupInfo(
-                self.path / 'containers/',
-                ext = 'json',
-                )
+            'DataFrame':self.path / 'dfs/',
+            'Series':self.path / 'series/',
+            'array':self.path / 'arrays/'
             }
-
+                
+            
     def keys(self,kind='all'):
         """Gets the keys of data of type 'kind'"""
         if kind == "all":
             out = {}
             for k in self.groups:
-                path = self.groups[k].path
+                path = self.groups[k]
                 if not path.exists():
                     out[k] = []
                     continue
-                ext = self.groups[k].ext
-                out[k] = [p.stem for p in path.glob(f"*{ext}")]
+                out[k] = [p.stem for p in path.glob("*.par")]
             return out
         
-        path = self.path / self.groups[kind]
+        path = self.groups[kind]
         if not path.exists():
             return []
-        return [p.stem for p in path.glob(".%s"%self.exts[kind])]
+        return [p.stem for p in path.glob("*.par")]
     
     def keys_flat(self):
         flat = {}
@@ -215,9 +225,9 @@ class ParquetCache(HardCache):
             compression = self.compression
         #print('writing %s'%name)
         if isinstance(data,(pd.core.frame.DataFrame)):
-            writePath = self.groups['DataFrame'].file(name)
+            writePath = self._path( name, 'DataFrame')
         elif isinstance(data,pd.core.series.Series):
-            writePath = self.groups['Series'].file(name)
+            writePath = self._path( name, 'Series')
             if data.name is None:
                 data.name = 'data'
             data = data.to_frame()
@@ -230,6 +240,10 @@ class ParquetCache(HardCache):
         os.replace(tmpPath, writePath)
         if self.debug: print("Done with: '%s'"%name)  
         
+    def _path(self, name, grp):
+        base = self.groups[grp] 
+        return base / f"{name}.par"   
+    
     def remove(self,name):
         """needs implementation"""
         grp = self.keys_flat().get(name,None)
@@ -249,14 +263,116 @@ class ParquetCache(HardCache):
             else:
                 data = None
         elif grp == 'DataFrame':
-            data = pd.read_parquet(self.groups[grp].file(name))
+            data = pd.read_parquet(self._path(name, grp))
         elif grp == 'Series':
-            data = pd.read_parquet(self.groups[grp].file(name))
+            data = pd.read_parquet(self._path(name, grp))
             data = data.iloc[:,0]
         else:
             data = None
             # raise Exception("No '%s' in keys and method=None, Define method to generate and hard cache the data."%(name))
         return data
+    
+    
+    
+class JSONCache(HardCache):
+    def __init__(self,path='./cache.json',debug=False):
+        super().__init__(path)
+        self.debug = debug
+        self.groups = {
+            'primitive':self.path / "primitive",
+            'container':self.path / "container"
+            }
+        
+        self.groups['primitive'].mkdir(parents=True, exist_ok=True)
+        self.groups['container'].mkdir(parents=True, exist_ok=True)
+    
+    def keys(self,kind='all'):
+        """Gets the keys of data of type 'kind'"""
+        if kind == "all":
+            out = {}
+            for k in self.groups:
+                path = self.groups[k]
+                if not path.exists():
+                    out[k] = []
+                    continue
+                out[k] = [p.stem for p in path.glob(f"*.json")]
+            return out
+        
+        path = self.groups[kind]
+        if not path.exists():
+            return []
+        return [p.stem for p in path.glob(".%s"%self.exts[kind])]
+    
+    def keys_flat(self):
+        flat = {}
+        grouped = self.keys(kind="all")
+    
+        for kind, keys in grouped.items():
+            for key in keys:
+                if key in flat:
+                    raise ValueError(
+                        f"Key '{key}' exists in multiple kinds: "
+                        f"{flat[key]} and {kind}"
+                    )
+                flat[key] = kind
+        return flat
+    
+    def _save(self,data,name):
+        payload, kind = self.encode(data)
+        path = self._path(name, kind)
+        tmp = path.with_suffix(".json.tmp")
+    
+        with tmp.open("w") as f:
+            json.dump(payload, f, indent=2)
+        tmp.replace(path)
+    
+    def get(self,name,method=None,*args,**kwargs):
+        if self.debug: print("Getting '%s'"%name)
+        grp = self.keys_flat().get(name,None)   # return None if not in keys
+        if grp is None:
+            if method is not None:
+                data = method(*args, **kwargs)
+                self.save(data)
+            else:
+                data = None
+        elif grp is not None:
+            base = self.groups[grp]
+            path = base / f"{name}.json"
+            with path.open() as f:
+                data = self.decode(json.load(f))
+        else:
+            data = None
+            # raise Exception("No '%s' in keys and method=None, Define method to generate and hard cache the data."%(name))
+        return data
+    
+    def _path(self, name, kind):
+        base = self.groups[kind]
+        return base / f"{name}.json"   
+    
+    def encode(self,obj):
+        if is_primitive(obj) or obj is None:
+            return obj, "primitive"
+    
+        if isinstance(obj, tuple):
+            return {"__type__": "tuple", "value": list(obj)}, "container"
+    
+        if isinstance(obj, set):
+            return {"__type__": "set", "value": list(obj)}, "container"
+    
+        if isinstance(obj, (list, dict)):
+            return obj, "container"
+    
+        raise TypeError(f"JSON cannot encode {type(obj)}")
+        
+    def decode(self,obj):
+        if isinstance(obj, dict) and "__type__" in obj:
+            t = obj["__type__"]
+            if t == "tuple":
+                return tuple(obj["value"])
+            if t == "set":
+                return set(obj["value"])
+        return obj
+    
 
 class ZarrCache(HardCache):
     """This is a component that stores data in an zarr file on the disk
@@ -422,13 +538,13 @@ class Summary():
 if __name__ == "__main__":
     def costlyMethod():
         return (3,4)
-    Cache = SoftCache()
-    Cache.update({'a':1,'b':2})
-    Cache.get(('c','d'),costlyMethod)
-    print(Cache)
-    value = Cache.get(('c',None),costlyMethod)
-    print(value)
-    print(Cache)
+    # Cache = SoftCache()
+    # Cache.update({'a':1,'b':2})
+    # Cache.get(('c','d'),costlyMethod)
+    # print(Cache)
+    # value = Cache.get(('c',None),costlyMethod)
+    # print(value)
+    # print(Cache)
     # Sum = Summary(path='./processed/summary.h5')
     # a = {'var1':2.2,'var2':'red'}
     # Sum.add(a)
@@ -440,5 +556,11 @@ if __name__ == "__main__":
     # data = Sum.read()
     # print('Read data: \n%s\n\nData Types:\n%s'%(data,data.dtypes))
     
-
+    Cache = JSONCache()
+    Cache.save(3, 'three')
+    Cache.save(((186, 462), (1805, 462)), 'activeRegion')
+    
+    value = Cache.get('activeRegion')
+    print(Cache.keys())
+    print(Cache.keys_flat())
 

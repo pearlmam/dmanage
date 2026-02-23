@@ -63,6 +63,7 @@ local_test/
 *.csv
 *.zarr
 *.parq
+*.json
 
 
 # openMDAO output

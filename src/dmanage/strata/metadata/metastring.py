@@ -35,7 +35,11 @@ def smartString(val,numDecimals=3):
 
 def compose(dataStruct, equiv='-', sep='_', order=False,format=None,numDecimals=3):
     outString = ''
-    if type(dataStruct) is dict:
+    if isinstance(dataStruct, pd.core.frame.DataFrame):
+        dataStruct = dataStruct.iloc[0].to_dict()
+    elif isinstance(dataStruct, pd.core.frame.Series):
+        dataStruct = dataStruct.to_dict()
+    if isinstance(dataStruct, dict):
         if order: keys = natsort.natsorted(list(dataStruct.keys()))
         else: keys = list(dataStruct.keys())
         for key in keys:

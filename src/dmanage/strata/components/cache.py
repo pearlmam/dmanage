@@ -81,38 +81,48 @@ class HardCache:
         """writen by child"""
         pass
     
-    def get(self):
+    def _get(self):
         """writen by child"""
         pass
     
-    def save(self,data,name,compression=None, thread=False):
+    def get(self,key):
+        """returns dict if list-like, else return value"""
+        if isinstance(key,(tuple,list)):
+            result = {}
+            for k in key:
+                result[k] = self._get(k)
+            return result
+        else:
+            return self._get(key)
+    
+    def save(self,data,key,compression=None, thread=False):
         """Calls self._save() defined be baseclass
         
         Use the following code if thread check is neccessary:
-            self._checkThreads(name)
-            super().save(data,name,compression=compression,thread=thread)
+            self._checkThreads(key)
+            super().save(data,key,compression=compression,thread=thread)
         
         """
         if thread:
-            kwargs={'data':data,'name':name,'compression':compression}
+            kwargs={'data':data,'key':key,'compression':compression}
             t = threading.Thread(target=self._save,kwargs=kwargs)
-            self._threads[name] = t
+            self._threads[key] = t
             t.start()
         else:
-            self._save(data,name)
+            self._save(data,key)
             
-    def _save(self,data,name,compression=None):
+    def _save(self,data,key,compression=None):
         """writen by child"""
         pass
     
-    def _checkThreads(self,name):
+    def _checkThreads(self,key):
         """patiently waits for thread to finish writing before return
         currently no way to kill write thread.
         """
-        if name in self._threads:
-            t = self._threads[name]
+        if key in self._threads:
+            t = self._threads[key]
             t.join()
-            self._threads.pop(name)
+            self._threads.pop(key)
     
     def flush(self):
         for key in self._threads:
@@ -123,6 +133,10 @@ class HardCache:
         if os.path.exists(self.path):
             shutil.rmtree(self.path)
     
+    def duplicate(self,dst):
+        """duplicate the cache to another location"""
+        return shutil.copytree(self.path, dst)
+     
     def __exit__(self):
         self.flush()
         
@@ -133,8 +147,8 @@ class GroupInfo:
     path: Path
     ext: str
     
-    def file(self,name: str) -> Path:
-        return self.path / f"{name}.{self.ext}"
+    def file(self,key: str) -> Path:
+        return self.path / f"{key}.{self.ext}"
   
 # define supported types
 # self.groups = {
@@ -214,20 +228,20 @@ class ParquetCache(HardCache):
                 flat[key] = kind
         return flat
     
-    def save(self,data,name,compression=None, thread=False):
-        self._checkThreads(name)
-        super().save(data,name,compression=compression,thread=thread)
-        # super()._save(data,name,compression=None)
+    def save(self,data,key,compression=None, thread=False):
+        self._checkThreads(key)
+        super().save(data,key,compression=compression,thread=thread)
+        # super()._save(data,key,compression=None)
     
-    def _save(self,data,name,compression=None):
-        if self.debug: print("Writing '%s'"%name)
+    def _save(self,data,key,compression=None):
+        if self.debug: print("Writing '%s'"%key)
         if compression is None:
             compression = self.compression
-        #print('writing %s'%name)
+        #print('writing %s'%key)
         if isinstance(data,(pd.core.frame.DataFrame)):
-            writePath = self._path( name, 'DataFrame')
+            writePath = self._path( key, 'DataFrame')
         elif isinstance(data,pd.core.series.Series):
-            writePath = self._path( name, 'Series')
+            writePath = self._path( key, 'Series')
             if data.name is None:
                 data.name = 'data'
             data = data.to_frame()
@@ -238,24 +252,24 @@ class ParquetCache(HardCache):
         # path.parent.mkdir(parents=True, exist_ok=True)
         data.to_parquet(tmpPath,compression=compression)
         os.replace(tmpPath, writePath)
-        if self.debug: print("Done with: '%s'"%name)  
+        if self.debug: print("Done with: '%s'"%key)  
         
-    def _path(self, name, grp):
+    def _path(self, key, grp):
         base = self.groups[grp] 
-        return base / f"{name}.par"   
+        return base / f"{key}.par"   
     
-    def remove(self,name):
+    def remove(self,key):
         """needs implementation"""
-        grp = self.keys_flat().get(name,None)
+        grp = self.keys_flat().get(key,None)
         if grp is not None:
-            os.remove(self.groups[grp].file(name))
+            os.remove(self.groups[grp].file(key))
         else:
-            raise Warning("No '%s' in Hard Cache, ignoring... Availiable keys: %s"%(name,self.keys()))
+            raise Warning("No '%s' in Hard Cache, ignoring... Availiable keys: %s"%(key,self.keys()))
         
-    def get(self,name,method=None,*args,**kwargs):
-        self._checkThreads(name)
-        if self.debug: print("Getting '%s'"%name)
-        grp = self.keys_flat().get(name,None)   # return None if not in keys
+    def _get(self,key,method=None,*args,**kwargs):
+        self._checkThreads(key)
+        if self.debug: print("Getting '%s'"%key)
+        grp = self.keys_flat().get(key,None)   # return None if not in keys
         if grp is None:
             if method is not None:
                 data = method(*args, **kwargs)
@@ -263,13 +277,13 @@ class ParquetCache(HardCache):
             else:
                 data = None
         elif grp == 'DataFrame':
-            data = pd.read_parquet(self._path(name, grp))
+            data = pd.read_parquet(self._path(key, grp))
         elif grp == 'Series':
-            data = pd.read_parquet(self._path(name, grp))
+            data = pd.read_parquet(self._path(key, grp))
             data = data.iloc[:,0]
         else:
             data = None
-            # raise Exception("No '%s' in keys and method=None, Define method to generate and hard cache the data."%(name))
+            # raise Exception("No '%s' in keys and method=None, Define method to generate and hard cache the data."%(key))
         return data
     
     
@@ -317,18 +331,18 @@ class JSONCache(HardCache):
                 flat[key] = kind
         return flat
     
-    def _save(self,data,name):
+    def _save(self,data,key):
         payload, kind = self.encode(data)
-        path = self._path(name, kind)
+        path = self._path(key, kind)
         tmp = path.with_suffix(".json.tmp")
     
         with tmp.open("w") as f:
             json.dump(payload, f, indent=2)
         tmp.replace(path)
     
-    def get(self,name,method=None,*args,**kwargs):
-        if self.debug: print("Getting '%s'"%name)
-        grp = self.keys_flat().get(name,None)   # return None if not in keys
+    def _get(self,key,method=None,*args,**kwargs):
+        if self.debug: print("Getting '%s'"%key)
+        grp = self.keys_flat().get(key,None)   # return None if not in keys
         if grp is None:
             if method is not None:
                 data = method(*args, **kwargs)
@@ -337,17 +351,17 @@ class JSONCache(HardCache):
                 data = None
         elif grp is not None:
             base = self.groups[grp]
-            path = base / f"{name}.json"
+            path = base / f"{key}.json"
             with path.open() as f:
                 data = self.decode(json.load(f))
         else:
             data = None
-            # raise Exception("No '%s' in keys and method=None, Define method to generate and hard cache the data."%(name))
+            # raise Exception("No '%s' in keys and method=None, Define method to generate and hard cache the data."%(key))
         return data
     
-    def _path(self, name, kind):
+    def _path(self, key, kind):
         base = self.groups[kind]
-        return base / f"{name}.json"   
+        return base / f"{key}.json"   
     
     def encode(self,obj):
         if is_primitive(obj) or obj is None:
@@ -400,44 +414,44 @@ class ZarrCache(HardCache):
         """Gets the keys of the availiable data"""
         return list(self.root.group_keys())
              
-    def save(self,data,name,thread=False):
+    def save(self,data,key,thread=False):
         """No thread check neccessary because zarr will just stop other thread and overwrite"""
         if thread:
-            kwargs={'data':data,'name':name}
+            kwargs={'data':data,'key':key}
             t = threading.Thread(target=self._save,kwargs=kwargs)
-            self._threads[name] = t
+            self._threads[key] = t
             t.start()
         else:
-            self._save(data,name)
+            self._save(data,key)
     
-    def _save(self,data,name):
+    def _save(self,data,key):
         """ Called from HardCache.save()
         No thread check neccessary because zarr will just stop other thread and overwrite"""
-        #print('writing %s'%name)
+        #print('writing %s'%key)
         if isinstance(data,(pd.core.frame.DataFrame)):
             xs = data.to_xarray()
             xs.attrs['dtype'] = 'DataFrame'
         elif isinstance(data,pd.core.series.Series):
             xs = data.to_xarray()
-            xs = xs.to_dataset(name=getattr(xs,name,'data'))
+            xs = xs.to_dataset(name=getattr(xs,key,'data'))
             xs.attrs['dtype'] = 'Series'
-        xs.to_zarr(store=self.path,group=name, mode="w", consolidated=True)
+        xs.to_zarr(store=self.path,group=key, mode="w", consolidated=True)
             
-    def remove(self,name):
-        if name in self.root:
-            del self.root[name]
+    def remove(self,key):
+        if key in self.root:
+            del self.root[key]
         else:
-            raise Warning("No '%s' in Hard Cache, ignoring... Availiable keys: %s"%(name,self.keys()))
+            raise Warning("No '%s' in Hard Cache, ignoring... Availiable keys: %s"%(key,self.keys()))
         
-    def get(self,name,method=None,*args,**kwargs):
+    def _get(self,key,method=None,*args,**kwargs):
         """
         zarr inherently has read blocking until done writing, but if the read is too soon,
         It will get corrupted data; thats why thread checking is performed here.
         """
         
-        self._checkThreads(name)
-        if name in self.root:
-            grp = self.root[name]
+        self._checkThreads(key)
+        if key in self.root:
+            grp = self.root[key]
             if grp.attrs.get("dtype") == 'DataFrame':
                 data = self._xr.open_zarr(store=grp.store,group=grp.path)
                 data = data.to_dataframe()
@@ -451,7 +465,7 @@ class ZarrCache(HardCache):
             self.save(data)
         else:
             data = None
-            # raise Exception("No '%s' in keys and method=None, Define method to generate and hard cache the data."%(name))
+            # raise Exception("No '%s' in keys and method=None, Define method to generate and hard cache the data."%(key))
         return data
 
 class Summary():

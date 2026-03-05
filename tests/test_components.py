@@ -106,8 +106,8 @@ class TestHardCache:
         for i in range(0,N):
             dfs.append(DU.gen_DataFrame(i,size=size))
             self.hardCache.save(dfs[i],'dfLarge%d'%i,thread=thread)
-
-        assert all(self.hardCache.get('seriesLarge0') == seriess[0])
+        # print(self.hardCache.get('seriesLarge0')) 
+        assert all(self.hardCache.get('seriesLarge0') == seriess[0]) # assertion error here with zarr sometimes
         assert all(self.hardCache.get('seriesLarge1') == seriess[1])
         assert all(self.hardCache.get('seriesLarge2') == seriess[2])  # this needs to wait
         self.hardCache.flush()
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     Test = TestHardCache(cacheType='json')
     Test.test_primitive_write_read()
     Test.test_container_write_read()
-    # # Test.test_threading()
+    # Test.test_threading()
     
     
     

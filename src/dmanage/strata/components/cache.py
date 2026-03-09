@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import threading
 import shutil
+import filecmp
 
 import atexit
 from dmanage.utils.objinfo import is_iterable,is_primitive
@@ -101,7 +102,7 @@ class HardCache:
         Use the following code if thread check is neccessary:
             self._checkThreads(key)
             super().save(data,key,compression=compression,thread=thread)
-        
+        ??? Do I want to make this handle lists of data and keys???
         """
         if thread:
             kwargs={'data':data,'key':key,'compression':compression}
@@ -133,9 +134,28 @@ class HardCache:
         if os.path.exists(self.path):
             shutil.rmtree(self.path)
     
-    def duplicate(self,dst):
+    
+    
+    def duplicate(self,dst,protect=True):
         """duplicate the cache to another location"""
+        dst = Path(dst)
+        if dst.exists():
+            if compare_dirs(self.path, dst,shallow=True):   # this compares the actual contents of the Cache
+                # metadatas are identical so do  nothing
+                return
+            elif protect:
+                # local metadata is protected, so raise error
+                errormsg = (
+                    "metadata already exists in path: '%s', "%dst +
+                    "to overwrite, set 'protect=False'"
+                    )
+                raise FileExistsError(errormsg)
+            else:
+                # metadata is unprotected, so delete data
+                shutil.rmtree(dst)
+        # data doesnt exist or is unprotected
         return shutil.copytree(self.path, dst)
+
      
     def __exit__(self):
         self.flush()
@@ -546,6 +566,82 @@ class Summary():
         #                 if debug:
         #                     print('Unable to Coerce %s  to Dataframe'%(col))
         return data
+
+
+######## helper
+# class dircmp(filecmp.dircmp):
+#     """
+#     Workaround for Python 3.12 and below
+#     Compare the content of dir1 and dir2. In contrast with filecmp.dircmp, this
+#     subclass compares the content of files with the same path.
+#     """
+#     def phase3(self):
+#         """
+#         Find out differences between common files.
+#         Ensure we are using content comparison with shallow=False.
+#         """
+#         fcomp = filecmp.cmpfiles(self.left, self.right, self.common_files,
+#                                  shallow=False)
+#         self.same_files, self.diff_files, self.funny_files = fcomp
+
+
+def compare_dirs(dir1, dir2,shallow=True):
+    """
+    Compare two directory trees content.
+    Return False if they differ, True is they are the same.
+    """
+    # compared = dircmp(dir1, dir2)  # I think this is uneeded with python 3.13+
+    compared = filecmp.dircmp(dir1, dir2,shallow=shallow)
+    if (compared.left_only or compared.right_only or compared.diff_files 
+        or compared.funny_files):
+        return False
+    for subdir in compared.common_dirs:
+        if not compare_dirs(os.path.join(dir1, subdir), os.path.join(dir2, subdir),shallow=shallow):
+            return False
+    return True
+
+# def compare_dirs(dir1, dir2, shallow=False):
+#     """
+#     Fast recursive directory comparison. from chatGPT
+#     Returns True if directories are identical, False otherwise.
+#     """
+
+#     stack = [(dir1, dir2)]
+
+#     while stack:
+#         d1, d2 = stack.pop()
+
+#         try:
+#             entries1 = set(os.listdir(d1))
+#             entries2 = set(os.listdir(d2))
+#         except OSError:
+#             return False
+
+#         # different directory contents
+#         if entries1 != entries2:
+#             return False
+
+#         for name in entries1:
+#             p1 = os.path.join(d1, name)
+#             p2 = os.path.join(d2, name)
+
+#             if os.path.isdir(p1):
+#                 if not os.path.isdir(p2):
+#                     return False
+#                 stack.append((p1, p2))
+
+#             else:
+#                 if not os.path.isfile(p2):
+#                     return False
+
+#                 # if not filecmp.cmp(p1, p2, shallow=shallow):
+#                 #     return False
+#                 if not filecmp.cmp(p1, p2, shallow=True):
+#                     # check the file 
+#                     if not filecmp.cmp(p1, p2, shallow=False):
+#                         return False
+
+#     return True
 
 
 

@@ -74,11 +74,12 @@ def numpy_to_df(array, bounds, colName='value', inplace=False):
     """
     if type(colName) is not list: colName = [colName]
     s = array.shape 
-    
-          
     iNames = list(bounds.keys())
     vals = [v for k,v in bounds.items()]
-    index = pd.MultiIndex.from_product(vals, names=iNames[0:len(s)])
+    if len(s) > 1:
+        index = pd.MultiIndex.from_product(vals, names=iNames[0:len(s)])
+    else:
+        index = pd.Index(vals[0],name=iNames[0])
     
     DF = pd.DataFrame({colName[0]: array.flatten()}, index=index)
     DF.columns=colName

@@ -64,7 +64,7 @@ def compose(dataStruct, equiv='-', sep='_', order=False,format=None,numDecimals=
 # ??? this also can only handle number values, need to include strings.
 # ??? should return DF
 
-def parse(files, checkVars=None, equiv='-', sep='_', nc=1):
+def parse(files, checkVars=None, equiv='-', sep='_',asstring=False, nc=1):
     """ Description
     this parses through the filename to get variable values
 
@@ -91,13 +91,13 @@ def parse(files, checkVars=None, equiv='-', sep='_', nc=1):
     
     if not is_iterable(files): files = [files]
     parse_filename_ = parallelize_iterator_method(_parse)
-    DF = parse_filename_(files,checkVars, equiv=equiv, sep=sep,nc=nc)
+    DF = parse_filename_(files,checkVars, equiv=equiv, sep=sep,asstring=asstring,nc=nc)
     if type(DF) is list:
         DF = pd.concat(DF).reset_index(drop=True)
     return DF
 
 
-def _parse(file, checkVars=None, equiv='-', sep='_'):
+def _parse(file, checkVars=None, equiv='-', sep='_',asstring=False):
     """ Description
     this parses through the filename to get variable values
 
@@ -148,7 +148,7 @@ def _parse(file, checkVars=None, equiv='-', sep='_'):
                 value = re.findall(matchNumber, valueStr)  # get value without units (if units exist)
             
             if (checkVars is None) or (col in checkVars):
-                if len(value) == 0:     # the value is a string
+                if len(value) == 0 or asstring:     # the value is a string
                     DF[col] = [valueStr]
                 else:    # the value has a number in it, we hope it is a number and not 'value1'
                     # add units if they exist ???

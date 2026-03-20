@@ -492,10 +492,17 @@ class Summary():
     """This manages summary data in RAM and on the disk
     """
     def __init__(self,path='./processed/summary.csv'):
+        
+        path = Path(path)
+        if path.suffix in ['.csv','.h5','xlsx']:
+            self.filetype = path.suffix[1:]
+        else:
+            self.filetype = 'csv'
+            path = path / 'summary.csv'
+          
         self.path = path
-        self.loc = os.path.dirname(path)
+        self.loc = path.parent
         self.data = pd.DataFrame()
-        self.filetype = path.split('.')[-1]
         
     def add(self, data):
         if type(data) is dict:
@@ -522,14 +529,14 @@ class Summary():
     
     def save(self,ow=True):
         filetype = self.filetype
-        if not os.path.exists(self.loc):
+        if not self.loc.is_dir():
             os.mkdir(self.loc)
         if not ow:
             data = self.read(warn=False)
             self.data = pd.concat([self.data.reset_index(drop=True),data.reset_index(drop=True)],axis=1,ignore_index=False)
             self.data = self.data.loc[:,~self.data.columns.duplicated(keep='last')]
             
-        if filetype == 'excel':
+        if filetype == 'xlsx':
             self.data.to_excel(self.path)
         elif filetype == 'h5' or filetype == 'hdf':
             self.data.to_hdf(self.path,key='summary') 
@@ -539,7 +546,7 @@ class Summary():
     def read(self, warn=False):
         filetype = self.filetype
         if os.path.exists(self.path):
-            if filetype == 'excel':
+            if filetype == 'xlsx':
                 data = pd.read_excel(self.path)
             elif filetype == 'h5' or filetype == 'hdf':
                 data = pd.read_hdf(self.path,key='summary') 

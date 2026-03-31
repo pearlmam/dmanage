@@ -62,7 +62,7 @@ class DataUnit(PurePython):
         None.
 
         """
-        super().__init__(dataPath)   # ??? do I want to have to make a component assembler?
+        super().__init__(dataPath,*args,**kwargs)   # ??? do I want to have to make a component assembler?
         # define attributes
         self.processedDir = 'processed/'
         self.unitType = (os.path.isdir(dataPath)*'dir' or os.path.isfile(dataPath)*'file'  or

@@ -9,7 +9,7 @@ from pathlib import Path
 from dmanage.strata.group import make_data_group
 from dmanage.strata.unit import make_data_unit
 from dmanage.strata.decorate import override
-from dmanage.strata.metadata import parse
+from dmanage.metadata import parse
 from dmanage.ops.backends.pandas import plot
 
 

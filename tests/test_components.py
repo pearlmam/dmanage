@@ -3,7 +3,7 @@
 import testObjects
 import warnings
 import time
-from dmanage.strata.components import ZarrCache, ParquetCache,JSONCache
+from dmanage.components import ZarrCache, ParquetCache,JSONCache
 import pytest
 warnings.filterwarnings("ignore",
     message="Consolidated metadata is currently not part",

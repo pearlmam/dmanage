@@ -11,7 +11,7 @@ import copy
 from dmanage.strata.group import make_data_group
 from dmanage.strata.unit import make_data_unit
 from dmanage.strata.decorate import override
-from dmanage.strata.metadata import compose
+from dmanage.metadata import compose
 
 
 def sineStep(t,risetime):

@@ -34,6 +34,8 @@ def smartString(val,numDecimals=3):
 
 
 def compose(dataStruct, equiv='-', sep='_', order=False,format=None,numDecimals=3):
+    if not isinstance(format,(list,tuple)):
+        format = [format]*len(dataStruct)
     outString = ''
     if isinstance(dataStruct, pd.core.frame.DataFrame):
         dataStruct = dataStruct.iloc[0].to_dict()
@@ -42,12 +44,12 @@ def compose(dataStruct, equiv='-', sep='_', order=False,format=None,numDecimals=
     if isinstance(dataStruct, dict):
         if order: keys = natsort.natsorted(list(dataStruct.keys()))
         else: keys = list(dataStruct.keys())
-        for key in keys:
+        for key,f in zip(keys,format):
             value = dataStruct[key]
-            if type(value) is not str and format is None:
+            if not isinstance(value,str) and f is None:
                 value = smartString(value,numDecimals)
-            elif format is not None:
-                value = format%value
+            elif not isinstance(value,str) and f is not None:
+                value = f%value
             outString = outString + key + equiv + value + sep
         
     elif type(dataStruct) is list:
@@ -157,14 +159,16 @@ def _parse(file, checkVars=None, equiv='-', sep='_',asstring=False):
 
 
 if __name__ == "__main__":
-    fileName = '/path/to/file/name_L-10mW_T--100C_exp-1ms_V--100.0e-3_ND-0_target-seeds/'
-    checkVars=['target','L','T','exp','ND']
+    # fileName = '/path/to/file/name_L-10mW_T--100C_exp-1ms_V--100.0e-3_ND-0_target-seeds/'
+    # checkVars=['target','L','T','exp','ND']
     
-    DF = parse(fileName, checkVars=None, nc=1)
-    print(DF)
-    fileNames = ['/path/to/file/name_L-10mW_T-2.0e-2_exp-1ms_V--100e-3_ND-0_target-seeds.tiff']*10
-    DF = parse(fileNames, checkVars=None, nc=1)
-    print(DF)
+    # DF = parse(fileName, checkVars=None, nc=1)
+    # print(DF)
+    # fileNames = ['/path/to/file/name_L-10mW_T-2.0e-2_exp-1ms_V--100e-3_ND-0_target-seeds.tiff']*10
+    # DF = parse(fileNames, checkVars=None, nc=1)
+    # print(DF)
 
+    a = {'var0':12e-3,'var1':12e-6}
     
-
+    b = compose(a,format='%.6f')
+    print(b)

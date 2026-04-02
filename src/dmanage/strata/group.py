@@ -91,10 +91,13 @@ class DataGroup(PurePython):
         self.ignoreDirs = [self.processedDir]
         if unitType == 'test':
             self.dataUnits = ['file-%02.d.test'%value for value in range(0,testN)]
-        elif unitType == 'dir':
-            self.dataUnits = self.get_dunits(baseDir, nc=nc)
+        # elif unitType == 'dir':
+        #     self.dataUnits = self.get_dunits(baseDir, nc=nc)
+        # else:
+        #     self.dataUnits = self.get_data_files(baseDir)
         else:
-            self.dataUnits = self.get_data_files(baseDir)
+            self.dataUnits = self.get_dunits(baseDir,unitType=unitType)
+        
             
         if len(self.dataUnits) == 0: raise Exception("There are no Data Directories in '%s'" % self.baseDir)
         self.dataUnits = natsort.natsorted(self.dataUnits)
@@ -179,49 +182,111 @@ class DataGroup(PurePython):
                 pass
         return sweepDirs
     
+
+    def _get_dunits(self, candidates, baseDir, unitType):
+        """
+        Processor: Filters candidates based on validity and ignore lists.
+        """
+        valid_units = []
+        base_path = Path(baseDir)
     
-    def _get_dunits(self, subDirs, baseDir):
-        """looped iterator method: returns list of valid sweep directories"""
-        sweepDirs = []
-        if type(subDirs) != list: subDirs = [subDirs]
-        for subDir in subDirs:
-            # print(root)
-            skip = False
-            for ignoreDir in self.ignoreDirs:
-                if Path(ignoreDir).name in Path(subDir).parts:
-                    skip = True
+        for item in candidates:
+            item_path = Path(item)
             
-            if self.is_valid(subDir) and not skip:
-                subDir = os.path.join(subDir,'')  # make sure it ends with '/' so that it knows its a directory.
-                sweepDirs.append(subDir.replace(baseDir,''))
-            else: 
-                pass
-        return sweepDirs
-       
-    def get_dunits(self, baseDir=None, nc=1):
+            # 1. Skip if any part of the path is in ignoreDirs
+            if any(part in self.ignoreDirs for part in item_path.parts):
+                continue
+    
+            # 2. Run your application-specific validation
+            if self.is_valid(item):
+                try:
+                    # Calculate relative path reliably
+                    rel_path = item_path.relative_to(base_path)
+                    
+                    # Format directories with trailing slash if requested
+                    if unitType == 'dir':
+                        output = str(rel_path) + os.sep
+                    else:
+                        output = str(rel_path)
+                    
+                    valid_units.append(output)
+                except ValueError:
+                    # Handle cases where item is not under baseDir
+                    continue
+                    
+        return valid_units
+    
+    def get_dunits(self, baseDir=None, unitType='dir', nc=1):
         """
-        parallel iterator method: returns list of valid sweep directories
-
-        Parameters
-        ----------
-        baseDir : TYPE, optional
-            DESCRIPTION. The default is None.
-        nc : TYPE, optional
-            DESCRIPTION. The default is 1.
-
-        Returns
-        -------
-        sweepDirs : TYPE
-            DESCRIPTION.
-
+        Orchestrator: Gathers candidates and triggers parallel processing.
         """
-        get_dunits_ = parallelize_looped_method(self._get_dunits, ncPass=False)
-        if type(baseDir) == type(None):
+        if baseDir is None:
             baseDir = self.baseDir
-        subDirs = list(list(zip(*os.walk(baseDir,followlinks=True)))[0])
-        sweepDirs = get_dunits_(subDirs,baseDir)
+        
+        # Prepare the parallel wrapper
+        get_dunits_wrapper = parallelize_looped_method(self._get_dunits, ncPass=False)
+    
+        candidates = []
+        
+        # Efficiently collect only what is needed based on unitType
+        for root, dirs, files in os.walk(baseDir, followlinks=True):
+            if unitType == 'dir':
+                candidates.append(root)
+            elif unitType == 'file':
+                for f in files:
+                    candidates.append(os.path.join(root, f))
+            else:
+                # Handle 'both' or custom logic if needed
+                candidates.append(root)
+                for f in files:
+                    candidates.append(os.path.join(root, f))
+    
+        # Chunk the candidates and process in parallel
+        return get_dunits_wrapper(candidates, baseDir, unitType)
+    
+    
+    # def _get_dunits(self, subDirs, baseDir,unitType):
+    #     """looped iterator method: returns list of valid sweep units"""
+    #     sweepDirs = []
+    #     if type(subDirs) != list: subDirs = [subDirs]
+    #     for subDir in subDirs:
+    #         # print(root)
+    #         skip = False
+    #         for ignoreDir in self.ignoreDirs:
+    #             if Path(ignoreDir).name in Path(subDir).parts:
+    #                 skip = True
+            
+    #         if self.is_valid(subDir) and not skip:
+    #             subDir = os.path.join(subDir,'')  # make sure it ends with '/' so that it knows its a directory.
+    #             sweepDirs.append(subDir.replace(baseDir,''))
+    #         else: 
+    #             pass
+    #     return sweepDirs
+       
+    # def get_dunits(self, baseDir=None, unitType='dir', nc=1):
+    #     """
+    #     parallel iterator method: returns list of valid sweep directories
 
-        return sweepDirs
+    #     Parameters
+    #     ----------
+    #     baseDir : TYPE, optional
+    #         DESCRIPTION. The default is None.
+    #     nc : TYPE, optional
+    #         DESCRIPTION. The default is 1.
+
+    #     Returns
+    #     -------
+    #     sweepDirs : TYPE
+    #         DESCRIPTION.
+
+    #     """
+    #     get_dunits_ = parallelize_looped_method(self._get_dunits, ncPass=False)
+    #     if type(baseDir) == type(None):
+    #         baseDir = self.baseDir
+    #     subDirs = list(list(zip(*os.walk(baseDir,followlinks=True)))[0])
+    #     sweepDirs = get_dunits_(subDirs,baseDir,unitType)
+
+    #     return sweepDirs
         
     def gen_basename(self, theInput, depth=10):
         """
@@ -362,7 +427,8 @@ class make_wrapper:
         """
         
         
-        du = self.base(dataUnit) 
+        du = self.base(
+            ) 
         # DD = super(self.__class__.__bases__[0],self).load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
         # DD = self.load(os.path.join(self.baseDir,dataUnit),iLevel='DU') 
         #print('loading DataUnit Method: %s.%s'%(self.component_name, self.method_name))

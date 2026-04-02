@@ -34,13 +34,15 @@ def smartString(val,numDecimals=3):
 
 
 def compose(dataStruct, equiv='-', sep='_', order=False,format=None,numDecimals=3):
-    if not isinstance(format,(list,tuple)):
-        format = [format]*len(dataStruct)
-    outString = ''
     if isinstance(dataStruct, pd.core.frame.DataFrame):
         dataStruct = dataStruct.iloc[0].to_dict()
     elif isinstance(dataStruct, pd.core.frame.Series):
         dataStruct = dataStruct.to_dict()
+        
+    if not isinstance(format,(list,tuple)):
+        format = [format]*len(dataStruct)
+    outString = ''
+    
     if isinstance(dataStruct, dict):
         if order: keys = natsort.natsorted(list(dataStruct.keys()))
         else: keys = list(dataStruct.keys())
@@ -123,7 +125,8 @@ def _parse(file, checkVars=None, equiv='-', sep='_',asstring=False):
         output2 = parseFilename(file=filenames, checkVars=['L','T','exp'])
         output2 = np.array([[10,100,1],[500,400,25]])
     """
-    
+    if not isinstance(sep,(list,tuple)):
+        sep = [sep]
     if (not is_iterable(checkVars)) and (checkVars is not None): checkVars = [checkVars]
     DF = pd.DataFrame()
     
@@ -132,10 +135,13 @@ def _parse(file, checkVars=None, equiv='-', sep='_',asstring=False):
         file_name = os.path.basename(os.path.dirname(file))
     else:
         
-        file_name = os.path.basename(file)
-        file_name, _ = os.path.splitext(file_name) # remove extension
-    #file_name = file_name.replace('.tiff','')
-    file_name = file_name.split(sep) # the data looks like [randomName, L-10000mW, T-100C, exp-100ms,ND-0 ]
+        # file_name = os.path.basename(file)
+        file_name, _ = os.path.splitext(file) # remove extension
+    # split string using regex
+    regex_pattern = '|'.join(map(re.escape, sep))
+    file_name = re.split(regex_pattern, file_name)
+    # file_name = file_name.split(sep) # the data looks like [randomName, L-10000mW, T-100C, exp-100ms,ND-0 ]
+    
     matchNumber = re.compile('-?\\ *[0-9]+\\.?[0-9]*(?:[Ee]\\ *-?\\ *[0-9]+)?')
     for part in file_name:
         if '-' in part:

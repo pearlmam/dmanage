@@ -12,6 +12,7 @@ import inspect
 import pandas as pd
 import natsort
 import functools
+import matplotlib as mpl
 
 from pathlib import Path
 
@@ -373,18 +374,24 @@ class make_wrapper:
         orArgs = du_func._kwargs
         ncPass = du_func._ncPass
         
-        # if orKind == 'plot':  # ??? to do
-        #     backEnd = mpl.get_backend()
-        #     mpl.use('agg')
-        #     # print(mp.current_process())
-        #     pid = os.getpid()
-        #     kwargs['fig'] = pid
+        if orKind == 'plot':  # ??? to do
+            
+            backend = mpl.get_backend()
+            mpl.use('agg')
+            pid = os.getpid()
+            # print(pid)
+            kwargs['fig'] = pid
     
         # elif orKind != 'default':
         #     varOverrideMethod = getattr(component,overrideKind)
         #     varValue = varOverrideMethod()
         #     kwargs[overrideKind] = varValue
+        
         result = du_func( *args, **kwargs )
+        
+        if orKind == 'plot':  # ??? to do
+            mpl.use(backend)
+
         return result
     
     def __call__(self,  *args, **kwargs):

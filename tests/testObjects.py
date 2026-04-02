@@ -2,10 +2,13 @@
 import numpy as np
 import pandas as pd
 import Pyro5.api
+# from matplotlib import pyplot as plt
+import os
 
+from dmanage.ops.dfmethods import plot
 from dmanage.parallel import parallelize_iterator_method
 from dmanage.strata import make_data_unit, make_data_group, override
-
+from dmanage.metadata import metastring
 
 def iteration_method(arg0):
     a = np.linspace(0,100,101)*arg0
@@ -75,6 +78,22 @@ class MyDataUnit(DataUnit):
         #print("nc=%d"%nc)
         func = parallelize_iterator_method(iteration_method)
         return func(arg0,nc=nc)
+    
+    @override('plot')
+    def plot(self,saveloc=None,fig=1):
+        if saveloc is None:
+            saveloc = './data/'
+        DF = self.gen_DataFrame(variant=1,size=100)
+        fig,ax = plot.plot1d(DF,fig=fig)
+        savename = 'testplot'
+        savetag = self.gen_tag()
+        os.makedirs(saveloc,exist_ok=True)
+        fig.savefig('%s%s_%s.png'%(saveloc,savename,savetag))
+        return fig,ax
+    
+    def gen_tag(self):
+        tag = '%03i'%metastring.parse(self.dataUnit,checkVars='file')['file'][0]
+        return tag
     
     @override()
     def gen_DataFrame(self,variant=0,size=10):
@@ -176,6 +195,9 @@ NewDataGroup = make_data_group(MyNewDataUnit)
 class MyNewDataGroup(NewDataGroup):
     def __init__(self,baseDir,unitType='test',**kwargs):
         super().__init__(baseDir,unitType='test',**kwargs)
+
+
+
 
 if __name__ == "__main__":
     DU1 = UnitSection1()

@@ -67,8 +67,14 @@ class TestAll(TestCase):
 
 
 if __name__ == "__main__":
-    test = TestAll()
-    test.test_dataUnit()
-    test.test_dataGroup()
+    # test = TestAll()
+    # test.test_dataUnit()
+    # test.test_dataGroup()
+    
+    # DU = MyDataUnit(dataPath)
+    # DU.plot()
+    DG = MyDataGroup(dataPath,unitType='test',testN=testN)
+    DG.plot(nc=4)
+    
     
     

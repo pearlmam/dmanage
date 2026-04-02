@@ -68,7 +68,7 @@ def compose(dataStruct, equiv='-', sep='_', order=False,format=None,numDecimals=
 # ??? this also can only handle number values, need to include strings.
 # ??? should return DF
 
-def parse(files, checkVars=None, equiv='-', sep='_',asstring=False, nc=1):
+def parse(files, checkVars=None, equiv='-', sep=['/','_'],asstring=False, nc=1):
     """ Description
     this parses through the filename to get variable values
 
@@ -101,7 +101,7 @@ def parse(files, checkVars=None, equiv='-', sep='_',asstring=False, nc=1):
     return DF
 
 
-def _parse(file, checkVars=None, equiv='-', sep='_',asstring=False):
+def _parse(file, checkVars=None, equiv='-', sep=['/','_'],asstring=False):
     """ Description
     this parses through the filename to get variable values
 
@@ -134,7 +134,6 @@ def _parse(file, checkVars=None, equiv='-', sep='_',asstring=False):
         # it's a directory and do not remove extension
         file_name = os.path.basename(os.path.dirname(file))
     else:
-        
         # file_name = os.path.basename(file)
         file_name, _ = os.path.splitext(file) # remove extension
     # split string using regex

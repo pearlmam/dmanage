@@ -74,7 +74,7 @@ if __name__ == "__main__":
     # DU = MyDataUnit(dataPath)
     # DU.plot()
     DG = MyDataGroup(dataPath,unitType='test',testN=testN)
-    DG.plot(nc=4)
+    DG.plot(nc=1)
     
     
     

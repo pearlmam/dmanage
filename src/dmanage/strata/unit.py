@@ -16,6 +16,8 @@ import inspect
 __all__ = ["make_data_unit"]
 
 class PurePython:
+    def __init__(self,dataPath,*args,**kwargs):
+        pass
     """
     Inheritance class to make DataUnit a pure python class, for __bases__ assignment in makeDataUnit()
     """
@@ -62,6 +64,7 @@ class DataUnit(PurePython):
         None.
 
         """
+        
         super().__init__(dataPath,*args,**kwargs)   # ??? do I want to have to make a component assembler?
         # define attributes
         self.processedDir = 'processed/'

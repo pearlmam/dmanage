@@ -11,8 +11,8 @@ class MyDataGroup(DataGroup):
     def __init__(self,grouppath):
         """open the data group. super().__init__ checks the path for data units
         """
-        dataUnitType = 'file'  # options: 'file' or 'dir'
-        super().__init__(grouppath,dataUnitType=dataUnitType)
+        unitType = 'file'  # options: 'file' or 'dir'
+        super().__init__(grouppath, unitType=unitType)
 
 if __name__ == "__main__":
     # group path

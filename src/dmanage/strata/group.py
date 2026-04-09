@@ -55,7 +55,7 @@ class DataGroup(PurePython):
     
     """
     
-    def __init__(self, baseDir, unitType='dir', nc=1,testN=100):
+    def __init__(self, baseDir, unitType='dir', nc=1,testN=100,*args,**kwargs):
         """
         
 
@@ -91,18 +91,16 @@ class DataGroup(PurePython):
         self.ignoreDirs = [self.processedDir]
         if unitType == 'test':
             self.dataUnits = ['file-%02.d.test'%value for value in range(0,testN)]
-        # elif unitType == 'dir':
-        #     self.dataUnits = self.get_dunits(baseDir, nc=nc)
-        # else:
-        #     self.dataUnits = self.get_data_files(baseDir)
-        else:
+        elif unitType in ['dir','file']:
             self.dataUnits = self.get_dunits(baseDir,unitType=unitType)
+        else:
+            raise Exception('Invalid unitType')
         
             
         if len(self.dataUnits) == 0: raise Exception("There are no Data Directories in '%s'" % self.baseDir)
         self.dataUnits = natsort.natsorted(self.dataUnits)
         # open one data directory to load any relevant DataUnit info
-        super().__init__(os.path.join(baseDir, self.dataUnits[0]))
+        super().__init__(os.path.join(baseDir, self.dataUnits[0]),*args,**kwargs)
         #self.baseDir = os.path.join(baseDir,'')   # overwrite baseDir again,
         
         self._wrap_methods()
@@ -242,7 +240,7 @@ class DataGroup(PurePython):
                     candidates.append(os.path.join(root, f))
     
         # Chunk the candidates and process in parallel
-        return get_dunits_wrapper(candidates, baseDir, unitType)
+        return get_dunits_wrapper(candidates, baseDir, unitType,nc=nc)
     
     
     # def _get_dunits(self, subDirs, baseDir,unitType):

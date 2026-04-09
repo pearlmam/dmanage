@@ -80,6 +80,9 @@ class DataUnit(PurePython):
             else:
                 self.baseDir = os.path.join(os.path.dirname(dataPath),'')
             self.resDir = self.baseDir+'processed/'
+      
+    # def is_valid(self,folder):
+    #     raise Exception("DataUnit must define 'is_valid()' method to check the validity of the data unit")
         
     @staticmethod
     def inheritance_level():

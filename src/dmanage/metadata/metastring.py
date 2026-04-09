@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import re
 import decimal
+from pathlib import Path
 
 from dmanage.utils.objinfo import is_iterable
 from dmanage.parallel import parallelize_iterator_method
@@ -125,17 +126,19 @@ def _parse(file, checkVars=None, equiv='-', sep=['/','_'],asstring=False):
         output2 = parseFilename(file=filenames, checkVars=['L','T','exp'])
         output2 = np.array([[10,100,1],[500,400,25]])
     """
+    file = Path(file)
     if not isinstance(sep,(list,tuple)):
         sep = [sep]
     if (not is_iterable(checkVars)) and (checkVars is not None): checkVars = [checkVars]
     DF = pd.DataFrame()
     
-    if os.path.basename(file) == '':
+    if file.is_dir():
         # it's a directory and do not remove extension
-        file_name = os.path.basename(os.path.dirname(file))
+        # file_name = os.path.basename(os.path.dirname(file))
+        file_name = str(file)
     else:
         # file_name = os.path.basename(file)
-        file_name, _ = os.path.splitext(file) # remove extension
+        file_name = str(file.parent / file.stem) # remove extension
     # split string using regex
     regex_pattern = '|'.join(map(re.escape, sep))
     file_name = re.split(regex_pattern, file_name)

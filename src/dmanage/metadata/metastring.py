@@ -35,7 +35,9 @@ def smartString(val,numDecimals=3):
 
 
 def compose(dataStruct, equiv='-', sep='_', order=False,format=None,numDecimals=3):
-    if isinstance(dataStruct, pd.core.frame.DataFrame):
+    if len(dataStruct)<1:
+        return ''
+    elif isinstance(dataStruct, pd.core.frame.DataFrame):
         dataStruct = dataStruct.iloc[0].to_dict()
     elif isinstance(dataStruct, pd.core.frame.Series):
         dataStruct = dataStruct.to_dict()

@@ -15,6 +15,8 @@ from testObjects import MyDataUnit,MyNewDataUnit
 from testObjects import MyDataGroup,MyNewDataGroup
 from testObjects import Parent
 
+from config import remoteModule
+
 """   Constants   """
 baseDir = '/path/to/baseDir/'
 dataPath = 'path.test'
@@ -29,7 +31,7 @@ objDG = 'MyDataGroup'
 objNDU = 'MyNewDataUnit'
 objNDG = 'MyNewDataGroup'
 localModule = file_path = os.path.splitext(os.path.realpath(__file__))[0]
-remoteModule = '/home/***REMOVED***/Documents/developmentProjects/dmanage/tests/test_rpc'
+remoteModule = remoteModule   # define in separate config file
 
 
 parallelDUInput = np.linspace(0,100,101).tolist()

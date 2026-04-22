@@ -75,7 +75,6 @@ def fix_eps(fileName):
     # there is a boundingbox error in the eps files. the %%BoundingBox parameters are saved as floats, which epspdf doesnt like
     # this code fixes that
     
-    # 'gs -q -dBATCH -dNOPAUSE -sDEVICE=bbox /media***REMOVED***FLAIR/IRthermography/data/CeO2/sample1/date-8.12.20/tempSweepMiddle/processed/tempSweep_center_avg.eps'
     newBB = sp.run(['gs', '-dNOPAUSE', '-dBATCH', '-q', '-sDEVICE=bbox', fileName] , stdout=sp.PIPE,stderr=sp.PIPE)
     newBB = newBB.stderr.decode('utf-8')
     tempName = 'temp.eps'
@@ -162,7 +161,8 @@ def split(a, n):
 
 if __name__ == "__main__":
     import dataDir
-    folder = '/home***REMOVED***Documents/data/CFAdata/testData/'
+    homeDirLocal = os.getenv("HOME")
+    folder = homeDirLocal + '/Documents/data/CFAdata/testData/'
     DD = dataDir.DataDir(folder)
     DF = DD.Fields.read_as_df('E', 1)
     DF = DD.DFM.getSlice(DF,'t',0)

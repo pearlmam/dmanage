@@ -52,7 +52,7 @@ def client_ssh_setup(user,server,localPort=44444,remotePort=44444,verbose=False)
     This way you can run the service on the local host and easily connect.
     Check if it worked with command "ss -ltn | grep [LOCAL PORT]"
     COPY THIS COMMAND:
-    ssh -N -L 44444:127.0.0.1:44444 ***REMOVED***@***REMOVED***.***REMOVED***.edu
+    ssh -N -L 44444:127.0.0.1:44444 user@server
     """
 
     portString = '%s:127.0.0.1:%s'%(localPort,remotePort)

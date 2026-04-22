@@ -233,7 +233,7 @@ class Server:
         print('running script: %s'%(script))
         workspace = os.path.join(os.path.dirname(script),'')
         scriptname = os.path.basename(script)
-        command = "ssh -X ***REMOVED***@***REMOVED*** 'cd " + workspace + ";nohup python3 " + scriptname + args + "'"
+        command = "ssh -X user@server 'cd " + workspace + ";nohup python3 " + scriptname + args + "'"
         #command = command.split(' ')
         #print(command)
         subProc=sp.Popen(command, shell=True, executable='/bin/bash', stdout=sp.PIPE, stderr=sp.PIPE)
@@ -413,123 +413,7 @@ def dummy():
 	pass
 
 if __name__ == "__main__":
-    #######################################
-    #      for job submission
-    #######################################
-    # --------------------------------------------
-    # CFA Submit
-    # --------------------------------------------
-    # today = date.today()
-    # theYear = today.strftime("%Y")
-    # theDate = today.strftime("%m.%d.%y")
-    # sourceDir = '/home***REMOVED***Documents/SimulationProjects/CFA_L-4953/VSimModels/CFA/'
-    # # sourceDir = '/home***REMOVED***Documents/fastData/CFAdata/2023/VBSweep/CFATemplate/'
-    # # sourceDir = '/home/***REMOVED***/Documents/CFA_data/2023/VBSweeps/PARTICLES-1/I_CATHODE-60/PRF_AVG-150e3/FREQ-1.30/BSTATIC-0.140/'
-    # scriptDir = '/home***REMOVED***Documents/SimulationProjects/CFA_L-4953/pythonScripts/DataManagment/'
-    
-    # # workspace = '/home/***REMOVED***/Documents/CFA_data/%s/date-%s/VSweep/PARTICLES-1/thermalEnergy01Phi-200/thermalenergy01R-10/'% (theYear,theDate)
-    # # workspace = '/home/***REMOVED***/Documents/SCLC_data/%s/date-%s/WSweep/BETA-0.1/'% (theYear,theDate)
-    
-    # setVarsDict = {'rEndHatEmit0':'0.1', 'profile':'sinePulse', 'DUTY1':'0.2', 'modElectronsIemission':'10.0', 'PRF_AVG':'150e3'}
-    # varString = genSaveLoc(setVarsDict)
-    
-    # workspace = '/home/***REMOVED***/Documents/CFA_data/%s/date-%s/feaEmitter-1/%s/PHIsweep/' %(theYear,theDate,varString) 
-    # # workspace = '/home/***REMOVED***/Documents/CFA_data/'
-    # # workspace = '/home***REMOVED***Documents/fastData/CFAdata/'
-    
-    # script = '/home***REMOVED***Documents/SimulationProjects/CFA_L-4953/pythonScripts/DataManagment/jobSubmit.py'
-    # ECEsim = Server(computer='***REMOVED***.***REMOVED***.edu')
-    # ECEsim.putDir(sourceDir,workspace,['.mac','.pre'])
-
-    # # tempScriptName = 'jobSubmit_date-%s.py'%(date)
-    # # ECEsim.put(script,workspace+tempScriptName)
-    # # ECEsim.runScript(workspace+tempScriptName) 
-    
-    # scriptSpace = workspace + 'runScripts/'
-    # ECEsim.putDir(scriptDir,scriptSpace,['all'],output=True)
-    # ECEsim.runScript(scriptSpace + 'jobSubmit.py') 
-    
-    # ECEsim.close() 
-    
-    
-    # --------------------------------------------
-    # SCLC Submit
-    # --------------------------------------------
-    # today = date.today()
-    # theYear = today.strftime("%Y")
-    # theDate = today.strftime("%m.%d.%y")
-    # sourceDir = '/home***REMOVED***Documents/SimulationProjects/sclc/VSimModels/parallelPlateES/'
-    # scriptDir = '/home***REMOVED***Documents/SimulationProjects/CFA_L-4953/pythonScripts/DataManagment/'
-    
-    # workspace = '/home/***REMOVED***/Documents/SCLC_data/%s/date-%s/USE_CL-True/WSweep/beta-0.0/'% (theYear,theDate)
-
-    # script = '/home***REMOVED***Documents/SimulationProjects/CFA_L-4953/pythonScripts/DataManagment/jobSubmit.py'
-    # ECEsim = Server(computer='***REMOVED***.***REMOVED***.edu')
-    # ECEsim.putDir(sourceDir,workspace,['.mac','.pre'])
-    
-    # scriptSpace = workspace + 'runScripts/'
-    # ECEsim.putDir(scriptDir,scriptSpace,['all'],output=True)
-    # ECEsim.runScript(scriptSpace + 'jobSubmit.py') 
-    
-    # ECEsim.close() 
-    
-    #######################################          
-    # for data analysis
-    #######################################
-    # computer='***REMOVED***.***REMOVED***.edu'
-    computer='***REMOVED***.***REMOVED***.edu'
-    user='***REMOVED***'
-    ECEsim = Server(computer=computer,user=user)
-    ECEsim.connect()
-    args = ''
-    # # scriptName = 'CFAplot.py'
-    # # scriptName = 'dataDir.py'
-    # scriptName = 'sweepDir.py'
-    # scriptName = 'analysers/summaryGainAnalysis.py'
-    scriptName = 'analysers/dataSummaryPlots.py'
-    # #scriptName = 'analysers/xcorrWindow.py'
-    # #scriptName = 'analysers/dispersionSFFT.py'
-    # #scriptName = 'analysers/dispersionXcorr.py'
-    # #scriptName = 'analysers/electronAnalysis.py'
-    # #scriptName = 'analysers/STFFT.py' 
-    # scriptName = 'analysers/analyseFrequencyModulation.py' 
-    # # scriptName = 'analysers/FFTSimExpSweepDir.py' 
-    workspace = '/home/***REMOVED***/Documents/PythonProcessWorkspace/'
-    
-
-    # ##### Job Submit script params
-    # simModel = 'hopFunnelEMcyl'
-    # if simModel == 'hopFunnelEMcyl':
-    #     sourcePreDir = '/home***REMOVED***Documents/SimulationProjects/hopFunnel/VSimModels/hopFunnelEMcyl'
-    #     runBaseLoc = '~/Documents/hopFunnelData/'
-    #     destPreDir = '/home/***REMOVED***/Documents/preWorkspace/hopFunnelEMcyl/'
-    # elif simModel == 'CFA':
-    #     sourcePreDir = '/home***REMOVED***Documents/SimulationProjects/CFA_L-4953/VSimModels/CFA/'
-    #     runBaseLoc = '~/Documents/CFAdata/'
-    #     destPreDir = '/home/***REMOVED***/Documents/preWorkspace/CFA/'
-        
-    # scriptName = 'jobSubmit.py'
-    # VSimDir = '~/Programs/VSim-12.3/'
-    # loadVSimModule = False
-    
-    # maxProcs=32
-    
-    # ECEsim.putDir(sourcePreDir,destPreDir,['.mac','.pre'],output=True)
-    # args = ' --preLoc %s --runBaseLoc %s --VSimDir %s --loadVSimModule %s --maxProcs %s'%(destPreDir, runBaseLoc,VSimDir,loadVSimModule,maxProcs)
-    # workspace = '/home/***REMOVED***/Documents/PythonSubmitWorkspace/'
-    ### args = args + '> nohup2.out'
-    
-    
-    ######  run the script on remote Server
-    
-    workspace = workspace
-    script = '/home***REMOVED***Documents/CFA_L-4953/pythonScripts/DataManagment/' + scriptName
-    sourceDir = '/home***REMOVED***Documents/SimulationProjects/CFA_L-4953/pythonScripts/DataManagment/'
-    # ECEsim.putDir(sourceDir,workspace,['.py'],output=True)
-    ECEsim.put_dir(sourceDir, workspace, ['all'], output=True)
-    
-    ECEsim.run_script(workspace + scriptName, conda='data-manage', args=args)
-    ECEsim.close() 
+   pass
     
 
 

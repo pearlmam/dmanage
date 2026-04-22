@@ -183,7 +183,8 @@ class CFA2(om.ExplicitComponent):
 
 if __name__ == "__main__":
     # I need to use previously generated data to test if openMDAO can find the max power, constrained by noise
-    folder = '/media***REMOVED***FASTER/CFAdata/2023/vbSweep/NXY-109/TEND-300e-9/FREQ-1.315e9/iCathode-1000/BSTATIC-0.140/PRF_AVG-450e3/VDC-90.5e3/'
+    
+    folder = 'path/to/file'
     DD = MyDataDir(folder)
     #### test functions
     

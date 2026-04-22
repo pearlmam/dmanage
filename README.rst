@@ -1,3 +1,6 @@
+
+ *Currently in pre-release stage. An OSI-approved license (most likely Apache 2.0 or MIT) will be chosen before the first official release.* 
+
 D-Manage
 ========
 
@@ -87,8 +90,7 @@ to see the environment in Spyder, v6 requires spyder-kernels==3.0::
 
         conda activate dmanage
         pip install spyder-kernels==3.0.*
-        
-        
+            
 Acknowledgments
 ===============
 

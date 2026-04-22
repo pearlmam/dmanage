@@ -8,9 +8,9 @@ allow-direct-references = true
 
 [project]
 name = "dmanage"
-version = "0.0.1"
+version = "0.1.0"
 authors = [
-  { name="Marcus Pearlman", email="***REMOVED***@***REMOVED***.edu" },
+  { name="Marcus Pearlman", email="marcuspearlman@boisestate.edu" },
 ]
 description = "A package for generating, organizing, and processing data."
 readme = "README.rst"

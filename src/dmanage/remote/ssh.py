@@ -49,7 +49,7 @@ class Server:
     1. on local machine: `ssh-keygen -t rsa`
 	note if one is already created, then cancel it upon overwrite prompt
 	2. from local `/$home/.ssh/id_rsa.pub` append key on remote machine authorized_keys file in `.ssh/authorized_keys`
-	`$ cat ~/.ssh/id_rsa.pub | ssh mpearlman@r1.***REMOVED***.edu 'cat >> .ssh/authorized_keys'`
+	`$ cat ~/.ssh/id_rsa.pub | ssh mpearlman@r1.boisestate.edu 'cat >> .ssh/authorized_keys'`
 	create the folder and file if needed
 	3. ESURE PROPOR PERMISSIONS: `~/.ssh/authorized_keys` file needs 700 permission
 	`$ chmod 700 ~/.ssh/authorized_keys`

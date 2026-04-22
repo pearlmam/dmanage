@@ -9,19 +9,21 @@ This is a Python package for generating, organizing, and processing data. This p
 * Automatic and parallel application of user defined data run methods to the entire data sweep
 * Caching methods to store high-cost processed data in RAM or the drive for use in other methods
 * Metadata methods to organize and interpret processed data
-* Algorithms for signal processing, coordinate transformation, and more
+* Algorithms for signal processing, coordinate transformation, and more. (**numpy**, **Pandas**, Polars, XArray, PyArrow) [#f1]_
 * Data Plotting tools 
 * Data visualization interface, IN DEVELOPMENT
 * Server interface to run your project remotely as if it was local, IN DEVELOPMENT
 * Creating databases from experimental and simulation files, IN DEVELOPMENT
 * Data refactoring methods to help homogenize your data, IN DEVELOPMENT 
 
+.. [#f1] Algorithms attempt to be datatype agnostic, where the same api can be used for numpy, Pandas, Polars, XArray, and PyArrow. This allows for easy code sharing and quick benchmarking. Currently only Numpy and Pandas are supported.
+
 Philosophy
 ----------
 
-There are many aspects to the philosophy, but the crux of it is based on the data hierarchy. The hierarchy currently consists of two levels: the data unit and data group levels. Usually, the data unit represents one simulation/experimental run, but it can be defined in any way that suites the problem. The data group consists of multiple data units. Usually, the data group represents simulation/experimental sweeps. The D-Manage approach allows users to focus on processing the data unit, and dmanage automatically can deploy the methods to the entire data group efficiently.
+There are many aspects to the philosophy, but the crux of it is based on the data hierarchy. The hierarchy currently consists of three levels: component, unit and group levels. Usually, the data unit (the middle level) represents one simulation/experimental run, but it can be defined in any way that suites the problem. The data unit consists of data components (the lowest level), and those represent different parts of your unit like images, waveforms, or tables, for example. The data group consists of multiple data units. Usually, the data group represents simulation/experimental sweeps. The D-Manage approach allows users to focus on processing the data unit and components, and dmanage automatically can deploy the methods to the entire data group efficiently.
 
-Other aspects of the philosophy focus on best practices and tools/components to aid in processing data efficiently, like parallel processing, caching data, and remote data access.
+Other aspects of the philosophy focus on best practices and tools/components to aid in processing data efficiently, like parallel processing, caching data, metadata, visualization, and remote data access.
 
 Basic Project Procedure
 -----------------------
@@ -31,10 +33,15 @@ Generate Data
 
 Generate the data and store following D-Manage guidelines. The actual data of the unit can be a file or directory that contains the data. 
 
+Create Components
+^^^^^^^^^^^^^^^^^
+
+Create component objects to read and analyse specific parts of your data. These components may already exist for your application. A list of community developed components can be found in a *to-be-determined* location.  
+
 Create DataUnit
 ^^^^^^^^^^^^^^^
 
-Create a DataUnit (DU) object that can read and process all simulation/experimental data from one run. The user develops this code for their specification. D-Manage provides best practices and components to help make the DataUnit object.
+Create a DataUnit (DU) object that can read and process all simulation/experimental data from one run. The user develops this code for their specification. D-Manage provides best practices and tools to help make the DataUnit object.
 
 Create DataGroup
 ^^^^^^^^^^^^^^^^

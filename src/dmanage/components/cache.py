@@ -73,6 +73,7 @@ class SoftCache(dict):
 
 class HardCache:
     """Base class for hard caches"""
+    
     def __init__(self,path):
         self.path = Path(path)
         self._threads = {}
@@ -102,7 +103,7 @@ class HardCache:
         Use the following code if thread check is neccessary:
             self._checkThreads(key)
             super().save(data,key,compression=compression,thread=thread)
-        ??? Do I want to make this handle lists of data and keys???
+            ??? Do I want to make this handle lists of data and keys???
         """
         if thread:
             kwargs={'data':data,'key':key,'compression':compression}

@@ -7,7 +7,9 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   dmanage.components
    dmanage.file
+   dmanage.metadata
    dmanage.ops
    dmanage.remote
    dmanage.strata

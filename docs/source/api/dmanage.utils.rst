@@ -20,14 +20,6 @@ dmanage.utils.constants module
    :undoc-members:
    :show-inheritance:
 
-dmanage.utils.mail module
--------------------------
-
-.. automodule:: dmanage.utils.mail
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 dmanage.utils.objinfo module
 ----------------------------
 

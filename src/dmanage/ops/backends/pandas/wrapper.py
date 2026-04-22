@@ -47,7 +47,7 @@ if WRAPPER_TYPE == 'class':
         def __call__(self,*args,**kwargs):
             #print('parallelize_looped')
             result = self.func(*args,**kwargs)
-            if self.concat:
+            if self.concat and kwargs['nc']>1:
                 result = pd.concat(result)
             return result
     

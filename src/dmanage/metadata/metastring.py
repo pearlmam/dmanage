@@ -42,10 +42,16 @@ def compose(dataStruct, equiv='-', sep='_', order=False,format=None,numDecimals=
     elif isinstance(dataStruct, pd.core.frame.Series):
         dataStruct = dataStruct.to_dict()
         
+    ## ensure lengths of format and the dataStruct are equal and coerse them to be
     if not isinstance(format,(list,tuple)):
         format = [format]*len(dataStruct)
+    lenDiff = len(dataStruct)-len(format)
+    if lenDiff > 0:
+        format = format + [None]*lenDiff
+    elif lenDiff < 0:
+        format = format[:lenDiff]
     outString = ''
-    
+
     if isinstance(dataStruct, dict):
         if order: keys = natsort.natsorted(list(dataStruct.keys()))
         else: keys = list(dataStruct.keys())

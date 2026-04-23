@@ -3,13 +3,13 @@ import itertools
 
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Pool
+# from multiprocess import Pool
 import functools
 import numpy as np
 from dmanage.utils.objinfo import is_iterable
 import sys
 
 WRAPPER_TYPE = 'class'
-
 # WRAPPER_TYPE = 'funcs'
 
 def split_range(a, n):
@@ -34,7 +34,7 @@ if WRAPPER_TYPE == 'class':
             # self.sig = inspect.signature(func)
             if bind_func is None:
                 bind_func = func
-            # self.__wrapped__ = bind_func
+
             functools.update_wrapper(self, bind_func)
         
         def __call__(self,*args,**kwargs):
@@ -58,13 +58,7 @@ if WRAPPER_TYPE == 'class':
                     #result.append(self.func(step,*args[1:], **kwargs))   # fastest
             """ attempt to coerce the type back to something nice here???, no?"""
             return result
-           
-            # for step in args[0]:
-            #     result.append(self.func(step,*args[1:],**kwargs))
-            # return result
-            
-        
-    
+
     class parallelize_looped_method():
         def __init__(self,func,ncPass=False,bind_func=None):
             self.func = func
@@ -131,23 +125,42 @@ if WRAPPER_TYPE == 'class':
                     result = self.func(steps,*bound.args[1:],**bound.kwargs)
                     
             return result
-    
+        
     class parallelize_iterator_method():
-        def __init__(self,func,ncPass=False,bind_func=None):
+        def __init__(self,func=None,ncPass=False,bind_func=None):
             if bind_func is None:
                 bind_func = func
-            # self.__wrapped__ = bind_func
             functools.update_wrapper(self, bind_func)
             self.func = looperize(func,bind_func=bind_func)
             self.func = parallelize_looped_method(self.func,ncPass=ncPass,bind_func=bind_func)
             
         def __call__(self,*args,**kwargs):
             return self.func(*args,**kwargs)
-else:
+        
+    # class parallelize_iterator_method():
+    #     def __init__(self,ncPass=False,bind_func=None):
+    #         self.ncPass = ncPass
+    #         self.bind_func = bind_func
+            
+    #     def __call__(self,*args,**kwargs):
+    #         func = args[0]
+    #         if self.bind_func is None:
+    #             self.bind_func = func
+    #         functools.update_wrapper(self, self.bind_func)
+    #         self.func = looperize(func,bind_func=self.bind_func)
+    #         self.func = parallelize_looped_method(self.func,ncPass=self.ncPass,bind_func=self.bind_func)
+            
+    #         # return self.func(*args,**kwargs)
+    #         return self.func
+        
+
+        
+elif WRAPPER_TYPE == 'funcs':
+    
     ################   
     # Less picklable            
     #########################
-    def looperize(func):
+    def looperize(func,bind_func=None):
         """
         This method wraps an iterator method in a for loop
     
@@ -164,9 +177,10 @@ else:
             wrapper iterator function
     
         """
-    
-        sig = inspect.signature(func)
-        @functools.wraps(func)
+        if bind_func is None:
+            bind_func = func
+        sig = inspect.signature(bind_func)
+        @functools.wraps(bind_func)
         def wrapper(*args,**kwargs):
             bound = sig.bind(*args, **kwargs)
             bound.apply_defaults()
@@ -181,7 +195,7 @@ else:
         return wrapper
     
     
-    def parallelize_looped_method(func,ncPass=False):
+    def parallelize_looped_method(func,ncPass=False,bind_func=None):
         """Make the function parallel
     
         Parameters
@@ -201,8 +215,10 @@ else:
     
         """
         
-        sig = inspect.signature(func)
-        @functools.wraps(func)
+        if bind_func is None:
+            bind_func = func
+        sig = inspect.signature(bind_func)
+        @functools.wraps(bind_func)
         def wrapper(*args,**kwargs):
             if not ncPass and 'nc' in kwargs.keys():
                 nc = kwargs.pop('nc')
@@ -239,15 +255,18 @@ else:
             
             return result
         return wrapper
-    
-    def parallelize_iterator_method(func,ncPass=False):
-        """
-        These arrays are more generic to any iterator, the DF method wraps a concat capability.
-        I should put these somewhere else.
-        """
-        func = looperize(func)
-        return parallelize_looped_method(func,ncPass=ncPass)
 
+    def parallelize_iterator_method(func,ncPass=False,bind_func=None):
+        if bind_func is None:
+            bind_func = func
+
+        looped = looperize(func, bind_func=bind_func)
+        parallel = parallelize_looped_method(looped,ncPass=False,bind_func=bind_func)
+    
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            return parallel(*args, **kwargs)
+        return wrapper
 
 if __name__ == "__main__":
     import time

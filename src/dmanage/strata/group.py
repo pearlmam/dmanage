@@ -398,28 +398,26 @@ class make_wrapper:
         Private method which wraps the component method with call to
         on_component_call() hook. also allows access to the original method
         """
+        #### copy func characteristics to wrapper
         func = get_component_method(instance,component_name, method_name)
         functools.update_wrapper(self, func)
         del self.__wrapped__   # delete actual function to have zero connection to DataGroup. no pickling groups!!!
         
-        # add the correct sig to this method
-        sig = inspect.signature(func)  
-        
-        if func._override == 'plot2':
-            sig = helpers.enable_save_plot(sig)
+        #### add the correct sig to this method
+        # sig = inspect.signature(func)  
+        sig = helpers.enable_override(func,instance)
+        self.originalSig = sig       # original signature used with method call, useful for override kind hook
             
         new_param = inspect.Parameter('dataUnit', inspect.Parameter.POSITIONAL_OR_KEYWORD)
         new_params = [new_param] + list(sig.parameters.values())
         new_sig = sig.replace(parameters=new_params)
         self.__signature__ = new_sig # allows signature to be called on self and return proper inputs
-        self.originalSig = sig       # original signature used with method call, useful for override kind hook
         
         
         
+        #### setup parameters
         self.dataUnits = [os.path.join(instance.baseDir,dataUnit) for dataUnit in instance.dataUnits]
         self.base = get_base(instance,iLevel='du')
-        
-        #self.base = MyDataDir
         self.component_name = component_name
         self.method_name = method_name
         self.orKind = func._override
@@ -448,13 +446,7 @@ class make_wrapper:
         #print('loading DataUnit Method: %s.%s'%(self.component_name, self.method_name))
         du_func = get_component_method(du,self.component_name, self.method_name)
 
-        # this allows for handling other _override kinds, UNUSED
-        orKind = du_func._override
-        orLevel = du_func._level
-        orArgs = du_func._kwargs
-        ncPass = du_func._ncPass
-        
-        if 'plot' in orKind:
+        if 'plot' in self.orKind.lower():
             pid = os.getpid()
             # print(pid)
             bound.arguments['fig'] = pid
@@ -478,22 +470,22 @@ class make_wrapper:
             ncPass = kwargs.pop('ncPass')
         else:
             ncPass = False
-        # deal with override kinds before
-        
-        if 'plot' in self.orKind:  
+            
+        #### deal with override kinds before
+        if 'plot' in self.orKind.lower():  
             backend = mpl.get_backend()
             mpl.use('agg')
             
-        # binding to self, which has original signature plus the dataunit, see self.__signature__
+        ## binding to self, which has original signature plus the dataunit, see self.__signature__
         method = parallelize_iterator_method(self._on_method_call, ncPass=ncPass, bind_func=self)
         results = method(self.dataUnits, *args, **kwargs)
         
-        # deal with override kinds after
+        #### deal with override kinds after
         if self.orKind == 'DataFrame':
             results = pd.concat(results,**self.orArgs)
         elif self.orKind == 'dict':
             results = combine.combine_dicts(results)
-        if 'plot' in self.orKind:  
+        if 'plot' in self.orKind.lower():  
             mpl.use(backend)
         return results
     

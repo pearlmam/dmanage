@@ -92,11 +92,11 @@ class MyDataUnit(DataUnit):
         fig.savefig('%s%s_%s.png'%(saveloc,savename,savetag))
         return fig,ax
     
-    @override('plot2')  # this enables helper.save_plot use with groups
+    @override('savePlot')  # this enables helper.save_plot use with groups
     def plot2(self,fig=1,*args,**kwargs):
         DF = self.gen_DataFrame(variant=1,size=100)
         fig,ax = plot.plot1d(DF,fig=fig)
-        helpers.save_plot(self,fig, *args,**kwargs)
+        helpers.savePlot(self,fig, *args,**kwargs)
         return fig,ax
     
     @plot_override   # doesnt work well with dataGroups

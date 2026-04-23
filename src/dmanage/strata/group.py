@@ -20,6 +20,9 @@ import dmanage.utils.objinfo as objinfo
 import dmanage.utils.combine as combine
 from dmanage.parallel import parallelize_iterator_method, parallelize_looped_method
 
+from dmanage.strata import helpers
+
+
 __all__ = ["make_data_group"]
 class PurePython:
     """
@@ -401,11 +404,17 @@ class make_wrapper:
         
         # add the correct sig to this method
         sig = inspect.signature(func)  
+        
+        if func._override == 'plot2':
+            sig = helpers.enable_save_plot(sig)
+            
         new_param = inspect.Parameter('dataUnit', inspect.Parameter.POSITIONAL_OR_KEYWORD)
         new_params = [new_param] + list(sig.parameters.values())
         new_sig = sig.replace(parameters=new_params)
-        self.originalSig = sig       # original signature used with method call, useful for override kind hook
         self.__signature__ = new_sig # allows signature to be called on self and return proper inputs
+        self.originalSig = sig       # original signature used with method call, useful for override kind hook
+        
+        
         
         self.dataUnits = [os.path.join(instance.baseDir,dataUnit) for dataUnit in instance.dataUnits]
         self.base = get_base(instance,iLevel='du')
@@ -445,7 +454,7 @@ class make_wrapper:
         orArgs = du_func._kwargs
         ncPass = du_func._ncPass
         
-        if orKind == 'plot':
+        if 'plot' in orKind:
             pid = os.getpid()
             # print(pid)
             bound.arguments['fig'] = pid
@@ -471,7 +480,7 @@ class make_wrapper:
             ncPass = False
         # deal with override kinds before
         
-        if self.orKind == 'plot':  
+        if 'plot' in self.orKind:  
             backend = mpl.get_backend()
             mpl.use('agg')
             
@@ -484,7 +493,7 @@ class make_wrapper:
             results = pd.concat(results,**self.orArgs)
         elif self.orKind == 'dict':
             results = combine.combine_dicts(results)
-        elif self.orKind == 'plot':  
+        if 'plot' in self.orKind:  
             mpl.use(backend)
         return results
     

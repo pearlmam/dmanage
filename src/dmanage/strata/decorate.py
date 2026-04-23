@@ -1,17 +1,8 @@
 # -*- coding: utf-8 -*-
+import os
+import functools
 
-__all__ = ["override"]
-class add_attribute:
-    """Decorator that adds an attribute to a function without wrapping or renaming it.
-    To Do: make it so you can add more attrs at once or over multiple calls
-    """
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value
-    
-    def __call__(self, func):
-        setattr(func, self.name, self.value)
-        return func
+__all__ = ["override","plot_override"]
 
 def override(kind='default',level=None,ncPass=False,**kwargs):
     """
@@ -36,17 +27,55 @@ def override(kind='default',level=None,ncPass=False,**kwargs):
     
     def _override(func):
         """Decorator to add an override attribute for a method."""
-        add_attr = add_attribute('_override',kind)
-        func = add_attr(func)
-        add_attr = add_attribute('_level',level)
-        func = add_attr(func)
-        add_attr = add_attribute('_ncPass',ncPass)
-        func = add_attr(func)
-        add_attr = add_attribute('_kwargs',kwargs)
-        func = add_attr(func)
+        setattr(func, '_override', kind)
+        setattr(func, '_level',level)
+        setattr(func, '_ncPass',ncPass)
+        setattr(func, '_kwargs',kwargs)
         return func
+    
+    # # detects if decorator was used with or without parentheses, add _func arg in first position
+    # # Case 1: used as @override
+    # if _func is not None and callable(_func):
+    #     return  _override(_func)
+    
+    # Case 2: used as @override(...)
     return _override
+    
 
+
+class plot_override():
+    """decorate for plot saving
+    doesnt work well with data groups....
+    """
+    def __init__(self,func):
+        setattr(func, '_override', 'plot')
+        self.func = func
+    
+    # def __get__(self, instance, owner):
+    #     # This works with unit alone, fails with group
+    #     if instance is None:
+    #         return self
+    #     return functools.partial(self.__call__, instance)
+    
+    def __get__(self, instance, owner):
+        # store instance and return self as callable
+        self.instance = instance
+        return self
+    
+    
+    def __call__(self,saveName='plot',saveLoc=None,tagVars=[],tagFormat=None,*args,**kwargs):
+        if getattr(self.instance,'saveType', False):
+            saveType = self.instance.saveType
+        else:
+            saveType = 'png'
+        if saveLoc is None:
+            saveLoc = self.instance.resDir
+        os.makedirs(saveLoc,exist_ok=True)
+        
+        fig, ax = self.func(self.instance, *args, **kwargs)
+        saveTag = self.instance.gen_tag(tagVars,tagFormat)
+        fig.savefig('%s%s_%s.%s'%(saveLoc,saveName,saveTag,saveType) , bbox_inches='tight', format=saveType)
+        return fig,ax
 
 if __name__ == "__main__":
     # @add_attribute('_override',True)

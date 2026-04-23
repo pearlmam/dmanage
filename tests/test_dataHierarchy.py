@@ -17,7 +17,7 @@ from unittest import TestCase
 
 
 baseDir = '/path/to/baseDir/'
-dataPath = 'path.test'
+dataPath = 'file-99.test'
 testN = 10
 kwargsDU = {'dataPath':dataPath}
 kwargsDG = {'baseDir':baseDir,'unitType':'test','testN':testN}
@@ -67,14 +67,15 @@ class TestAll(TestCase):
 
 
 if __name__ == "__main__":
-    # test = TestAll()
-    # test.test_dataUnit()
-    # test.test_dataGroup()
+    test = TestAll()
+    test.test_dataUnit()
+    test.test_dataGroup()
     
     # DU = MyDataUnit(dataPath)
-    # DU.plot()
+    # DU.plot2(tagVars='file')
     DG = MyDataGroup(dataPath,unitType='test',testN=testN)
-    DG.plot(nc=1)
+    DG.plot2(tagVars='file',nc=4)
     
+    # DG.plot(nc=1)
     
     

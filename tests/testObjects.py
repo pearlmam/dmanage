@@ -7,7 +7,7 @@ import os
 
 from dmanage.ops.dfmethods import plot
 from dmanage.parallel import parallelize_iterator_method
-from dmanage.strata import make_data_unit, make_data_group, override
+from dmanage.strata import make_data_unit, make_data_group, override, plot_override, helpers
 from dmanage.metadata import metastring
 
 def iteration_method(arg0):
@@ -66,9 +66,10 @@ class Parent():
 DataUnit = make_data_unit(Parent)
 class MyDataUnit(DataUnit):
     """Class to share and proxy"""
-    def __init__(self,dataPath='path.test'):
+    def __init__(self,dataPath='file-00.test'):
         super().__init__(dataPath)
-        self.Comp = Component1()  
+        self.Comp = Component1() 
+        self.resDir = './data/'
     
     def is_valid(self):
         return '.test' in self.dataPath
@@ -91,11 +92,24 @@ class MyDataUnit(DataUnit):
         fig.savefig('%s%s_%s.png'%(saveloc,savename,savetag))
         return fig,ax
     
-    def gen_tag(self):
-        tag = '%03i'%metastring.parse(self.dataUnit,checkVars='file')['file'][0]
+    @override('plot2')  # this enables helper.save_plot use with groups
+    def plot2(self,fig=1,*args,**kwargs):
+        DF = self.gen_DataFrame(variant=1,size=100)
+        fig,ax = plot.plot1d(DF,fig=fig)
+        helpers.save_plot(self,fig, *args,**kwargs)
+        return fig,ax
+    
+    @plot_override   # doesnt work well with dataGroups
+    def plot3(self,fig=1,*args,**kwargs):
+        DF = self.gen_DataFrame(variant=1,size=100)
+        fig,ax = plot.plot1d(DF,fig=fig)
+        return fig,ax
+    
+    def gen_tag(self,tagVars='file',format=None):
+        tag = '%03i'%metastring.parse(self.dataUnit,checkVars=tagVars)[tagVars][0]
         return tag
     
-    @override()
+    @override()     
     def gen_DataFrame(self,variant=0,size=10):
         """To test DataFrame transfer"""
         if variant == 0:

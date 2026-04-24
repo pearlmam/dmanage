@@ -420,9 +420,9 @@ class make_wrapper:
         self.base = get_base(instance,iLevel='du')
         self.component_name = component_name
         self.method_name = method_name
-        self.orKind = func._override
-        self.orLevel = func._level
-        self.orArgs = func._kwargs
+        self.orKind = getattr(func,'_override',None)
+        self.orLevel = getattr(func,'_level',None)
+        self.orArgs = getattr(func,'_kwArgs',None)
     
     # @functools.wraps(self.func)
     def _on_method_call(self,dataUnit, *args, **kwargs):

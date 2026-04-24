@@ -71,10 +71,14 @@ if __name__ == "__main__":
     test.test_dataUnit()
     test.test_dataGroup()
     
-    # DU = MyDataUnit(dataPath)
-    # DU.plot2(tagVars='file')
+    DU = MyDataUnit(dataPath)
+    DU.plot2(tagVars='file')
+    #DU.plot3(tagVars='file')
+    
     DG = MyDataGroup(dataPath,unitType='test',testN=testN)
+    # DG.plot(nc=1)
     DG.plot2(tagVars='file',nc=4)
+    # DG.plot3(tagVars='file',nc=1)
     
     # DG.plot(nc=1)
     

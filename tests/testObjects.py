@@ -96,10 +96,10 @@ class MyDataUnit(DataUnit):
     def plot2(self,fig=1,*args,**kwargs):
         DF = self.gen_DataFrame(variant=1,size=100)
         fig,ax = plot.plot1d(DF,fig=fig)
-        helpers.savePlot(self,fig, *args,**kwargs)
+        helpers.savePlot(self,fig, args,kwargs)
         return fig,ax
     
-    @plot_override   # doesnt work well with dataGroups
+    @plot_override   # doesnt work well with dataGroups, it looses the looperize wrap...
     def plot3(self,fig=1,*args,**kwargs):
         DF = self.gen_DataFrame(variant=1,size=100)
         fig,ax = plot.plot1d(DF,fig=fig)

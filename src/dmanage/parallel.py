@@ -122,6 +122,7 @@ if WRAPPER_TYPE == 'class':
                     boundFunc = functools.partial(self.func,functools.Placeholder, *bound.args[1:],**bound.kwargs) # binding the first arg sucks, fix ???
                     result = boundFunc(steps)
                 else:
+                    # first_key = next(iter(dict(bound.arguments)))
                     result = self.func(steps,*bound.args[1:],**bound.kwargs)
                     
             return result

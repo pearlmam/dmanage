@@ -12,22 +12,21 @@ import getpass
 import sys
 # import paramiko
 import select
-import Xlib.support.connect as xlib_connect
+
 import time
 import subprocess as sp
 from threading import Timer
 import fcntl
 import glob
 
-
-import warnings
-from cryptography.utils import CryptographyDeprecationWarning
-with warnings.catch_warnings():
-    warnings.filterwarnings('ignore', category=CryptographyDeprecationWarning)
-    try:
-        import paramiko
-    except ImportError:
-        raise ImportError("Module 'paramiko' must be installed to use the sync module, use 'pip install dmanage[paramiko]'")
+try:
+    # import warnings
+    # from cryptography.utils import CryptographyDeprecationWarning
+    # with warnings.catch_warnings():
+    #     warnings.filterwarnings('ignore', category=CryptographyDeprecationWarning)
+    import paramiko
+except ImportError:
+    raise ImportError("Module 'paramiko' must be installed to use the sync module, use 'pip install dmanage[paramiko]'")
 
 
 def non_block_read(output):
@@ -104,6 +103,7 @@ class Server:
         Used to pass X through ssh in paramiko sp I can plot
         
         """
+        import Xlib.support.connect as xlib_connect
         local_x11_display = xlib_connect.get_display(os.environ['DISPLAY'])
         local_x11_socket = xlib_connect.get_socket(*local_x11_display[:4])
         transport = self.comp.get_transport()

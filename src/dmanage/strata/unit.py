@@ -13,14 +13,15 @@ from pathlib import Path
 import sys
 import inspect
 
-__all__ = ["make_data_unit"]
+__all__ = ["make_data_unit","DataUnit"]
 
 class PurePython:
-    def __init__(self,dataPath,*args,**kwargs):
-        pass
     """
     Inheritance class to make DataUnit a pure python class, for __bases__ assignment in makeDataUnit()
     """
+    def __init__(self,dataPath,*args,**kwargs):
+        pass
+    
     pass
 
 def make_data_unit(base=PurePython):
@@ -45,7 +46,8 @@ def make_data_unit(base=PurePython):
     return DataUnit
     
 class DataUnit(PurePython):
-    
+    """Inherit from this class to enable dmanage functionality
+    """
     def __init__(self,dataPath,*args,**kwargs):
         """Loads components of the DataUnit (folder or file)
         This is the base data unit class which consists of components and arrays inherited from a base class. The base class is unique to each simulation, experiment, or application.

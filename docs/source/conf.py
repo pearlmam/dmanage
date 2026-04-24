@@ -27,6 +27,7 @@ import os
 extensions = [
    'sphinx.ext.napoleon',     # for parsin numpy and Google style docstrings
    'sphinx.ext.autodoc',      # Automatic code documentation
+   "sphinx.ext.autosummary",  # code documentation
    'sphinx.ext.doctest',      # for traditional documentation and code
    'nbsphinx',                # for notebooks
    'sphinx_rtd_dark_mode',    # Dark mode toggle for sphinx_rtd_theme
@@ -36,6 +37,22 @@ extensions = [
 templates_path = ['_templates']
 exclude_patterns = []
 primary_domain = 'py'
+
+# -- Options for autodoc -------------------------------------------------
+autosummary_generate = True
+autosummary_imported_members = True
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "show-inheritance": True,
+    "inherited-members": True,
+    "member-order": "bysource",
+    "special-members": "__init__",
+}
+
+autodoc_mock_imports = [
+    "paramiko",
+]
 
 
 # -- Options for HTML output -------------------------------------------------

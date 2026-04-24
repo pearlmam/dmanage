@@ -23,7 +23,7 @@ from dmanage.parallel import parallelize_iterator_method, parallelize_looped_met
 from dmanage.strata import helpers
 
 
-__all__ = ["make_data_group"]
+__all__ = ["make_data_group", "DataGroup"]
 class PurePython:
     """
     Inheritance class to make DataUnit a pure python class rather than inheriting 
@@ -47,11 +47,9 @@ def make_data_group(base):
     DataGroup.__bases__ = (base,)
     return DataGroup
 
-
 class DataGroup(PurePython):
+    """ opens a sweep data directory containing VSim data directories for common analysis I use. 
     
-    """
-    opens a sweep data directory containing VSim data directories for common analysis I use. 
     Plotting relevant histories, plotting electrons, sweep data, etc.
     Can generate a data management lookup spreadsheet to visualize the available data directories
     PurePython inheritance is required for inheritance override by make_data_group()

@@ -3,12 +3,17 @@
 import collections
 import pandas as pd
 import io
-import tables
 import inspect
 
 PRIMITIVES = (int, float, str, bool, type(None))
 CONTAINERS = (list, dict, set, tuple)
-FILES = (io.TextIOBase,tables.hdf5extension.File)
+
+try:
+    import tables
+    FILES = (io.TextIOBase,tables.hdf5extension.File)
+except:
+    FILES = (io.TextIOBase,)
+
 
 def is_iterable(obj):
     """probably not useful anymore, use is_container"""

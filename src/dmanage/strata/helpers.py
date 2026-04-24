@@ -54,8 +54,9 @@ def enable_savePlot(sig,func,instance):
 def sync_sigs(callFunc,subFunc):
     """This takes the calling function and updates the signature to include subfunc parameters
     
-    TO DO: add check to see if all func parameters explicitly define savePlot parameters?
-    Right now it requires *args and **kwargs
+    TO DO: 
+        add check to see if all func parameters explicitly define savePlot parameters?
+        Right now it requires ``*args`` and ``**kwargs``
     """
     sig = inspect.signature(callFunc)
     plot_sig = inspect.signature(subFunc)

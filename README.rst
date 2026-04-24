@@ -1,6 +1,8 @@
 
  *Currently in pre-release stage. An OSI-approved license (most likely Apache 2.0 or MIT) will be chosen before the first official release.* 
 
+Online documentation: https://dmanage.readthedocs.io/
+
 D-Manage
 ========
 

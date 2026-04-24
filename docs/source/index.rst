@@ -1,14 +1,10 @@
-..D-Managedocumentation master file, created by
-   sphinx-quickstart on Wed Oct 29 17:53:42 2025.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
 D-Manage
 ========
 
-This is a package for stuff
+D-Manage demands easier data management
 
-
+See D-Manage GitHub repository: https://github.com/pearlmam/dmanage
 
 .. toctree::
    :maxdepth: 2
@@ -20,6 +16,7 @@ This is a package for stuff
    development/development
    resources/resources
    glossary
-   api/modules
+   api
+   devRef
    
    

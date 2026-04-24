@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import gc
 import copy
-from multiprocess import Pool
-
+# from multiprocess import Pool
+from multiprocessing import Pool
 
 def create_bounds(array, iNames, bounds = {}):
     s = array.shape

@@ -68,6 +68,13 @@ This package is useful for anyone interested in package development. This docume
 
 
 
+Source Code
+-----------
+
+See D-Manage GitHub repository: https://github.com/pearlmam/dmanage
+
+
+
 
 
 

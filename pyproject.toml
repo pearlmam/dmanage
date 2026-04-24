@@ -8,7 +8,7 @@ allow-direct-references = true
 
 [project]
 name = "dmanage"
-version = "0.1.0"
+version = "0.0.2"
 authors = [
   { name="Marcus Pearlman", email="marcuspearlman@boisestate.edu" },
 ]
@@ -17,7 +17,7 @@ readme = "README.rst"
 requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
 ]
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
@@ -32,8 +32,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-#### Not currently being used, but might need to be
-multiprocess = ["multiprocess"]  # for multiprocessing with dill instead of pickle
 
 #### DataFrame packages
 # pandas = ["pandas"]             # pandas DataFrames
@@ -47,14 +45,15 @@ paramiko=["paramiko",]            # ssh functionality
 xlib = ["python-xlib",]           # for ssh and passing x, currently not woking
 
 #### file related packages
-zarrcache = ["xarray","zarr",]      # for reading/writing zarr files
-zarr = ["zarr",]                    # for reading/writing zarr files
-# xarray = ["xarray"]                # intermeadiary for zarr writes and reads, defined above
-fastparquet = ["fastparquet",]      # reading/writing parquet files
-parquetcache = ["fastparquet",]     # reading/writing parquet files
-h5py = ["h5py",]                    # for reading/writing h5 files
-tables = ["tables",]                # for reading/writing h5 files, alternate
-openpyxl = ["openpyxl",]            # for pandas excel functionality
+zarrcache = ["xarray","zarr",]           # for reading/writing zarr files
+parquetcache = ["fastparquet",]          # reading/writing parquet files
+cache = ["xarray","zarr","fastparquet",] # all cache
+h5py = ["h5py",]                         # for reading/writing h5 files
+tables = ["tables",]                     # for reading/writing h5 files, alternate
+openpyxl = ["openpyxl",]                 # for pandas excel functionality
+
+#### processing
+dill = ["multiprocess",]                 # for dill multiprocessing
 
 #### dmanage derived packages
 vsim = ["dmanage-vsim@git+https://github.com/pearlmam/dmanage-vsim.git",]
@@ -66,6 +65,7 @@ all = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",
        "fastparquet",
        "tables",
        "h5py",
+       "multiprocess",
 ]
 
 dev = ["nbconvert[webpdf]",       # notebooks
@@ -84,13 +84,10 @@ dev = ["nbconvert[webpdf]",       # notebooks
 #  "openmdao",
 #  "hvplot", 
 #  "seaborn", 
-# "polars"
 
 # for plotting interactive
 #  PyQt5                  # plotting qt
 
-# Depriciated
-#  "pathos",            # for multiprocessing with dill instead of pickle, can multiprocess function wrappers
 
 [project.scripts]
 dmanage-factory = "dmanage.remote.rpc:main"

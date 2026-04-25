@@ -1,10 +1,15 @@
-"Refactoring" Data
-==================
+Refactoring Data
+================
 
-When you first start generating data, sometimes we name variables in a non-ideal way. You want to change the variable name, but you still need the old data. How do we change the name without breaking all the code we developed? Refactoring the actual data might be infeasible, so we apply a workaround in our processing code (hence why "refactoring" is in quotes). We generate a VarNames data structure class of all the relevant variable names, with a case statement to choose which naming scheme depending on the version. The DataUnit level checks the variable naming version, and instantiates the VarNames class as a DataUnit component! An example is below.
+When you first start generating data, sometimes we name variables in a non-ideal way or the data has mistakes. This is detremental for post-processing algorithms. Post-processing algorithms need to be robust to ignore problematic data, but we also want access to this data. To access this data, we have two options: refactor the data itself or refactor our code to access problematic data.
+
+Refactoring Data Coding
+-----------------------
+
+You want to change the variable name, but you still need the old data. How do we change the name without breaking all the code we developed? Refactoring the actual data might be infeasible, so we apply a workaround in our processing code (hence why "refactoring" is in quotes). We generate a VarNames data structure class of all the relevant variable names, with a case statement to choose which naming scheme depending on the version. The DataUnit level checks the variable naming version, and instantiates the VarNames class as a DataUnit component! An example is below.
 
 Example Data
-------------
+^^^^^^^^^^^^
 
 We have data that consists of input and output voltages and currents versus time in a csv file. ::
 
@@ -35,9 +40,9 @@ There are 5 columns. We are happy with the `Time`,`Vin`, and `Vout` headers, but
 
 
 Process Data
--------------
+^^^^^^^^^^^^
 
-We could attempt to actually refactor the data (changing the headers of every csv file), but sometimes this is infeasible. So we "refactor" our processing scheme. And that's what we do below. In this example we want to calculate the instantaneous input and output power of the DataUnit. To do this we must multiply voltages and currents and access them through the header. 
+We could attempt to actually refactor the data (changing the headers of every csv file), but sometimes this is infeasible with more challenging datasets. So we "refactor" our processing scheme. And that's what we do below. In this example we want to calculate the instantaneous input and output power of the DataUnit. To do this we must multiply voltages and currents and access them through the header. 
 
 .. code-block:: python
 
@@ -98,5 +103,12 @@ In this implementation, instead of hard coding the header names, we setup a comp
 
 .. note::
    This version check must read the entire file to check the variable naming. And then to calculate the power, it must read the file again. This is inefficient. We might consider just reading the first line of the file to check the variable naming to be more efficient. 
+   
+   
+Refactoring Data
+----------------
+
+In the previous example, the header in the csv is reletively simple to refactor and we own the csv file, so we develope a scheme to refactor the data itself. This refactoring scheme will be generic so that we can refactor the data again in the future if needed; this makes it simple to change variable names at will as our needs evolve. To be continued...
+
          
          

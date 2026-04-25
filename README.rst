@@ -103,6 +103,11 @@ to see the environment in Spyder, v6 requires spyder-kernels==3.0::
 Acknowledgments
 ===============
 
+This project was developed at:
+
+* Boise State University (BSU)
+
+
 Much of this project was developed to support grant research. While this project was not the direct goal of these grants, development was supported by them nonetheless.
 
 Funding of this project was supported by:
@@ -113,4 +118,7 @@ Funding of this project was supported by:
 * The Air Force Office of Scientific Research (AFOSR)
    * FA9550-22-1-0434
    * FA2386-24-1-4055
+   
+
+
    

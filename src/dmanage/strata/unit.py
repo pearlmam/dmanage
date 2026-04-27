@@ -12,17 +12,9 @@ import os
 from pathlib import Path
 import sys
 import inspect
+from dmanage.strata.helpers import PurePython
 
 __all__ = ["make_data_unit","DataUnit"]
-
-class PurePython:
-    """
-    Inheritance class to make DataUnit a pure python class, for __bases__ assignment in makeDataUnit()
-    """
-    def __init__(self,dataPath,*args,**kwargs):
-        pass
-    
-    pass
 
 def make_data_unit(base=PurePython):
     """ Creates DataUnit class
@@ -85,16 +77,3 @@ class DataUnit(PurePython):
     @staticmethod
     def inheritance_level():
         return 'DU'
-    
-    # def load(self,dataDir=None,iLevel='DU'):
-    #     # step through inheretanceLevels
-    #     base = self.__class__
-    #     level = base.inheritance_level()
-    #     while not (level.lower() == iLevel.lower()):
-    #         if len(base.__bases__) < 1:
-    #             raise Exception("Inheritance chain does not include level '%s'"%level)
-    #         base = base.__bases__[0]
-    #         level = base.inheritance_level()
-    #     return base(dataDir)
-    
-

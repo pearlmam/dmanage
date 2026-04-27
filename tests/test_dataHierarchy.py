@@ -7,10 +7,7 @@ Created on Tue Oct 14 13:31:59 2025
 """
 from testObjects import MyDataUnit,MyNewDataUnit
 from testObjects import MyDataGroup,MyNewDataGroup
-
 from testObjects import Parent, Component1, Component2, Component3
-
-
 
 import pytest
 from unittest import TestCase

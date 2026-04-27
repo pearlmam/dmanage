@@ -5,6 +5,12 @@ from dmanage.utils.sigbind import rebuild_signature,check_variadic,overwrite_def
 
 SAVE_TYPE = 'png'
 SAVE_LOC = 'processed/'
+
+class PurePython:
+    """Inheritance class to make DataUnit a pure python class, for __bases__ assignment in makeDataUnit()"""
+    def __init__(self,dataPath,*args,**kwargs):
+        pass
+    
 def _savePlot(self,fig,saveName='plot',saveLoc=None,tagVars=None,tagFormat=None,saveTag=None,saveType=None):
     """
     this function is behind a layer so that kwargs can be overwritten from the data group wrapper

@@ -39,10 +39,19 @@ def _savePlot(self,fig,saveName='plot',saveLoc=None,tagVars=None,tagFormat=None,
     fig.savefig('%s%s%s.%s'%(saveLoc,saveName,saveTag,saveType) , bbox_inches='tight', format=saveType)
     
 def savePlot(self,fig,args,kwargs,*_args,**_kwargs):
+    """user-facing layer to handle argument binding
+    
+    NOTE: with parallel implementation, all the arguments get bound to args, not kwargs
+        This makes it difficult for the user to interact with these variables in 
+        the calling function. Parallel wrapper may need to include arg keys? how?
+    """
     sig = inspect.signature(_savePlot)
-    bound = sig.bind(self, fig, *args, **kwargs)
+    # bound = sig.bind(self, fig, *args, **kwargs)
+    bound = sig.bind(self, fig, *args)
     bound.apply_defaults()
+    bound.arguments.update(kwargs)
     bound.arguments.update(_kwargs)
+    
     return _savePlot(**bound.arguments)
     
     
@@ -50,8 +59,6 @@ def enable_savePlot(sig,func,instance):
     """
     synchronize calling function and savePlot signatures
     It also uses the data group  instance to set the default write directory
-    
-    
     """
     sig = sync_sigs(func,_savePlot)
     sig = overwrite_defaults(sig,saveLoc=getattr(instance,'resDir',None)) # use saveLoc from instance

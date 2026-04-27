@@ -24,7 +24,7 @@ def decombine_dicts(dictionary):
             out[i][key] = v
     return out
 
-def combine_dfs(dfList,var=None,axis=1):
+def combine_dfs(dfList,tagVars=None,axis=1):
     """
     combine dicts. right now it is untested with MultiIndex
     """
@@ -34,20 +34,22 @@ def combine_dfs(dfList,var=None,axis=1):
     #df0 = dfList[0]
     # df1 = dfList[1]
     
-    if var is None:
-        var = {None:range(0,len(dfList[0].columns))}
+    if tagVars is None:
+        tagVars = {None:range(0,len(dfList[0].columns))}
+        
+    base_index = pd.MultiIndex.from_arrays( list(tagVars.values()), names=list(tagVars.keys()))
+
     if axis == 0:
-        iNames = list(var.keys()) + list(dfList[0].index.names)
-        index = pd.MultiIndex.from_product([list(var.values())[0],dfList[0].index],names=iNames)
+        iNames = list(tagVars.keys()) + list(dfList[0].index.names)
+        index = pd.MultiIndex.from_tuples([(*vals, col) for vals in base_index for col in dfList[0].columns],names=iNames)
         df = pd.concat(dfList,axis=0)
         df.index = index
     elif axis == 1:
-        iNames = list(var.keys()) + list(dfList[0].columns.names)
-        index = pd.MultiIndex.from_product([list(var.values())[0],dfList[0].columns],names=iNames)
+        iNames = list(tagVars.keys()) + list(dfList[0].columns.names)
+        index = pd.MultiIndex.from_tuples([(*vals, col) for vals in base_index for col in dfList[0].columns],names=iNames)
         df = pd.concat(dfList,axis=1)
         df.columns = index
-        
-        
+
     return df
 if __name__ == "__main__":
         

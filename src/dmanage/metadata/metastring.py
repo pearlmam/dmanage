@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import natsort
 import os
+import numpy as np
 import pandas as pd
 import re
 import decimal
@@ -23,7 +24,11 @@ def adjusted_scientific_notation(val,num_decimals=2,exponent_pad=1):
     return adjusted_mantissa_string+"E"+adjusted_exponent_string
 
 def smartString(val,numDecimals=3):
-    if -3 < decimal.Decimal(val).adjusted() < 3:
+    if isinstance(val, np.generic):  # catches np.bool_, np.float64, etc.
+        val = val.item()
+    if (val == 1 or val == 0) and isinstance(val,(bool,int)):
+        string = str(int(val))   # write booleans as '0' or '1'
+    elif -3 < decimal.Decimal(val).adjusted() < 3:
         mantissa_template = "{:.%df}" % numDecimals
         string = mantissa_template.format(val)
     else:

@@ -44,6 +44,8 @@ def savePlot(self,fig,args,kwargs,*_args,**_kwargs):
     NOTE: with parallel implementation, all the arguments get bound to args, not kwargs
         This makes it difficult for the user to interact with these variables in 
         the calling function. Parallel wrapper may need to include arg keys? how?
+        any user function that uses *args, must call the function with all positional args
+        
     """
     sig = inspect.signature(_savePlot)
     # bound = sig.bind(self, fig, *args, **kwargs)
@@ -60,6 +62,9 @@ def enable_savePlot(sig,func,instance):
     synchronize calling function and savePlot signatures
     It also uses the data group  instance to set the default write directory
     """
+    if 'fig' not in sig.parameters.keys():
+        raise TypeError("Method '%s' requires a fig parameter defined to use 'savePlot' override. "%func.__name__)
+
     sig = sync_sigs(func,_savePlot)
     sig = overwrite_defaults(sig,saveLoc=getattr(instance,'resDir',None)) # use saveLoc from instance
     return sig

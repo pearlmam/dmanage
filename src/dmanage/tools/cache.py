@@ -87,7 +87,7 @@ class HardCache:
         """writen by child"""
         pass
     
-    def get(self,key):
+    def get(self,key,method=None,*args,**kwargs):
         """returns dict if list-like, else return value"""
         if isinstance(key,(tuple,list)):
             result = {}
@@ -95,7 +95,7 @@ class HardCache:
                 result[k] = self._get(k)
             return result
         else:
-            return self._get(key)
+            return self._get(key,method,*args,**kwargs)
     
     def save(self,data,key,compression=None, thread=False):
         """Calls self._save() defined be baseclass

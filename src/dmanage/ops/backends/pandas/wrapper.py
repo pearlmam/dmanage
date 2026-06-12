@@ -82,7 +82,7 @@ if WRAPPER_TYPE == 'class':
             bound = sig.bind(*args, **kwargs)
             bound.apply_defaults()
             if nc>1:
-                DFs = np.split(bound.args[0], nc)
+                DFs = np.array_split(bound.args[0], nc)
                 variables = [(DF,)+bound.args[1:]+tuple(bound.kwargs.values()) for DF in DFs]
                 pool = Pool(processes=nc)
                 result = pool.starmap_async(self.func,variables)
@@ -158,7 +158,7 @@ else:
             bound = sig.bind(*args, **kwargs)
             bound.apply_defaults()
             if nc>1:
-                DFs = np.split(args[0], nc)
+                DFs = np.array_split(args[0], nc)
                 variables = [(DF,)+bound.args[1:]+tuple(bound.kwargs.values()) for DF in DFs]
                 pool = Pool(processes=nc)
                 result = pool.starmap_async(func,variables)

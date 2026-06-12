@@ -8,7 +8,7 @@ from scipy.optimize import curve_fit
 
 import dmanage.ops.arrays.signal
 from dmanage.ops.backends.pandas.convert import numpy_to_df,df_to_numpy
-from dmanage.ops.backends.pandas.fft import fft, fft_amplitude
+from dmanage.ops.backends.pandas.fft import fft, fft_amplitude,fft_phase
 from dmanage.ops.backends.pandas import plot
 
 

@@ -75,7 +75,7 @@ The dmanage package utilizes Pyro5 to implement remote procedure calls (RPC) to 
 
 This functionality is not provided by default, but is easy to enable. Install a fork of the Pyro5 project to your environment using the following command::
 
-        pip install dmanage['Pyro5']
+        pip install dmanage[Pyro5]
    
 .. note::
    This Pyro5 fork adds pickle and dill serialization to Pyro5. Pickle and dill serialization is needed to transfer non-literal data types from server to client (think numpy arrays and matplotlib figures). There are serious security issues with using pickle, but it offers a huge convenience. Pickle is disabled by default, so your system is safe; however, it will be required for remote data visualization. See the pickle documentation for how to secure your system. Pandas DataFrame serialization is supported by the Pyro5 native serialization, serpent, but can become malformed if the DataFrame is complex (see serpent DataFrame serialization for more information).
@@ -83,7 +83,15 @@ This functionality is not provided by default, but is easy to enable. Install a 
 
 Development
 ===========
-create a virtual environment and create an editable install
+create a virtual environment, clone repo, and create an editable install::
+        clone https://github.com/pearlmam/dmanage.git
+        cd dmanage
+        conda create -n dmanage -c conda-forge spyder-kernels
+        conda activate dmanage
+        pip install -m .
+        pip install .[all]
+        pip install .[dev]
+        
 
 Anaconda 
 --------

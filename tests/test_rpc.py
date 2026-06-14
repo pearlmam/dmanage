@@ -15,7 +15,9 @@ from testObjects import MyDataUnit,MyNewDataUnit
 from testObjects import MyDataGroup,MyNewDataGroup
 from testObjects import Parent
 
-from config import remoteModule
+from config import remoteModule  
+# config contains one line: remoteModule = 'path/to/this/file/dmanage/tests/test_rpc'
+# not included in package for privacy
 
 """   Constants   """
 baseDir = '/path/to/baseDir/'

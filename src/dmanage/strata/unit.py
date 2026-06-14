@@ -6,23 +6,16 @@ Created on Mon May 10 16:09:02 2021
 dataUnit stuff
 @author: marcus
 """
-import io
-import pandas as pd
+
 import os
 from pathlib import Path
-import sys
-import inspect
-from dmanage.strata.helpers import PurePython
 
 __all__ = ["make_data_unit","DataUnit"]
 
-def make_data_unit(base=PurePython):
+def make_data_unit(base=None,name=None):
     """ Creates DataUnit class
     This creates the DataUnit class with the inherited components from the base class
-    The base class must be a pure python class because DataUnit inherits from PurePython and overwriting 
-    __bases__ might throw an error: "TypeError: __bases__ assignment: 'A' deallocator differs from 'object'"
-    If DataUnit did not inherit from this dummy PurePython, it default inherits from `object` and __bases__ cant be overwritten 
-    with my python class. Some might be true if your class is not a pure python class.
+    
     Parameters
     ----------
     base : class
@@ -34,10 +27,18 @@ def make_data_unit(base=PurePython):
         This is the DataUnit class with the components.
 
     """
-    DataUnit.__bases__ = (base,)
-    return DataUnit
-    
-class DataUnit(PurePython):
+    ##### mmight need to check for classes with the same name because it might clash???
+    if base is None:
+        if name is None:
+            raise Exception('With no base specified, a name must be given')
+        else:
+            return type(f"{name}DataUnit", (DataUnit,), {})
+    else:
+        if name is None:
+            name = base.__name__
+        return type(f"{name}DataUnit", (DataUnit, base), {})
+ 
+class DataUnit():
     """Inherit from this class to enable dmanage functionality
     """
     def __init__(self,dataPath,*args,**kwargs):

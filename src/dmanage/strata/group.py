@@ -31,21 +31,14 @@ def make_data_group(base):
     1. The object prints to the terminal with fewer wrapped namespaces
     2. I think this allows the super() function to work better with multiprocess.Pool class
     3. isinstance() works in multiprocess.Pool class
-    
-    This function will fail if the DataGroup and/or the base input class does not
-    inherit from a pure python class. If no inheritance is set, the inheritance defaults
-    to an object class. setting the __base__ attribute on a object class with a pure python class
-    will throw an error.
     """
-    DataGroup.__bases__ = (base,)
-    return DataGroup
+    return type(f"{base.__name__}DataGroup", (DataGroup, base), {})
 
-class DataGroup(helpers.PurePython):
+class DataGroup():
     """ opens a sweep data directory containing VSim data directories for common analysis I use. 
     
     Plotting relevant histories, plotting electrons, sweep data, etc.
     Can generate a data management lookup spreadsheet to visualize the available data directories
-    PurePython inheritance is required for inheritance override by make_data_group()
     
     """
     
@@ -91,10 +84,10 @@ class DataGroup(helpers.PurePython):
             raise Exception('Invalid unitType')
         
             
-        if len(self.dataUnits) == 0: raise Exception("There are no Data Directories in '%s'" % self.baseDir)
+        if len(self.dataUnits) == 0: raise Exception("There are no Data Units in '%s'" % self.baseDir)
         self.dataUnits = natsort.natsorted(self.dataUnits)
         # open one data directory to load any relevant DataUnit info
-        super().__init__(os.path.join(baseDir, self.dataUnits[0]),*args,**kwargs)
+        super().__init__( os.path.join(baseDir, self.dataUnits[0]),*args,**kwargs)
         #self.baseDir = os.path.join(baseDir,'')   # overwrite baseDir again,
         
         self._wrap_methods()
@@ -343,8 +336,13 @@ def get_base(instance,iLevel='du'):
     while not (level.lower() == iLevel.lower()):
         if len(base.__bases__) < 1:
             raise Exception("Inheritance chain does not include level '%s'"%level)
-        base = base.__bases__[0]
-        level = base.inheritance_level()
+        for b in base.__bases__:
+            base = b
+            level = base.inheritance_level()
+            if (level.lower() == iLevel.lower()):
+                break
+        # base = base.__bases__[0]
+        # level = base.inheritance_level()
     return base
 
 def get_component_method(obj,component_name, method_name):

@@ -2,7 +2,7 @@
 import inspect
 import os
 from dmanage.utils.sigbind import rebuild_signature,check_variadic,overwrite_defaults
-
+from pathlib import Path
 SAVE_TYPE = 'png'
 SAVE_LOC = 'processed/'
 
@@ -11,6 +11,11 @@ def _savePlot(self,fig,saveName='plot',saveLoc=None,tagVars=None,tagFormat=None,
     this function is behind a layer so that kwargs can be overwritten from the data group wrapper
     The data group wrapper signature binds and applies defaults for robustness
     This makes it difficult to overwrite those defaults in the calling function.
+    
+    This whole saveplot override is a decent implementation but needs easier user 
+    interaction and to be more modular
+    
+    Might need way to pass gen_tag vars... 
     """
     if saveType is None:
         if hasattr(self,'saveType'):
@@ -24,14 +29,19 @@ def _savePlot(self,fig,saveName='plot',saveLoc=None,tagVars=None,tagFormat=None,
             saveLoc = './' + SAVE_LOC
     os.makedirs(saveLoc,exist_ok=True)
     
-    if tagVars is not None and hasattr(self,'gen_tag'):
-        saveTag = self.gen_tag(tagVars=tagVars,format=tagFormat)
+    if hasattr(self,'gen_tag'):
+        sig = inspect.signature(self.gen_tag)
+        if ('tagVars' in sig.parameters) and ('format' in sig.parameters):
+            saveTag = self.gen_tag(tagVars=tagVars,format=tagFormat)
+        else:
+            saveTag = self.gen_tag()
     if saveTag is None:
         saveTag = ''
     else:
         saveTag = '_' + saveTag
-
-    fig.savefig('%s%s%s.%s'%(saveLoc,saveName,saveTag,saveType) , bbox_inches='tight', format=saveType)
+    saveFilename = '%s%s.%s'%(saveName,saveTag,saveType)
+    saveHandle = Path(saveLoc) / saveFilename
+    fig.savefig(saveHandle, bbox_inches='tight', format=saveType)
     
 def savePlot(self,fig,args,kwargs,*_args,**_kwargs):
     """user-facing layer to handle argument binding

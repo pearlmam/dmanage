@@ -289,7 +289,10 @@ class make_wrapper:
         #     kwargs[overrideKind] = varValue
         
         # result = du_func( *args, **kwargs )
-        result = du_func( *bound.args, **bound.kwargs )
+        if du_func is not None:
+            result = du_func( *bound.args, **bound.kwargs )
+        else:
+            result = None
         
         
 
@@ -351,9 +354,11 @@ def get_component_method(obj,component_name, method_name):
         component = obj
     else: 
         #The method is within a component
-        component = getattr(obj,component_name)
-    
-    func = getattr(component,method_name)
+        component = getattr(obj,component_name,None)
+    if component is not None:
+        func = getattr(component,method_name,None)
+    else:
+        func=None
     return func
 
 

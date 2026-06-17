@@ -520,7 +520,7 @@ def contourf(DF, fig=None, figsize=(12, 5), clear=True, polar=False, cmap='virid
     return fig,ax,grid,cbar
 
 
-def pcolor(DF, fig=None, figsize=(12, 5), clear=True, polar=False, subplots=(1, 1), subplot=0, cmap='viridis', cbarOrientation='vertical', convertAxis=True):
+def pcolor(DF, fig=None, figsize=(12, 5), clear=True, polar=False, subplots=(1, 1), subplot=0, cmap='viridis', cbarOrientation='vertical', convertAxis=True,*args,**kwargs):
 
     # check DF for proper format
     if not issubclass(type(DF), pd.core.series.Series):
@@ -560,7 +560,7 @@ def pcolor(DF, fig=None, figsize=(12, 5), clear=True, polar=False, subplots=(1, 
     # used to be np.object
     if array.dtype == object: array = array.astype(float)
 
-    grid = ax.pcolor(x,y,array.T,shading='auto',cmap=cmap)
+    grid = ax.pcolor(x,y,array.T,shading='auto',cmap=cmap,*args,**kwargs)
     if not cbarOrientation is None:
         if polar:
             if cbarOrientation == 'horizontal':

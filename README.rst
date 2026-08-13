@@ -103,10 +103,10 @@ create an environment, install pip, and then install the editable package::
         conda install pip
         pip install -e <path/to/dmanage>
 
-to see the environment in Spyder, v6 requires spyder-kernels==3.0::
+to see the environment in Spyder, v6 requires spyder-kernels==3.0. PyQt5 is included to enable qt interactive plots::
 
         conda activate dmanage
-        pip install spyder-kernels==3.0.*
+        pip install spyder-kernels==3.1.* PyQt5
             
 Acknowledgments
 ===============

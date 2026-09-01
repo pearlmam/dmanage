@@ -6,10 +6,10 @@ import os
 from pathlib import Path
 
 # necessary packages for data hierarchy
-from dmanage.strata.group import make_data_group
+from dmanage import make_data_group
 from dmanage.strata.unit import make_data_unit
-from dmanage.strata.decorate import override
-from dmanage.metadata import compose
+from dmanage import override
+from dmanage import compose
 
 
 def sineStep(t,risetime):

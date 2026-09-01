@@ -2,7 +2,7 @@
 import pandas as pd
 import numpy as np
 
-from dmanage.tools import HardCache
+from dmanage import HardCache
 
 def generate_data():
     # waveform parameters

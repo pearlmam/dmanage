@@ -6,5 +6,6 @@ Created on Mon Jan 19 14:50:41 2026
 @author: marcus
 """
 
-import dmanage.plugins as plugins
+import dmanage as plugins
+
 vsim = plugins.get("vsim")

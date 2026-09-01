@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
-import Pyro5.api
 # from matplotlib import pyplot as plt
 import os
 
@@ -9,6 +8,7 @@ from dmanage.ops.dfmethods import plot
 from dmanage.parallel import parallelize_iterator_method
 from dmanage.strata import make_data_unit, make_data_group, override, plot_override, helpers
 from dmanage.metadata import metastring
+
 
 def iteration_method(arg0):
     a = np.linspace(0,100,101)*arg0
@@ -85,7 +85,7 @@ class MyDataUnit(DataUnit):
         if saveloc is None:
             saveloc = './data/'
         DF = self.gen_DataFrame(variant=1,size=100)
-        fig,ax = plot.plot1d(DF,fig=fig)
+        fig,ax = plot.plot1d(DF, fig=fig)
         savename = 'testplot'
         savetag = self.gen_tag()
         os.makedirs(saveloc,exist_ok=True)
@@ -95,18 +95,18 @@ class MyDataUnit(DataUnit):
     @override('savePlot')  # this enables helper.save_plot use with groups
     def plot2(self,fig=1,*args,**kwargs):
         DF = self.gen_DataFrame(variant=1,size=100)
-        fig,ax = plot.plot1d(DF,fig=fig)
-        helpers.savePlot(self,fig, args,kwargs)
+        fig,ax = plot.plot1d(DF, fig=fig)
+        helpers.savePlot(self, fig, args, kwargs)
         return fig,ax
     
     @plot_override   # doesnt work well with dataGroups, it looses the looperize wrap...
     def plot3(self,fig=1,*args,**kwargs):
         DF = self.gen_DataFrame(variant=1,size=100)
-        fig,ax = plot.plot1d(DF,fig=fig)
+        fig,ax = plot.plot1d(DF, fig=fig)
         return fig,ax
     
     def gen_tag(self,tagVars='file',format=None):
-        tag = '%03i'%metastring.parse(self.dataUnit,checkVars=tagVars)[tagVars][0]
+        tag = '%03i' % metastring.parse(self.dataUnit, checkVars=tagVars)[tagVars][0]
         return tag
     
     @override()     

@@ -7,40 +7,27 @@ except ImportError:
     raise ImportError("Module 'Pyro5' must be installed to use the rpc package, use 'pip install dmanage[Pyro5]'")
 
 from pathlib import Path
-import os
-import sys
 import pandas as pd
 import subprocess as sp
 import inspect
-from types import ModuleType
-from importlib import reload
-import time
 
-from dmanage.utils.objinfo import is_literal,is_container,is_immutable,is_pandas,has_immutable_base
+import time
+import importlib.util
+
+from dmanage.utils.objinfo import is_literal,is_pandas,has_immutable_base
 
 defaultPyroFactoryHost = "localhost"
 defaultPyroFactoryPort = 44444
 defaultPyroFactoryName = "ProxyFactory"
 
-# global SECURE_LOCATION
-# global RESTRICTED_LOCATIONS 
-RESTRICTED_LOCATIONS = ['anaconda3',]
-SECURE_LOCATIONS = [os.getenv("HOME"),]      # doesnt work for windows...
-ONLY_EXPOSED = False
-Pyro5.api.config.PICKLE_ENABLE = True
+script_dir = Path(__file__).parent.resolve()
+rel_dir = Path('../../tests/helpers')
+TEST_CONFIG_PATH =  script_dir /  'rpc_config.py'
+TEST_PICKLE_CONFIG_PATH = script_dir / rel_dir / 'rpc_config_pickle.py'
+
 __all__ = ["PyroFactory", "Pyroize", "ProxyFactory", "ProxyWrap"]
 
-
-def set_secure_location(locs):
-    """
-    """
-    if not is_container(locs):
-        locs = [locs]
-    global SECURE_LOCATIONS
-    SECURE_LOCATIONS = list(locs)
-    
-
-    
+ 
 def client_ssh_setup(user,server,localPort=44444,remotePort=44444,verbose=False):
     """sets up ssh port forwarding on the client
     only needs to be run once. only needed to connect to remote hosts.
@@ -74,40 +61,48 @@ def client_ssh_close(localPort=44444,verbose=False):
     #     print(line.decode('ascii').rstrip('\n'))
 
 ######   server arrays    #######
+#@Pyro5.api.behavior(instance_mode="single", instance_creator=lambda clazz : clazz._create_instance(None))
 @Pyro5.api.expose
-@Pyro5.api.behavior(instance_mode="single", instance_creator=lambda clazz : clazz.create_instance(None))
 class PyroFactory():
-    def __init__(self,secureLoc=None):
+    config_path = None
+    def __init__(self,configPath=None):
         """setup rudimentary security? If someone gets access to Factory, 
         they can create any module they want, ensure no access to unwanted python modules"""
-        # self.secureLoc=secureLoc
-        self._secureLocs = SECURE_LOCATIONS
-        self._restrictLocs = RESTRICTED_LOCATIONS
-        self._pyro_uris = {}
+        self.configPath=Path(configPath)
+        if not self.configPath.exists():
+            raise FileNotFoundError(f"Config file not found: {self.configPath}")
+        self._load_config()
         
-    def create(self,obj,module=None,name=None,reload=False,args=(),kwargs={}):
-        # check if location is secure
-        if any([Path(secureLoc) not in Path(module).parents for secureLoc in SECURE_LOCATIONS]):
-            raise Exception("Insecure 'module' Location: '%s' is not in %s"%(module, SECURE_LOCATIONS))
-        if any([str(restrictLoc) in Path(module).parts for restrictLoc in RESTRICTED_LOCATIONS]):
-            raise Exception("Restricted 'module' Location: '%s' is in one of %s"%(module, RESTRICTED_LOCATIONS))
-        if name is None:
-            if isinstance(obj,str):
-                name = obj
-            elif inspect.isclass(obj):
-                name = obj.__name__
-            else:
-                name = type(obj).__name__
-
+        self._pyro_uris = {}
+    
+    def _load_config(self,):
+        spec = importlib.util.spec_from_file_location("custom_rpc_config", self.configPath)
+        config_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(config_module)
+        self._exposed_objects = getattr(config_module, "EXPOSED_OBJECTS", {})
+        self.ONLY_EXPOSED = getattr(config_module, "ONLY_EXPOSED", {})
+    
+    def _get_object(self,name):
+        if not name in self._exposed_objects:
+            print(f"Failed! No object named '{name}'")
+            raise Exception(f"No object named '{name}' is exposed to this factory")
+        else:
+            return self._exposed_objects[name]
+    
+    def get_exposed_object_list(self,):
+        return list(self._exposed_objects.keys())
+    
+    def create(self,name,reload=False,args=(),kwargs={}):
+        
         if name in self._pyro_uris and not reload:
             print("Object '%s' already shared, 'reload=False': using cached uri"%name)
             return self._pyro_uris[name]
         elif name in self._pyro_uris and reload:
             print("Object '%s' already shared, 'reload=True': recreating uri"%name)
         
-        print("Creating pyro object: '%s'..."%obj, end= ' ' )
-        obj = get_object_from_module(obj,module)
-        if not ONLY_EXPOSED:
+        print("Creating pyro object: '%s'..."%name, end= ' ')
+        obj = self._get_object(name)
+        if not self.ONLY_EXPOSED:
             obj = expose_all(obj)
         obj = pyroize_object(obj)
         obj = obj(*args,**kwargs)
@@ -119,9 +114,10 @@ class PyroFactory():
         return uri
     
     @classmethod    
-    def create_instance(cls,*args,**kwargs):
+    def _create_instance(cls,*args,**kwargs):
+        if cls.config_path is None:
+            raise ValueError("Config path has not been set.")
         obj = cls(*args,**kwargs)
-        #obj.correlation_id = current_context.correlation_id
         return obj 
     
 ######### Pyro arrays to inject   #######
@@ -283,11 +279,23 @@ def expose_all(obj):
 ####### Client Methods  #########
 class ProxyFactory():
     """Proxy connection to the PyroFactory on server"""
-    def __init__(self,uri="PYRO:ProxyFactory@localhost:44444"):
+    def __init__(self,uri="PYRO:ProxyFactory@localhost:44444", proxy_reload=False):
         """Connect using uri of PyroFactory"""
         self.Factory = Pyro5.api.Proxy(uri=uri)
+        self.exposed_objects = self.Factory.get_exposed_object_list()
+        self._default_proxy_reload = proxy_reload
     
-    def create(self,obj,module=None,reload=False,args=(),kwargs={}):
+    def _sanitize_inputs(self, args, kwargs):
+        """Clean and format inputs locally before sending over network."""
+        # Example: Convert Path objects to strings for Serpent/JSON serialization
+        clean_args = [str(a) if isinstance(a, Path) else a for a in args]
+        clean_kwargs = {
+            k: (str(v) if isinstance(v, Path) else v) 
+            for k, v in kwargs.items()
+        }
+        return clean_args, clean_kwargs
+    
+    def create(self,name,*args,proxy_reload=None,**kwargs):
         """create Proxy for object in file
     
         Parameters
@@ -306,13 +314,25 @@ class ProxyFactory():
             Proxy to the object.
 
         """
+        # Pre-process inputs
+        if proxy_reload is None:
+            proxy_reload = self._default_proxy_reload
+        clean_args, clean_kwargs = self._sanitize_inputs(args, kwargs)
+        
         startTime = time.time()
-        print("creating proxy for '%s'..."%obj,end=' ')
-        uri = self.Factory.create(obj,module=module,reload=reload,args=args,kwargs=kwargs)
+        print("creating proxy for '%s'..."%name,end=' ')
+        uri = self.Factory.create(name,reload=proxy_reload,args=clean_args,kwargs=clean_kwargs)
         Obj = ProxyWrap(uri=uri)
         executionTime = time.time() - startTime
         print("done in %0.2f seconds"%(executionTime))
         return Obj
+    
+    def __getattr__(self, class_name: str):
+        """Fallback for undefined attributes: intercepts class names and routes to self.create()."""
+        def remote_constructor(*args, **kwargs):
+            # Route directly through self.create to reuse timing and formatting logic
+            return self.create(class_name, *args, **kwargs)
+        return remote_constructor
     
 class ProxyWrap():
     """Wraps a proxy so that component classes and attributes can be accessed"""
@@ -403,22 +423,6 @@ def get_attribute_names(obj):
             continue
     return attrs
 
-def get_object_from_module(obj,module):
-    if type(obj) is str:
-        if type(module) is str:   # should change to path-like
-            moduleName = os.path.basename(module)
-            # remove extention here
-            sys.path.append(os.path.dirname(module))
-            if moduleName not in sys.modules.keys():
-                module = __import__(moduleName)             # load module
-            else:
-                module = reload(sys.modules[moduleName])    # must reload if already loaded
-        elif isinstance(module,ModuleType):
-            module=module
-        else:
-            raise Exception("Parameter 'module' must be a path or the module object")
-        obj = getattr(module, obj)
-    return obj
 #########  ProxyWrap/uri serialization hooks  ###########
 
 URIHook = type('URIHook', (str,), {})   # URI class
@@ -496,9 +500,30 @@ def main(args=None):
     parser = ArgumentParser(description="D-Manage proxy factory command line launcher.")
     parser.add_argument("-n", "--host", dest="host",default='127.0.0.1', help="hostname to bind server on")
     parser.add_argument("-p", "--port", dest="port", type=int,default=defaultPyroFactoryPort, help="port to bind server on (0=random)")
+    parser.add_argument("-c", "--config", dest="config",default=False, help="path to the configuration file")
+    parser.add_argument("--test",action="store_true",help="Run in test mode using default test configurations")
+    parser.add_argument("--test-pickle",action="store_true",help="Run the test with pickle enabled")
     #parser.add_argument("--use_ns", dest="use_ns", type=bool,default=False, help="to use a NameServer or not")
     options = parser.parse_args(args)
-    Pyro5.api.serve({PyroFactory: defaultPyroFactoryName},host=options.host,
+    if not (options.test or options.config):
+        config_path = Path(TEST_CONFIG_PATH)
+        if config_path.exists():
+            example_text = config_path.read_text(encoding="utf-8")
+        else:
+            example_text = "# Example config file not found on disk."
+
+        parser.error(
+            f"argument -c/--config is required unless --test is set.\n\n"
+            f"--- Example config_rpc.py ---\n{example_text}\n"
+            )
+
+    if options.test:
+        config_path = TEST_PICKLE_CONFIG_PATH if options.test_pickle else TEST_CONFIG_PATH
+    else:
+        config_path = options.config
+        
+    pyroFactory = PyroFactory(configPath=config_path)
+    Pyro5.api.serve({pyroFactory: defaultPyroFactoryName},host=options.host,
                     port=options.port, use_ns=False)
     
 if __name__ == "__main__":

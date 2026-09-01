@@ -2,7 +2,7 @@
 import time
 from dmanage.strata.unit import make_data_unit
 from dmanage.ops.backends.pandas import plot
-from dmanage.plugins.vsim.loader import VSim
+from dmanage.plugins import VSim
 
 
 folder = './test_data/vsim_data/VDC-87.8e3/'

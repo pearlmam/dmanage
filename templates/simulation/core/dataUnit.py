@@ -1,10 +1,10 @@
 # common packages
 
 # necessary packages for data hierarchy
-from dmanage.strata import make_data_unit,override
+from dmanage import make_data_unit,override
 
 # optional packages for plotting and saving plots
-from dmanage.ops.dfmethods import plot
+from dmanage.ops import plot
 from dmanage.metadata import metastring
 import os
 
@@ -37,8 +37,8 @@ class MyDataUnit(DataUnit):
     def gen_tag(self,tagVars,format=None):
         """ create a tag string to save plots with unique and human readable names
         """
-        tagVars = metastring.parse(self.dataUnit,checkVars=tagVars)
-        return metastring.compose(tagVars,format=format)    
+        tagVars = metastring.parse(self.dataUnit, checkVars=tagVars)
+        return metastring.compose(tagVars, format=format)
     
     def read(self,):
         """read the data, this is for simple dataUnits, more complicated ones would likely use components
@@ -84,7 +84,7 @@ class MyDataUnit(DataUnit):
             saveName = 'plot'
         saveTag = self.gen_tag(tagVars,tagFormat)
         DF = self.read()
-        fig,ax = plot.plot1d(DF,fig=fig)
+        fig,ax = plot.plot1d(DF, fig=fig)
         fig.savefig('%s%s_%s.%s'%(saveLoc,saveName,saveTag,self.saveType) , bbox_inches='tight', format=self.saveType)
         return fig,ax
    

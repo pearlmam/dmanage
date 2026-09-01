@@ -236,7 +236,7 @@ class make_wrapper:
         
         #### add the correct sig to this method
         # sig = inspect.signature(func)  
-        sig = helpers.enable_override(func,instance)
+        sig = helpers.enable_override(func, instance)
         self.originalSig = sig       # original signature used with method call, useful for override kind hook
             
         new_param = inspect.Parameter('dataUnit', inspect.Parameter.POSITIONAL_OR_KEYWORD)

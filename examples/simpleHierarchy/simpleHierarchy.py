@@ -6,10 +6,10 @@ import os
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from dmanage.strata.group import make_data_group
+from dmanage import make_data_group
 from dmanage.strata.unit import make_data_unit
-from dmanage.strata.decorate import override
-from dmanage.metadata import parse
+from dmanage import override
+from dmanage import parse
 from dmanage.ops.backends.pandas import plot
 
 

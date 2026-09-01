@@ -7,8 +7,8 @@ import os
 import openmdao.api as om
 from dmanage.plugins import vsim
 from dmanage.strata.unit import make_data_unit
-from dmanage.strata.group import make_data_group
-from dmanage.strata.decorate import override
+from dmanage import make_data_group
+from dmanage import override
 
 DataDir = make_data_unit(vsim.loader.VSim)
 class MyDataDir(DataDir):

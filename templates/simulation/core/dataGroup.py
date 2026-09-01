@@ -1,7 +1,7 @@
 # common packages
 
 # necessary packages for data hierarchy
-from dmanage.strata import make_data_group
+from dmanage import make_data_group
 from dataUnit import MyDataUnit
 
 DataGroup = make_data_group(MyDataUnit)

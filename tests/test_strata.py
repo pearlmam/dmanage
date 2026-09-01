@@ -5,9 +5,7 @@ Created on Tue Oct 14 13:31:59 2025
 
 @author: marcus
 """
-from testObjects import MyDataUnit,MyNewDataUnit
-from testObjects import MyDataGroup,MyNewDataGroup
-from testObjects import Parent, Component1, Component2, Component3
+from tests.helpers.strata_objects import Parent,Component1,Component2,Component3,MyDataGroup,MyDataUnit
 
 import pytest
 from unittest import TestCase

@@ -25,13 +25,14 @@ import os
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-   'sphinx.ext.napoleon',     # for parsin numpy and Google style docstrings
-   'sphinx.ext.autodoc',      # Automatic code documentation
-   "sphinx.ext.autosummary",  # code documentation
-   'sphinx.ext.doctest',      # for traditional documentation and code
-   'nbsphinx',                # for notebooks
-   'sphinx_rtd_dark_mode',    # Dark mode toggle for sphinx_rtd_theme
-   'sphinxcontrib.spelling',  # spell check
+   'sphinx.ext.napoleon',        # for parsin numpy and Google style docstrings
+   'sphinx.ext.autodoc',         # Automatic code documentation
+   "sphinx.ext.autosummary",     # code documentation
+   'sphinx.ext.doctest',         # for traditional documentation and code
+   'nbsphinx',                   # for notebooks
+   'sphinx_rtd_dark_mode',       # Dark mode toggle for sphinx_rtd_theme
+   'sphinxcontrib.spelling',     # spell check
+   'matplotlib.sphinxext.roles', # Handles :mpltype: and :rc: roles
 ]
 
 templates_path = ['_templates']
@@ -40,20 +41,19 @@ primary_domain = 'py'
 
 # -- Options for autodoc -------------------------------------------------
 autosummary_generate = True
-autosummary_imported_members = True
+autosummary_imported_members = False
 autodoc_default_options = {
     "members": True,
     "undoc-members": True,
     "show-inheritance": True,
-    "inherited-members": True,
     "member-order": "bysource",
     "special-members": "__init__",
+    'imported-members': False,
+    "inherited-members": False,
 }
 
-autodoc_mock_imports = [
-    "paramiko",
-]
-
+autodoc_mock_imports = ["paramiko", "matplotlib", "scipy", "tabulate"]
+suppress_warnings = ["app.add_directive", "docutils"]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

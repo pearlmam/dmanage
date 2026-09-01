@@ -49,7 +49,7 @@ def savePlot(self,fig,args,kwargs,*_args,**_kwargs):
     NOTE: with parallel implementation, all the arguments get bound to args, not kwargs
         This makes it difficult for the user to interact with these variables in 
         the calling function. Parallel wrapper may need to include arg keys? how?
-        any user function that uses *args, must call the function with all positional args
+        any user function that uses ``*args``, must call the function with all positional args
         
     """
     sig = inspect.signature(_savePlot)

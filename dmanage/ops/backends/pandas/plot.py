@@ -34,26 +34,26 @@ class PlotDefs():
         self.set_parameters()
         
         # This doesnt work for some reason 
-        '''
-        framework = mpl.cbook._get_running_interactive_framework()  # returns None at the moment
-        if framework == 'headless':
-            #print("The currently running framework is '%s, using 'Agg' backend"%framework)
-            self.backEnd = 'Agg'
-            self.use(self.backEnd)
-        elif framework == 'qt':
-            # Cannot load backend 'TkAgg' which requires the 'tk' interactive framework, as 'qt' is currently running
-            self.backEnd = 'QtAgg'
-        elif framework == 'qt5':
-            # Cannot load backend 'TkAgg' which requires the 'tk' interactive framework, as 'qt' is currently running
-            self.backEnd = 'Qt5Agg'   
-        elif backEnd in mpl.rcsetup.all_backends:
-            self.backEnd = backEnd
-            self.use(self.backEnd)
-        else:
-            print("The backend %s is not availiable, using 'Agg' instead"%backEnd)
-            self.backEnd = 'Agg'
-            self.use(self.backEnd)
-        '''
+  
+#        framework = mpl.cbook._get_running_interactive_framework()  # returns None at the moment
+#        if framework == 'headless':
+#            #print("The currently running framework is '%s, using 'Agg' backend"%framework)
+#            self.backEnd = 'Agg'
+#            self.use(self.backEnd)
+#        elif framework == 'qt':
+#            # Cannot load backend 'TkAgg' which requires the 'tk' interactive framework, as 'qt' is currently running
+#            self.backEnd = 'QtAgg'
+#        elif framework == 'qt5':
+#            # Cannot load backend 'TkAgg' which requires the 'tk' interactive framework, as 'qt' is currently running
+#            self.backEnd = 'Qt5Agg'   
+#        elif backEnd in mpl.rcsetup.all_backends:
+#            self.backEnd = backEnd
+#            self.use(self.backEnd)
+#        else:
+#            print("The backend %s is not availiable, using 'Agg' instead"%backEnd)
+#            self.backEnd = 'Agg'
+#            self.use(self.backEnd)
+
         self.backEnd = mpl.get_backend()
         holoview = False
         if holoview:

@@ -64,8 +64,10 @@ Generate Documentation
 
 To generate the documentation, some setup is needed... I'll probably need to have packages to be installed for development, separate from base package packages... This will have to go here too. 
 
-Autodoc
-^^^^^^^
+Autodoc [DEPRICIATED]
+^^^^^^^^^^^^^^^^^^^^^
+
+This is depriciated, do not run this command, the code uses `autosummary` + `autodoc` automatically. This section is here in case.
 
 This scans your code for packages, modules and functions for docstrings for an automatic index of the project.
 

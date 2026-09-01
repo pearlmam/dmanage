@@ -22,8 +22,9 @@ defaultPyroFactoryName = "ProxyFactory"
 
 script_dir = Path(__file__).parent.resolve()
 rel_dir = Path('../../tests/helpers')
-TEST_CONFIG_PATH =  script_dir /  'rpc_config.py'
+TEST_CONFIG_PATH =  script_dir / rel_dir / 'rpc_config.py'
 TEST_PICKLE_CONFIG_PATH = script_dir / rel_dir / 'rpc_config_pickle.py'
+TEMPLATE_CONFIG_PATH = script_dir / 'rpc_config.py'
 
 __all__ = ["PyroFactory", "Pyroize", "ProxyFactory", "ProxyWrap"]
 

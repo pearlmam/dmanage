@@ -80,6 +80,15 @@ docs = ["nbconvert[webpdf]",      # notebooks
 ]
 
 dev = [
+    "nbconvert[webpdf]",      # notebooks
+    "nbsphinx",                # notebooks
+    "nbformat",
+    "ipykernel",
+    "notebook",
+    "sphinx",                  # sphinx
+    "sphinx_rtd_theme",        # sphinx theme
+    "sphinx-rtd-dark-mode",    # dark mode extension for sphinx_rtd_theme
+    "sphinxcontrib-spelling",  # spell check
     "pytest",
 ]
 

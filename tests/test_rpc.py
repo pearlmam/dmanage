@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
+import dmanage
 import dmanage.remote.rpc as rpc
 import Pyro5.api
 
 import numpy as np
-
 import pytest
 from unittest import TestCase
 import getpass
 
-from tests.helpers.strata_objects import Parent,MyDataGroup,MyDataUnit,MyNewDataGroup,MyNewDataUnit
+from helpers.strata_objects import Parent,MyDataGroup,MyDataUnit,MyNewDataGroup,MyNewDataUnit
  
+
+dmanage.config.MULTIPROC_BACKEND="dill"
 """   Constants   """
 baseDir = '/path/to/baseDir/'
 dataPath = 'path.test'

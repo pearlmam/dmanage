@@ -2,4 +2,4 @@
 #from .ops import dfmethods, arrays
 
 #__all__ = ["dfmethods", "arrays"]
-
+from dmanage import config

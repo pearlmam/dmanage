@@ -2,12 +2,16 @@ import inspect
 import itertools
 
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing import Pool
-# from multiprocess import Pool
+import dmanage
 import functools
 import numpy as np
 from dmanage.utils.objinfo import is_iterable
 import sys
+if dmanage.config.MULTIPROC_BACKEND == "dill":
+    from multiprocess import Pool
+else:
+    from multiprocessing import Pool
+
 
 WRAPPER_TYPE = 'class'
 # WRAPPER_TYPE = 'funcs'

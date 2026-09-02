@@ -13,6 +13,7 @@ import pandas as pd
 import natsort
 import functools
 import matplotlib as mpl
+import time
 
 from pathlib import Path
 
@@ -141,14 +142,16 @@ class DataGroup():
         if Path(self.baseDir) not in dataUnit.parents:
             dataUnit = os.path.join(self.baseDir,dataUnit)
         
-        uriKey = str(dataUnit)
-        uriKey = uriKey.replace(self.baseDir,'')
-        
         du = base(dataUnit,*args,**kwargs)
         
-        # check if proxy and Pyroize
-        if hasattr(self,'_pyroDaemon'): 
-            uri = self._create_pyro_uri(du,uriKey)
+        # check if proxy and Pyroize, PyroFactory will add _create_pyro_uri 
+        # method and _pyroDaemon attribute
+        if hasattr(self,'_pyroDaemon'):
+            className = self.__class__.__name__
+            uriKey = str(dataUnit)
+            uriKey = uriKey.replace(self.baseDir,'')
+            uriKey = f"{className}[uriKey]"  # the human readable key shows which group created this
+            uri = self._create_pyro_uri(du, uriKey)
             # proxy = self._create_pyro_proxy(du)
             return uri
         else:
@@ -217,7 +220,13 @@ class DataGroup():
             
     # this is here mainly for testing?? The user may want to pickle dataGroups, but for strata testing we dont? 
     def __getstate__(self):
-        raise RuntimeError("""Datagroup should not be pickled. Parallelism should only pickle DataUnit""")
+        raise TypeError("Datagroup should not be pickled. Parallelism should only pickle DataUnit")
+        
+    def __reduce__(self):
+        raise TypeError("DataGroup should not be pickled. Parallelism should only pickle DataUnit.")
+
+    def __reduce_ex__(self, protocol):
+        raise TypeError("DataGroup should not be pickled. Parallelism should only pickle DataUnit.")
             
 ######################
 ##   Wrapper funcs
@@ -269,7 +278,7 @@ class make_wrapper:
         
         Do NOT want to pass self to this, just base class (DataUnit)
         """
-        
+
         bound = self.originalSig.bind(*args, **kwargs)
         du = self.base(dataUnit) 
         # DD = super(self.__class__.__bases__[0],self).load(os.path.join(self.baseDir,sweepDir),iLevel='DU') 
@@ -294,8 +303,6 @@ class make_wrapper:
         else:
             result = None
         
-        
-
         return result
     
     def __call__(self,  *args, **kwargs):
@@ -312,8 +319,8 @@ class make_wrapper:
             
         ## binding to self, which has original signature plus the dataunit, see self.__signature__
         method = parallelize_iterator_method(self._on_method_call, ncPass=ncPass, bind_func=self)
-        results = method(self.dataUnits, *args, **kwargs)
         
+        results = method(self.dataUnits, *args, **kwargs)
         #### deal with override kinds after
         if self.orKind == 'DataFrame':
             results = pd.concat(results,**self.orArgs)

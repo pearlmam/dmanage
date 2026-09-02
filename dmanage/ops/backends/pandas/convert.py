@@ -8,6 +8,7 @@ import copy
 # from multiprocess import Pool
 from multiprocessing import Pool
 
+
 def create_bounds(array, iNames, bounds = {}):
     s = array.shape
     if len(iNames) != len(s):

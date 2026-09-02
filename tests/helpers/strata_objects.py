@@ -3,13 +3,22 @@ import numpy as np
 import pandas as pd
 # from matplotlib import pyplot as plt
 import os
-
+import time
 from dmanage.ops.dfmethods import plot
 from dmanage.parallel import parallelize_iterator_method
 from dmanage.strata import make_data_unit, make_data_group, override, plot_override, helpers
 from dmanage.metadata import metastring
 
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).parent.resolve()))
+'''
+Use for debug,
+print(f"module load: {time.time()}") 
 
+on rpc, DG, parallel_method calls with ncPass=True, this print shows 
+whether the module is loaded with every call 
+'''
 def iteration_method(arg0):
     a = np.linspace(0,100,101)*arg0
     return a.mean().tolist()
@@ -76,9 +85,11 @@ class MyDataUnit(DataUnit):
     
     @override()
     def parallel_method(self,arg0,nc=1):
+        # this method can cause issues rpc, DG calls with ncPass=True 
         #print("nc=%d"%nc)
         func = parallelize_iterator_method(iteration_method)
-        return func(arg0,nc=nc)
+        result = func(arg0,nc=nc)
+        return result
     
     @override('plot')
     def plot(self,saveloc=None,fig=1):

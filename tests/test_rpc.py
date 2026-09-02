@@ -2,7 +2,7 @@
 import dmanage
 import dmanage.remote.rpc as rpc
 import Pyro5.api
-
+import time
 import numpy as np
 import pytest
 from unittest import TestCase
@@ -11,7 +11,8 @@ import getpass
 from helpers.strata_objects import Parent,MyDataGroup,MyDataUnit,MyNewDataGroup,MyNewDataUnit
  
 
-dmanage.config.MULTIPROC_BACKEND="dill"
+nc_pass_test = True 
+dmanage.config.PARALLEL_BACKEND="multiprocess"
 """   Constants   """
 baseDir = '/path/to/baseDir/'
 dataPath = 'path.test'
@@ -26,10 +27,11 @@ objDG = 'MyDataGroup'
 objNDU = 'MyNewDataUnit'
 objNDG = 'MyNewDataGroup'
 
+# parallelDUInput = np.linspace(0,100,101).tolist()
 parallelDUInput = np.linspace(0,100,101).tolist()
 #parallelDGInput = [parallelDUInput]*4
 
-Pyro5.api.config.PICKLE_ENABLE=False
+Pyro5.api.config.PICKLE_ENABLE=True
 
 class TestAllLocal(TestCase):
     run = True
@@ -144,7 +146,8 @@ class TestAllLocal(TestCase):
         assert all([(local==remote) for local, remote in zip(localDG.Comp.func_override(nc=1), proxyDG.Comp.func_override(nc=1))])
         
         ### parallel arrays and nc pass through
-        assert all([local==remote for local, remote in 
+        if nc_pass_test:
+            assert all([local==remote for local, remote in 
                     zip(proxyDG.parallel_method(parallelDUInput,ncPass=True,nc=4),
                         localDG.parallel_method(parallelDUInput,ncPass=True,nc=4))])
         assert all([local==remote for local, remote in 
@@ -207,7 +210,8 @@ class TestAllLocal(TestCase):
         assert all([all(local==remote) for local, remote in zip(localDG.process_series(nc=1), proxyDG.process_series(nc=1))])
         
         ### parallel arrays and nc pass through
-        assert all([local==remote for local, remote in 
+        if nc_pass_test:
+            assert all([local==remote for local, remote in 
                     zip(proxyDG.parallel_method(parallelDUInput,ncPass=True,nc=4),
                         localDG.parallel_method(parallelDUInput,ncPass=True,nc=4))])
         assert all([local==remote for local, remote in 
@@ -260,8 +264,8 @@ class TestAllLocal(TestCase):
         # Factory.create(objDU,module=secureLocation,**kwargsDU)
         
         
-        
 if __name__ == "__main__":
+    t0 = time.perf_counter()
     test = TestAllLocal()
     test.test_expose_all()
     test.test_dataUnit_proxy()
@@ -269,6 +273,7 @@ if __name__ == "__main__":
     test.test_dataUnit_multiple_inheritance()
     test.test_dataGroup_multiple_inheritance()
     test.test_factory()
+    print(f"\nFinished in {time.perf_counter() - t0:0.2f} seconds")
     
     #localDU = MyDataUnit(dataPath)
     
@@ -276,7 +281,11 @@ if __name__ == "__main__":
     # # print(comps)
     # uri = "PYRO:ProxyFactory@localhost:%s"%port
     # Factory = rpc.ProxyFactory(uri=uri)
+    
     # proxyDU = Factory.create(objDU,**kwargsDU)
+    # kwargsDU = {'dataPath':'path2.test'}
+    # proxyDU2 = Factory.create(objDU,proxy_reload=True,**kwargsDU)
+    
     
     # Pyro5.api.config.SERIALIZER = "pickle"
     
@@ -285,9 +294,10 @@ if __name__ == "__main__":
     # Factory = rpc.ProxyFactory(uri=uri)
     
     # proxyDG = Factory.create(objDG,**kwargsDG)
+    # a = localDG.parallel_method(parallelDUInput,ncPass=True,nc=4)
+    # b = proxyDG.parallel_method(parallelDUInput,ncPass=True,nc=4)
     
     # proxyDU = proxyDG.get_DataUnit(0)
     # DF = proxyDG.gen_DataFrame()
     
-
     

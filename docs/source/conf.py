@@ -95,7 +95,10 @@ default_dark_mode = False     # user starts in light mode
 
 
 # -- General options ----------------------------------------------------------
-exclude_patterns = ['_build', '**.ipynb_checkpoints']
+exclude_patterns = ['_build', 
+    '**.ipynb_checkpoints',
+    "**/dmanage.remote.rpc_config.rst",
+   ]
 
 
 # Here are some universal hyperlinks
@@ -115,4 +118,14 @@ rst_epilog = """
 .. _sphinx: https://www.sphinx-doc.org/en/master
 """
 # .. |dmanage| replace:: :ref:`dmanage` 
+
+
+
+def skip_modules(app, what, name, obj, skip, options):
+    if name == "dmanage.remote.rpc_config":
+        return True
+    return skip
+    
+def setup(app):
+    app.connect("autodoc-skip-member", skip_modules)  
 

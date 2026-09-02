@@ -4,6 +4,8 @@ import ssl
 import socket
 import os
 
+__all__ = ["Mail"]
+
 class Mail():
     def __init__(self,senderMail,password):
         self.smtpServer = 'smtp.gmail.com'

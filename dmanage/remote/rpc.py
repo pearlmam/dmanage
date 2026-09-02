@@ -10,10 +10,9 @@ from pathlib import Path
 import pandas as pd
 import subprocess as sp
 import inspect
-
 import time
 import importlib.util
-
+import dmanage.config
 from dmanage.utils.objinfo import is_literal,is_pandas,has_immutable_base
 
 defaultPyroFactoryHost = "localhost"
@@ -28,7 +27,6 @@ TEMPLATE_CONFIG_PATH = script_dir / 'rpc_config.py'
 
 __all__ = ["PyroFactory", "Pyroize", "ProxyFactory", "ProxyWrap"]
 
- 
 def client_ssh_setup(user,server,localPort=44444,remotePort=44444,verbose=False):
     """sets up ssh port forwarding on the client
     only needs to be run once. only needed to connect to remote hosts.
@@ -65,16 +63,44 @@ def client_ssh_close(localPort=44444,verbose=False):
 #@Pyro5.api.behavior(instance_mode="single", instance_creator=lambda clazz : clazz._create_instance(None))
 @Pyro5.api.expose
 class PyroFactory():
+    """
+    Factory to create pyro objects on a remote machine to connect to as a proxy
+    create an rpc configuration file to  load into this factory. This config file
+    sets rpc options and lists the allowed objects this factory can create.
+    ONLY objects in that list can be created. The most common objects for this are
+    DataUnits and DataGroups, you can generate DUs and DGs on the server as if
+    they were local. An example config file is below:
+        ::
+            import Pyro5
+            import sys
+            from pathlib import Path
+            import dmanage.config
+            sys.path.insert(0, str(Path(__file__).parent.resolve()))
+            from strata_objects import Parent,MyDataGroup,MyDataUnit,MyNewDataGroup,MyNewDataUnit
+
+            ONLY_EXPOSED = False
+            Pyro5.api.config.PICKLE_ENABLE = False # Enabling pickle is a massive security risk
+            Pyro5.api.config.SERIALIZER = "serpent"# serpent,json?,pickle,dill
+            dmanage.config.PARALLEL_BACKEND = "multiprocessing" # This is the local serializer used in multiprocessing, safe!
+
+            EXPOSED_OBJECTS = {
+                "Parent":Parent,
+                "MyDataGroup":MyDataGroup,
+                "MyDataUnit":MyDataUnit,
+                "MyNewDataGroup":MyNewDataGroup,
+                "MyNewDataUnit":MyNewDataUnit,
+                }
+    
+    """
+    
     config_path = None
-    def __init__(self,configPath=None):
-        """setup rudimentary security? If someone gets access to Factory, 
-        they can create any module they want, ensure no access to unwanted python modules"""
+    def __init__(self,configPath=None,parallel_backend=None):
         self.configPath=Path(configPath)
         if not self.configPath.exists():
             raise FileNotFoundError(f"Config file not found: {self.configPath}")
         self._load_config()
-        
         self._pyro_uris = {}
+        self.set_parallel_backend(parallel_backend)
     
     def _load_config(self,):
         spec = importlib.util.spec_from_file_location("custom_rpc_config", self.configPath)
@@ -94,7 +120,11 @@ class PyroFactory():
         return list(self._exposed_objects.keys())
     
     def create(self,name,reload=False,args=(),kwargs={}):
-        
+        """
+        reload can reuse uri or create new instance; however if a new instance 
+        is created, the uri is no longer stored in self._pyro_uris. Pyro objects
+        are cleaned up periodically when proxies are deleted... I think.
+        """
         if name in self._pyro_uris and not reload:
             print("Object '%s' already shared, 'reload=False': using cached uri"%name)
             return self._pyro_uris[name]
@@ -112,7 +142,16 @@ class PyroFactory():
         obj.__register_components__()
         
         self._pyro_uris[name] = uri
+
         return uri
+    
+    def set_parallel_backend(self,backend=None):
+        if backend:
+            dmanage.config.PARALLEL_BACKEND = backend
+            print(f"Parallel backend changed to '{backend}'")
+            
+    def get_parallel_backend(self):
+        return dmanage.config.PARALLEL_BACKEND
     
     @classmethod    
     def _create_instance(cls,*args,**kwargs):
@@ -162,6 +201,7 @@ class Pyroize:
         obj.__register_components__()
         self._generated_uris[name]=uri
         uri = URIHook(uri)
+
         return uri
     
     # def _create_pyro_proxy(self,obj):
@@ -279,7 +319,30 @@ def expose_all(obj):
 
 ####### Client Methods  #########
 class ProxyFactory():
-    """Proxy connection to the PyroFactory on server"""
+    """
+    Proxy connection to the PyroFactory on server
+    This object lives on the client side as a Facade for the PyroFactory
+    This enables more controll over the the interaction with the PyroFactory
+    
+    Its best to load this like this:
+        ::
+            from dmanage.remote.rpc import ProxyFactory
+            # from myResearchProject.core import dataLevels as dl
+            dl = ProxyFactory()
+            DG = dl.DataGroup("path/to/datagroup")
+            ...  process the data  ...
+            
+    This way your code is agnostic (almost) to whether data lives on 
+    the locally or on the server; just uncomment one line 
+        ::
+            from dmanage.remote.rpc import ProxyFactory
+            from myResearchProject.core import dataLevels as dl
+            # dl = ProxyFactory()
+            DG = dl.DataGroup("path/to/datagroup")
+            ...  process the data  ...
+            
+    
+    """
     def __init__(self,uri="PYRO:ProxyFactory@localhost:44444", proxy_reload=False):
         """Connect using uri of PyroFactory"""
         self.Factory = Pyro5.api.Proxy(uri=uri)
@@ -328,6 +391,12 @@ class ProxyFactory():
         print("done in %0.2f seconds"%(executionTime))
         return Obj
     
+    def set_parallel_backend(self,backend=None):
+        self.Factory.set_parallel_backend(backend)
+            
+    def get_parallel_backend(self):
+        return self.Factory.get_parallel_backend()
+    
     def __getattr__(self, class_name: str):
         """Fallback for undefined attributes: intercepts class names and routes to self.create()."""
         def remote_constructor(*args, **kwargs):
@@ -336,7 +405,11 @@ class ProxyFactory():
         return remote_constructor
     
 class ProxyWrap():
-    """Wraps a proxy so that component classes and attributes can be accessed"""
+    """
+    Wraps a proxy so that component classes and attributes can be accessed
+    This is recursive, so it should load all components of components
+    
+    """
     def __init__(self,uri):
         # print("ProxyWrap URI Type: %s"%type(uri))
         self._proxy = Pyro5.api.Proxy(uri)
@@ -497,6 +570,9 @@ def start_factory(name='ProxyFactory',host=None,port=44444, use_ns=False,loopCon
         daemon.requestLoop(loopCondition=loopCondition)
         
 def main(args=None):
+    """
+    used to start PyroFactory from command line. call with dmanage-factory --config path/to/config.py
+    """
     from argparse import ArgumentParser
     parser = ArgumentParser(description="D-Manage proxy factory command line launcher.")
     parser.add_argument("-n", "--host", dest="host",default='127.0.0.1', help="hostname to bind server on")
@@ -504,6 +580,13 @@ def main(args=None):
     parser.add_argument("-c", "--config", dest="config",default=False, help="path to the configuration file")
     parser.add_argument("--test",action="store_true",help="Run in test mode using default test configurations")
     parser.add_argument("--test-pickle",action="store_true",help="Run the test with pickle enabled")
+    parser.add_argument(
+        "-b", "--parallel-backend",
+        choices=["multiprocessing", "multiprocess"],
+        default=None,
+        help="Parallelization serializer backend (default: pickle)"
+        )
+    
     #parser.add_argument("--use_ns", dest="use_ns", type=bool,default=False, help="to use a NameServer or not")
     options = parser.parse_args(args)
     if not (options.test or options.config):
@@ -523,7 +606,7 @@ def main(args=None):
     else:
         config_path = options.config
         
-    pyroFactory = PyroFactory(configPath=config_path)
+    pyroFactory = PyroFactory(configPath=config_path,parallel_backend=options.parallel_backend)
     Pyro5.api.serve({pyroFactory: defaultPyroFactoryName},host=options.host,
                     port=options.port, use_ns=False)
     

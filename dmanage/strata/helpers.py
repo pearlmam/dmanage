@@ -6,6 +6,8 @@ from pathlib import Path
 SAVE_TYPE = 'png'
 SAVE_LOC = 'processed/'
 
+__all__ = ["savePlot", "enable_savePlot","enable_override","sync_sigs"]
+
 def _savePlot(self,fig,saveName='plot',saveLoc=None,tagVars=None,tagFormat=None,saveTag=None,saveType=None):
     """
     this function is behind a layer so that kwargs can be overwritten from the data group wrapper

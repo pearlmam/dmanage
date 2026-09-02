@@ -52,7 +52,7 @@ autodoc_default_options = {
     "inherited-members": False,
 }
 
-autodoc_mock_imports = ["paramiko", "matplotlib", "scipy", "tabulate"]
+autodoc_mock_imports = ["paramiko", "matplotlib", "scipy", "tabulate", "Pyro5"]
 suppress_warnings = ["app.add_directive", "docutils"]
 
 # -- Options for HTML output -------------------------------------------------

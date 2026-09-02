@@ -17,6 +17,5 @@ See D-Manage GitHub repository: https://github.com/pearlmam/dmanage
    resources/resources
    glossary
    api
-   devRef
    
    

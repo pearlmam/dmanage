@@ -94,6 +94,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/source/generated/
 
 # PyBuilder
 .pybuilder/
@@ -211,6 +212,9 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file. However, if you prefer, 
 #  you could uncomment the following to ignore the entire vscode folder
 # .vscode/
+
+# PyCharm?
+.idea/
 
 # Ruff stuff:
 .ruff_cache/

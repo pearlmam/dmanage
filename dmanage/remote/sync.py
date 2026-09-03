@@ -8,6 +8,8 @@ try:
 except ImportError:
     raise ImportError("Module 'paramiko' must be installed to use the sync module, use 'pip install dmanage[paramiko]'")
 
+__all = ["mkdirR","DirSync","rsync"]
+
 from dmanage.utils.objinfo import is_iterable
 def mkdirR(sftp, remote_directory):
     """Change to this directory, recursively making new folders if needed.
@@ -57,7 +59,7 @@ class DirSync():
         return dirsync.sync(source,dest,action=action,only=self.include)                
         
 def rsync(source,dest,source_ssh=None,dest_ssh=None,options=['-am'],includes=["*.py","*/"],excludes=['*'],verbose=False):
-    """Wrapper for the rsync terminal call
+    """Wrapper for the rsync terminal call, Linux only
     
     The defaults include ONLY `.py` files!
     It does this by excluding all files, '*', and including only python 

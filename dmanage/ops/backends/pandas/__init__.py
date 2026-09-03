@@ -8,4 +8,4 @@ if not HAS_PANDAS:
         "Please install it using 'pip install pandas'."
     )
 
-from . import convert,plot,fft,signal,wrapper,helper,linalg,vector
+from . import convert,plot,fft,signal,helper,linalg,vector

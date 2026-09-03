@@ -59,6 +59,11 @@ dill = ["multiprocess",]                 # for dill multiprocessing
 #### dmanage derived packages
 vsim = ["dmanage-vsim@git+https://github.com/pearlmam/dmanage-vsim.git",]
 
+#### visualization Packages
+plotly = ["plotly","dash"]
+
+
+#### package suites
 all = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",
        "paramiko",
        "xarray",

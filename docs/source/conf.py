@@ -51,6 +51,7 @@ autodoc_default_options = {
     "special-members": "__init__",
     'imported-members': False,
     "inherited-members": False,
+    "exclude-members": "__annotate__",
 }
 
 autodoc_mock_imports = ["paramiko", "matplotlib", "scipy", "pandas", "tabulate"]
@@ -136,11 +137,12 @@ rst_epilog = """
 
 
 
-def skip_modules(app, what, name, obj, skip, options):
-    if name == "dmanage.remote.rpc_config":
+def skip_members(app, what, name, obj, skip, options):
+    # Skip Python 3.14 internal functions or specific submodules
+    if name in {"__annotate__", "dmanage.remote.rpc_config"}:
         return True
     return skip
     
 def setup(app):
-    app.connect("autodoc-skip-member", skip_modules)  
+    app.connect("autodoc-skip-member", skip_members)  
 

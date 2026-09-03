@@ -2,6 +2,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy import signal
 
+__all__ = ["mov_avg","get_phase","get_period","get_windowed_period",
+           "butter_highpass","butter_highpass_filter","butter_lowpass",
+           "butter_lowpass_filter","butter_bandpass","butter_bandpass_filter",
+           "find_peaks"]
+
 
 def mov_avg(array, n=3):
     # old 1D method
@@ -307,7 +312,6 @@ def get_windowed_period(y, x, win=None, overlap = 0.5, window='hanning'):
         xs = None
         Ts = None
     return Ts,xs
-
 
 def butter_highpass(cutoff, fs, order=5):
     nyq = 0.5 * fs

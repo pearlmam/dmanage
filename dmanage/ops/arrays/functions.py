@@ -14,6 +14,9 @@ import subprocess as sp
 import os
 import shutil
 
+
+__all__ = ["save_mp4","fix_eps","get_windowed_info"]
+
 def get_tags(fileName):
     pass
 

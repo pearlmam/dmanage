@@ -8,6 +8,11 @@ import copy
 # from multiprocess import Pool
 from multiprocessing import Pool
 
+__all__ = ["create_bounds","replace_bound","replace_bounds","numpy_to_df",
+           "df_to_numpy","cart_to_cyl_vector","interval_to_num_index",
+           "mi_to_index","make_structured","cyl_to_cart","cart_to_cyl",
+           "rotate_cyl","convert_phi_range","rotate_cart","rotate_cart",
+           "make_uniform_df","interval_to_num_columns"]
 
 def create_bounds(array, iNames, bounds = {}):
     s = array.shape

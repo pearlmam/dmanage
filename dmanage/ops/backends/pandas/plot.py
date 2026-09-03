@@ -17,6 +17,10 @@ import shutil
 from dmanage.ops.backends.pandas.signal import find_pks
 from dmanage.ops.backends.pandas.convert import mi_to_index, df_to_numpy,rotate_cart
 
+__all__ = ["PlotDefs","check_fig","plot1d","plot1ds","bar","num_scatter",
+           "num_scatter_chart","scatter","scatter_color","tricontourf","contourf",
+           "pcolor","plot1d_slider","plot1d_slider2","interact_tagged_paricles",
+           "labeled_scatter","plot1d_pks","draw_fig"]
 
 warn.filterwarnings("ignore", message="Ignoring specified arguments in this call because figure with num:*") # ignore warning for fig = plt.figure(fig, figsize=figsize)
 class PlotDefs():
@@ -149,6 +153,9 @@ def check_fig(fig, figsize, clear, projection='rectilinear', subplots=(1, 1)):
 
 
 def plot1d(DF, fig=None, figsize=(12, 5), clear=True, subplots=(1, 1), subplot=0, axType='linear', drawFig=True, convertAxis=True, **line2Dkwargs):
+    """
+    plot a 1D graph using the index as the x-axis and the column as the y
+    """
     if type(DF.index) == pd.core.indexes.multi.MultiIndex: DF = mi_to_index(DF)
     if issubclass(type(DF), pd.core.series.Series): DF = DF.to_frame()
 

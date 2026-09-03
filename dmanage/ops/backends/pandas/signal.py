@@ -14,6 +14,9 @@ from dmanage.ops.backends.pandas.convert import numpy_to_df,df_to_numpy
 from dmanage.ops.backends.pandas.fft import fft, fft_amplitude
 from dmanage.ops.backends.pandas import plot
 
+__all__ = ["find_pks","windowed_period","get_phase","get_period","get_skew_asymmetry",
+           "get_signal_info","check_stability","apply_filter","get_beat_period",
+           "get_startup","mov_avg","line_equ","exp_equ","sine_attenuation_equ"]
 
 def find_pks(DF, maxPks=20, hRatio=None, pRatio=None, tRatio=None, height=None, **kwargs):
     if not issubclass(type(DF), pd.core.series.Series): 

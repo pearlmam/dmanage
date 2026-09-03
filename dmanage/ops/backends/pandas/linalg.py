@@ -3,6 +3,8 @@
 import numpy as np
 import pandas as pd
 
+__all__ = ["norm"]
+
 def norm(DF,iName,order=2):
     """
     takes the norm of the DF with respect to the iName index. The input DF may have multiple columns at the moment

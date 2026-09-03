@@ -45,7 +45,7 @@ autosummary_generate = True
 autosummary_imported_members = False
 autodoc_default_options = {
     "members": True,
-    "undoc-members": True,
+    "undoc-members": False,
     "show-inheritance": True,
     "member-order": "bysource",
     "special-members": "__init__",

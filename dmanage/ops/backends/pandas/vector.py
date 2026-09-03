@@ -4,7 +4,7 @@ import pandas as pd
 import dmanage.ops.arrays.vector
 from dmanage.ops.backends.pandas.convert import numpy_to_df,df_to_numpy
 
-
+__all__ = ["curl"]
 def curl(DF):
     if not issubclass(type(DF), pd.core.series.Series): 
         if len(DF.columns)>1:

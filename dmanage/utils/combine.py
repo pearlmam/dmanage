@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-import pandas as pd
+from dmanage._compat import pd
 from dmanage.utils import objinfo
 __all__ = ["combine_dicts", "decombine_dicts", "combine_dfs"]
 def combine_dicts(dictList):

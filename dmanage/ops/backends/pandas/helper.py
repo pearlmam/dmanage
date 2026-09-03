@@ -10,7 +10,6 @@ from dmanage.ops.arrays import functions as func
 from dmanage.ops.backends.pandas.convert import df_to_numpy
 from dmanage.ops.backends.pandas.linalg import norm
 
-
 # plot1D,plot1DWPks,scatter,drawFig
     
 def mi_iloc(DF,indices):

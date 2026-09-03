@@ -7,7 +7,7 @@ except ImportError:
     raise ImportError("Module 'Pyro5' must be installed to use the rpc package, use 'pip install dmanage[Pyro5]'")
 
 from pathlib import Path
-import pandas as pd
+from dmanage._compat import pd
 import subprocess as sp
 import inspect
 import time

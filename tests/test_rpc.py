@@ -12,7 +12,7 @@ from helpers.strata_objects import Parent,MyDataGroup,MyDataUnit,MyNewDataGroup,
  
 
 nc_pass_test = True 
-dmanage.config.PARALLEL_BACKEND="multiprocess"
+dmanage.config.PARALLEL_BACKEND="multiprocessing"
 """   Constants   """
 baseDir = '/path/to/baseDir/'
 dataPath = 'path.test'
@@ -31,7 +31,7 @@ objNDG = 'MyNewDataGroup'
 parallelDUInput = np.linspace(0,100,101).tolist()
 #parallelDGInput = [parallelDUInput]*4
 
-Pyro5.api.config.PICKLE_ENABLE=True
+Pyro5.api.config.PICKLE_ENABLE=False
 
 class TestAllLocal(TestCase):
     run = True

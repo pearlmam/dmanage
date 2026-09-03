@@ -3,8 +3,11 @@
 import pandas as pd
 import numpy as np
 import copy
-from scipy import signal
-from scipy.optimize import curve_fit
+try:
+    from scipy import signal
+    from scipy.optimize import curve_fit
+except ImportError:
+    raise ImportError("Module 'scipy' is required for use with 'signal'")
 
 import dmanage.ops.arrays.signal
 from dmanage.ops.backends.pandas.convert import numpy_to_df,df_to_numpy

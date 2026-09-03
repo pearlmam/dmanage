@@ -24,9 +24,7 @@ license-files = ["LICEN[CS]E*"]
 
 dependencies = [
   "natsort",           # for numerically sorting of filenames 
-  "scipy",             # filter options
   "numpy",             # data manipulation
-  "pandas",            # data manipulation
   "matplotlib",        # for plotting
   "tabulate",          # For generate text charts on plots?
 ]
@@ -34,9 +32,12 @@ dependencies = [
 [project.optional-dependencies]
 
 #### DataFrame packages
-# pandas = ["pandas"]             # pandas DataFrames
+pandas = ["pandas"]             # pandas DataFrames
 polars = ["polars"]               # polars DataFrames
 xarray = ["xarray"]               # xarray is like a dataframe
+
+#### calculations
+scipy = ["scipy"]               # filter options
 
 #### remote packages
 remote = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git", "paramiko"]
@@ -66,6 +67,7 @@ all = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",
        "tables",
        "h5py",
        "multiprocess",
+       "pandas",
 ]
 
 docs = ["nbconvert[webpdf]",      # notebooks
@@ -77,6 +79,7 @@ docs = ["nbconvert[webpdf]",      # notebooks
        "sphinx_rtd_theme",        # sphinx theme
        "sphinx-rtd-dark-mode",    # dark mode extension for sphinx_rtd_theme
        "sphinxcontrib-spelling",  # spell check
+       "Pyro5",                   # needs to handle decorators in autodoc
 ]
 
 dev = [
@@ -90,6 +93,7 @@ dev = [
     "sphinx-rtd-dark-mode",    # dark mode extension for sphinx_rtd_theme
     "sphinxcontrib-spelling",  # spell check
     "pytest",
+    "pandas",
 ]
 
 # docs may need this      "jupyter-client"

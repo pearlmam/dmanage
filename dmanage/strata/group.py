@@ -9,11 +9,10 @@ SweepDir
 
 import os
 import inspect
-import pandas as pd
+from dmanage._compat import pd
 import natsort
 import functools
 import matplotlib as mpl
-import time
 
 from pathlib import Path
 

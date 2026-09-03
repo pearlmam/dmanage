@@ -13,8 +13,9 @@ release = '1.00'
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here.
-#import sys
+import sys
 import os
+from unittest.mock import MagicMock
 #from pathlib import Path
 #path = str(Path(__file__).resolve().parents[2]) + 'notebooks/'
 #path = os.path.abspath("..")
@@ -52,8 +53,22 @@ autodoc_default_options = {
     "inherited-members": False,
 }
 
-autodoc_mock_imports = ["paramiko", "matplotlib", "scipy", "tabulate", "Pyro5"]
+autodoc_mock_imports = ["paramiko", "matplotlib", "scipy", "pandas", "tabulate"]
 suppress_warnings = ["app.add_directive", "docutils"]
+
+# -- setup mock decorators -------------------------------------------------
+
+# Pyro5, so my fork is not needed for doc creation
+# 1. Create a mock object and assign pass-through decorators
+pyro_mock = MagicMock()
+pyro_mock.api.expose = lambda func: func
+pyro_mock.api.behavior = lambda func: func
+
+# 2. Register the mock in sys.modules so Python finds it during import
+sys.modules["Pyro5"] = pyro_mock
+sys.modules["Pyro5.api"] = pyro_mock.api
+sys.modules["Pyro5.server"] = pyro_mock.server
+sys.modules["Pyro5.serializers"] = pyro_mock.serializers
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

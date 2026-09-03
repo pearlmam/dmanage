@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import collections
-import pandas as pd
+from dmanage._compat import pd
 import io
 import inspect
 

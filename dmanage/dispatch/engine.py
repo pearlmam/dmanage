@@ -5,7 +5,6 @@ import os
 from abc import ABC, abstractmethod
 from .job import Job
 import subprocess
-import json
 import shutil
 from pathlib import Path
 

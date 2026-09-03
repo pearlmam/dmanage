@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-import pandas as pd
+from dmanage._compat import pd
 import threading
 import shutil
 import filecmp

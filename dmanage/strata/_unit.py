@@ -27,16 +27,17 @@ def make_data_unit(base=None,name=None):
         This is the DataUnit class with the components.
 
     """
+    
     ##### mmight need to check for classes with the same name because it might clash???
     if base is None:
         if name is None:
             raise Exception('With no base specified, a name must be given')
         else:
-            return type(f"{name}DataUnit", (DataUnit,), {})
+            return type(f"{name}DataUnit", (DataUnit,), {"_has_base":False})
     else:
         if name is None:
             name = base.__name__
-        return type(f"{name}DataUnit", (DataUnit, base), {})
+        return type(f"{name}DataUnit", (DataUnit, base), {"_has_base":True})
  
 class DataUnit():
     """Inherit from this class to enable dmanage functionality
@@ -55,11 +56,22 @@ class DataUnit():
         None.
 
         """
+        if getattr(self, "_has_base",False):
+            super().__init__(dataPath,*args,**kwargs)   # ??? do I want to have to make a component assembler?
+        if not getattr(self,"unitType",None):
+            raise TypeError("Class with base DataUnit MUST have self.unitType defined as either 'file', 'dir', or 'test'")
         
-        super().__init__(dataPath,*args,**kwargs)   # ??? do I want to have to make a component assembler?
+        path = Path(dataPath).resolve()
+        self.processedDir =  "processed"
+        if getattr(self, "inheritance_level", lambda: None)() == "DU":
+            self.dataUnit = path
+            self.baseDir = path if self.unitType == "dir" else path.parent
+            self.resDir = self.baseDir / self.processedDir
+        
         # define attributes
         self.processedDir = 'processed/'
-        self.unitType = (os.path.isdir(dataPath)*'dir' or os.path.isfile(dataPath)*'file'  or
+        if not self.unitType:
+          self.unitType = (os.path.isdir(dataPath)*'dir' or os.path.isfile(dataPath)*'file'  or
                          Path(dataPath).suffix =='.test' or 'UNDEFINED')
         if self.unitType == 'UNDEFINED':
             raise Exception("Undefined unit: '%s' is neither a directory or a file"%dataPath)

@@ -42,7 +42,7 @@ class DataGroup():
     
     """
     
-    def __init__(self, baseDir, unitType='dir', nc=1,testN=100,*args,**kwargs):
+    def __init__(self, baseDir, nc=1,testN=100,*args,**kwargs):
         """
         
 
@@ -76,10 +76,12 @@ class DataGroup():
         #print('Opening %s...'%baseDir, end = ' ')
         #startTime = time.time()
         self.ignoreDirs = [self.processedDir]
-        if unitType == 'test':
+        if not hasattr(self,"unitType"):
+            raise TypeError("DataGroup must have parent with a attribute 'unitType' defined as either 'file', 'dir', or 'test'")
+        if self.unitType == 'test':
             self.dataUnits = ['file-%02.d.test'%value for value in range(0,testN)]
-        elif unitType in ['dir','file']:
-            self.dataUnits = self.get_dunits(baseDir,unitType=unitType)
+        elif self.unitType in ['dir','file']:
+            self.dataUnits = self.get_dunits(baseDir)
         else:
             raise Exception('Invalid unitType')
         
@@ -156,7 +158,7 @@ class DataGroup():
         else:
             return du
 
-    def _get_dunits(self, candidates, baseDir, unitType):
+    def _get_dunits(self, candidates, baseDir):
         """
         Processor: Filters candidates based on validity and ignore lists.
         """
@@ -177,7 +179,7 @@ class DataGroup():
                     rel_path = item_path.relative_to(base_path)
                     
                     # Format directories with trailing slash if requested
-                    if unitType == 'dir':
+                    if self.unitType == 'dir':
                         output = str(rel_path) + os.sep
                     else:
                         output = str(rel_path)
@@ -189,7 +191,7 @@ class DataGroup():
                     
         return valid_units
     
-    def get_dunits(self, baseDir=None, unitType='dir', nc=1):
+    def get_dunits(self, baseDir=None, nc=1):
         """
         Orchestrator: Gathers candidates and triggers parallel processing.
         """
@@ -203,9 +205,9 @@ class DataGroup():
         
         # Efficiently collect only what is needed based on unitType
         for root, dirs, files in os.walk(baseDir, followlinks=True):
-            if unitType == 'dir':
+            if self.unitType == 'dir':
                 candidates.append(root)
-            elif unitType == 'file':
+            elif self.unitType == 'file':
                 for f in files:
                     candidates.append(os.path.join(root, f))
             else:
@@ -215,7 +217,7 @@ class DataGroup():
                     candidates.append(os.path.join(root, f))
     
         # Chunk the candidates and process in parallel
-        return get_dunits_wrapper(candidates, baseDir, unitType,nc=nc)
+        return get_dunits_wrapper(candidates, baseDir,nc=nc)
             
     # this is here mainly for testing?? The user may want to pickle dataGroups, but for strata testing we dont? 
     def __getstate__(self):

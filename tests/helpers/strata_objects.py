@@ -75,11 +75,11 @@ class Parent():
 DataUnit = make_data_unit(Parent)
 class MyDataUnit(DataUnit):
     """Class to share and proxy"""
+    unitType='test'
     def __init__(self,dataPath='file-00.test'):
         super().__init__(dataPath)
         self.Comp = Component1() 
         self.resDir = './data/'
-    
     def is_valid(self):
         return '.test' in self.dataPath
     
@@ -184,8 +184,8 @@ class MyDataUnit(DataUnit):
 DataGroup = make_data_group(MyDataUnit)
 
 class MyDataGroup(DataGroup):
-    def __init__(self,baseDir,unitType='test',**kwargs):
-        super().__init__(baseDir,unitType='test',**kwargs)
+    def __init__(self,baseDir,**kwargs):
+        super().__init__(baseDir,**kwargs)
     
     def access_private_method(self,nc=1):
         # should be wrapped
@@ -214,12 +214,13 @@ class UnitSection2(MyDataUnit):
         return series  
     
 class MyNewDataUnit(UnitSection1,UnitSection2):
+    unitType='test'
     pass
 
 NewDataGroup = make_data_group(MyNewDataUnit)
 class MyNewDataGroup(NewDataGroup):
-    def __init__(self,baseDir,unitType='test',**kwargs):
-        super().__init__(baseDir,unitType='test',**kwargs)
+    def __init__(self,baseDir,**kwargs):
+        super().__init__(baseDir,**kwargs)
 
 
 

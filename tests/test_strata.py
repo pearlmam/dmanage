@@ -5,7 +5,7 @@ Created on Tue Oct 14 13:31:59 2025
 
 @author: marcus
 """
-from tests.helpers.strata_objects import Parent,Component1,Component2,Component3,MyDataGroup,MyDataUnit
+from helpers.strata_objects import Parent,Component1,Component2,Component3,MyDataGroup,MyDataUnit
 
 import pytest
 from unittest import TestCase
@@ -37,7 +37,7 @@ class TestAll(TestCase):
     def test_dataGroup(self):
         DU = MyDataUnit(dataPath)
         
-        DG = MyDataGroup(dataPath,unitType='test',testN=testN)
+        DG = MyDataGroup(dataPath,testN=testN)
         assert all([all(resultDG == resultDU) for (resultDG,resultDU) in zip(DG.gen_DataFrame(), ([DU.gen_DataFrame()]*testN))])
         assert DG.Comp.func() == DU.Comp.func()
         assert DG.Comp.func_override() == [DU.Comp.func_override()]*testN
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     DU.plot2(tagVars='file')
     #DU.plot3(tagVars='file')
     
-    DG = MyDataGroup(dataPath,unitType='test',testN=testN)
+    DG = MyDataGroup(dataPath,testN=testN)
     # DG.plot(nc=1)
     DG.plot2(tagVars='file',nc=4)
     # DG.plot3(tagVars='file',nc=1)

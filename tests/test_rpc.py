@@ -18,7 +18,7 @@ baseDir = '/path/to/baseDir/'
 dataPath = 'path.test'
 testN = 100
 kwargsDU = {'dataPath':dataPath}
-kwargsDG = {'baseDir':baseDir,'unitType':'test','testN':testN}
+kwargsDG = {'baseDir':baseDir,'testN':testN}
 host= '127.0.0.1'
 port = 44444
 user = getpass.getuser()
@@ -88,7 +88,7 @@ class TestAllLocal(TestCase):
         assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
         assert (proxyDU.parallel_method(parallelDUInput,nc=4) == localDU.parallel_method(parallelDUInput,nc=4))
         
-        #### test attribute proxy access
+        #### test attribute-like proxy access
         proxyDU = Factory.MyDataUnit(**kwargsDU)
         assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
         assert proxyDU.gen_DataFrame().equals(localDU.gen_DataFrame())
@@ -136,7 +136,7 @@ class TestAllLocal(TestCase):
         
     def test_dataGroup_proxy(self):
         Pyro5.api.config.SERIALIZER = "serpent"
-        localDG = MyDataGroup(baseDir,unitType='test',testN=testN)
+        localDG = MyDataGroup(baseDir,testN=testN)
         
         uri = "PYRO:ProxyFactory@localhost:%s"%port
         Factory = rpc.ProxyFactory(uri=uri)
@@ -193,7 +193,7 @@ class TestAllLocal(TestCase):
         assert proxyDU.process_series().equals(localDU.process_series())
 
     def test_dataGroup_multiple_inheritance(self):
-        localDG = MyNewDataGroup(baseDir,unitType='test',testN=testN)
+        localDG = MyNewDataGroup(baseDir,testN=testN)
         
         uri = "PYRO:ProxyFactory@localhost:%s"%port
         Factory = rpc.ProxyFactory(uri=uri)

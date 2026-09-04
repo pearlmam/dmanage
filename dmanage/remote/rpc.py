@@ -474,27 +474,30 @@ class ProxyWrap():
 
 
 #########  Helper Functions  ###########
+def _is_valid_component(name, value):
+    if is_private_attribute(name) or callable(value):
+        return False
+    if is_literal(value) or is_pandas(value):
+        return False
+    return is_exposable(value)
+
 def get_components(obj):
-    comps = {}
-    for name,value in vars(obj).items():
-        if is_private_attribute(name):
-            continue
-        if is_literal(value) or is_pandas(value):
-            continue
-        if callable(value):
-            continue
-        if not is_exposable(value):
-            # excludes things like numpy arrays
-            continue
-        comps[name] = value
-    return comps
+    return {
+        name: val 
+        for name, val in inspect.getmembers(obj) 
+        if _is_valid_component(name, val)
+    }
 
 def get_attribute_names(obj):
     attrs = []
-    for name,value in vars(obj).items():
-        if is_literal(value):
-            attrs = attrs + [name]
+    for name in dir(obj):
+        # Ignore Python internal dunder methods
+        if name.startswith('__'):
             continue
+            
+        value = getattr(obj, name)
+        if is_literal(value):
+            attrs.append(name)
     return attrs
 
 #########  ProxyWrap/uri serialization hooks  ###########

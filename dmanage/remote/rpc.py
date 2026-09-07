@@ -6,7 +6,7 @@ try:
     HAS_PICKLE = hasattr(Pyro5.api.config,"PICKLE_ENABLE") # this is my fork
 except ImportError:
     error_msg = ("Module 'Pyro5' must be installed to use the rpc package, use " 
-    "'pip install dmanage[Pyro5]', or 'pip install dmanage[Pyro5-pickle]'" 
+    "'pip install dmanage[Pyro5]', or 'pip install dmanage[Pyro5-with-pickle]'" 
     " if pickle serialization is needed"
     )
     raise ImportError(error_msg)

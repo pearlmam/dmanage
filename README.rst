@@ -107,6 +107,16 @@ to see the environment in Spyder, v6 requires spyder-kernels==3.0. PyQt5 is incl
 
         conda activate dmanage
         pip install spyder-kernels==3.1.* PyQt5
+        
+Create Conda Package
+--------------------
+
+First, create the PyPi package following the `instructions <https://packaging.python.org/en/latest/tutorials/packaging-projects/>`__ . Then use ``grayskull`` to make the conda equivalent ``yaml`` file::
+        
+        pip install grayskull
+        conda install -c conda-forge conda-recipe-manager
+        grayskull pypi dmanage
+        
             
 Acknowledgments
 ===============

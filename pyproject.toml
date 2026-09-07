@@ -8,7 +8,7 @@ allow-direct-references = true
 
 [project]
 name = "dmanage"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
   { name="Marcus Pearlman", email="marcuspearlman@boisestate.edu" },
 ]
@@ -19,8 +19,8 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: POSIX :: Linux",
 ]
-license = "MIT"
-license-files = ["LICEN[CS]E*"]
+# license = "MIT"
+# license-files = ["LICEN[CS]E*"]
 
 dependencies = [
   "natsort",           # for numerically sorting of filenames 
@@ -40,9 +40,9 @@ xarray = ["xarray"]               # xarray is like a dataframe
 scipy = ["scipy"]               # filter options
 
 #### remote packages
-remote = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git", "paramiko"]
+remote = ["Pyro5-with-pickle", "paramiko"]
 Pyro5 = ["Pyro5"]
-Pyro5-pickle = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",]    # for rpc functionality
+Pyro5-with-pickle = ["Pyro5-with-pickle",]    # for rpc functionality
 paramiko=["paramiko",]            # ssh functionality
 xlib = ["python-xlib",]           # for ssh and passing x, currently not woking
 
@@ -57,15 +57,12 @@ openpyxl = ["openpyxl",]                 # for pandas excel functionality
 #### processing
 dill = ["multiprocess",]                 # for dill multiprocessing
 
-#### dmanage derived packages
-vsim = ["dmanage-vsim@git+https://github.com/pearlmam/dmanage-vsim.git",]
-
 #### visualization Packages
 plotly = ["plotly","dash"]
 
 
 #### package suites
-all = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",
+all = ["Pyro5-with-pickle",
        "paramiko",
        "xarray",
        "zarr",
@@ -85,7 +82,7 @@ docs = ["nbconvert[webpdf]",      # notebooks
        "sphinx_rtd_theme",        # sphinx theme
        "sphinx-rtd-dark-mode",    # dark mode extension for sphinx_rtd_theme
        "sphinxcontrib-spelling",  # spell check
-       "Pyro5",                   # needs to handle decorators in autodoc
+       "Pyro5-with-pickle",                   # needs to handle decorators in autodoc
 ]
 
 dev = [

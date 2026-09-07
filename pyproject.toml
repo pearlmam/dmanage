@@ -41,7 +41,8 @@ scipy = ["scipy"]               # filter options
 
 #### remote packages
 remote = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git", "paramiko"]
-Pyro5 = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",]    # for rpc functionality
+Pyro5 = ["Pyro5"]
+Pyro5-pickle = ["Pyro5@git+https://github.com/pearlmam/Pyro5.git",]    # for rpc functionality
 paramiko=["paramiko",]            # ssh functionality
 xlib = ["python-xlib",]           # for ssh and passing x, currently not woking
 

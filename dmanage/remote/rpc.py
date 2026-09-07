@@ -3,8 +3,13 @@ try:
     import Pyro5.api
     from Pyro5.server import is_private_attribute
     import Pyro5.serializers
+    HAS_PICKLE = hasattr(Pyro5.api.config,"PICKLE_ENABLE") # this is my fork
 except ImportError:
-    raise ImportError("Module 'Pyro5' must be installed to use the rpc package, use 'pip install dmanage[Pyro5]'")
+    error_msg = ("Module 'Pyro5' must be installed to use the rpc package, use " 
+    "'pip install dmanage[Pyro5]', or 'pip install dmanage[Pyro5-pickle]'" 
+    " if pickle serialization is needed"
+    )
+    raise ImportError(error_msg)
 
 from pathlib import Path
 from dmanage._compat import pd
@@ -517,13 +522,14 @@ def dict_to_uri(classname,d):
 Pyro5.api.register_class_to_dict(URIHook, uri_to_dict)
 Pyro5.api.register_dict_to_class("URIDict", dict_to_uri)
 
-## for pickle
-def uri_to_proxy(uri):
-    uri = str(uri)
-    proxyWrap = ProxyWrap(uri)
-    return proxyWrap
-
-Pyro5.api.register_pickle_loads_hook("URIHook",uri_to_proxy)
+if HAS_PICKLE:
+    ## for pickle
+    def uri_to_proxy(uri):
+        uri = str(uri)
+        proxyWrap = ProxyWrap(uri)
+        return proxyWrap
+    
+    Pyro5.api.register_pickle_loads_hook("URIHook",uri_to_proxy)
 
 #########  panda serialization hooks  ###########
 orient='tight'

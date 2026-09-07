@@ -8,7 +8,7 @@ allow-direct-references = true
 
 [project]
 name = "dmanage"
-version = "0.0.3"
+version = "0.0.4"
 authors = [
   { name="Marcus Pearlman", email="marcuspearlman@boisestate.edu" },
 ]
@@ -42,78 +42,92 @@ scipy = ["scipy"]               # filter options
 #### remote packages
 remote = ["Pyro5-with-pickle", "paramiko"]
 Pyro5 = ["Pyro5"]
-Pyro5-with-pickle = ["Pyro5-with-pickle",]    # for rpc functionality
-paramiko=["paramiko",]            # ssh functionality
-xlib = ["python-xlib",]           # for ssh and passing x, currently not woking
+Pyro5-with-pickle = ["Pyro5-with-pickle"]    # for rpc functionality
+paramiko = ["paramiko"]            # ssh functionality
+xlib = ["python-xlib"]           # for ssh and passing x, currently not working
 
 #### file related packages
-zarrcache = ["xarray","zarr",]           # for reading/writing zarr files
-parquetcache = ["fastparquet",]          # reading/writing parquet files
-cache = ["xarray","zarr","fastparquet",] # all cache
-h5py = ["h5py",]                         # for reading/writing h5 files
-tables = ["tables",]                     # for reading/writing h5 files, alternate
-openpyxl = ["openpyxl",]                 # for pandas excel functionality
+zarrcache = ["xarray", "zarr"]           # for reading/writing zarr files
+parquetcache = ["fastparquet"]           # reading/writing parquet files
+cache = ["xarray", "zarr", "fastparquet"]# all cache
+h5py = ["h5py"]                          # for reading/writing h5 files
+tables = ["tables"]                      # for reading/writing h5 files, alternate
+openpyxl = ["openpyxl"]                  # for pandas excel functionality
 
 #### processing
-dill = ["multiprocess",]                 # for dill multiprocessing
+dill = ["multiprocess"]                  # for dill multiprocessing
 
 #### visualization Packages
-plotly = ["plotly","dash"]
-
+plotly = ["plotly", "dash"]
+hvplot = ["hvplot"]
 
 #### package suites
-all = ["Pyro5-with-pickle",
-       "paramiko",
-       "xarray",
-       "zarr",
-       "fastparquet",
-       "tables",
-       "h5py",
-       "multiprocess",
-       "pandas",
+all = [
+    "Pyro5-with-pickle",
+    "paramiko",
+    "xarray",
+    "zarr",
+    "fastparquet",
+    "tables",
+    "h5py",
+    "multiprocess",
+    "pandas",
+    "hvplot",
 ]
 
-docs = ["nbconvert[webpdf]",      # notebooks
-       "nbsphinx",                # notebooks
-       "nbformat",
-       "ipykernel",
-       "notebook",
-       "sphinx",                  # sphinx
-       "sphinx_rtd_theme",        # sphinx theme
-       "sphinx-rtd-dark-mode",    # dark mode extension for sphinx_rtd_theme
-       "sphinxcontrib-spelling",  # spell check
-       "Pyro5-with-pickle",                   # needs to handle decorators in autodoc
+#### testing
+test = [
+    "pytest>=8.0",
+    "pandas",
+    "numpy",
+    "fastparquet",
+    "zarr",
+    "xarray",
+    "Pyro5-with-pickle",
+    "multiprocess",
+    "scipy",
 ]
 
-dev = [
-    "nbconvert[webpdf]",      # notebooks
-    "nbsphinx",                # notebooks
+#### documentation
+docs = [
+    "sphinx",
+    "sphinx_rtd_theme",
+    "sphinx-rtd-dark-mode",
+    "sphinxcontrib-spelling",
+    "nbsphinx",
+    "nbconvert[webpdf]",
     "nbformat",
     "ipykernel",
     "notebook",
-    "sphinx",                  # sphinx
-    "sphinx_rtd_theme",        # sphinx theme
-    "sphinx-rtd-dark-mode",    # dark mode extension for sphinx_rtd_theme
-    "sphinxcontrib-spelling",  # spell check
-    "pytest",
-    "pandas",
+    "Pyro5-with-pickle",
 ]
 
-# docs may need this      "jupyter-client"
+#### developer workflow tooling
+dev = [
+    "ruff",         # Fast linting and code formatting
+    "mypy",         # Type checking
+    "pre-commit",   # Git hooks automation
+    "build",        # Package building
+    "twine",        # PyPI uploading
+]
 
-### for development of docs
-# "sphinx-apidoc",           # automatically generate documentation
-# "jupyter",                 # notebooks
-
-# unused dependances to be used
-#  "dask", 
-#  "openmdao",
-#  "hvplot", 
-#  "seaborn", 
-
-# for plotting interactive
-#  PyQt5                  # plotting qt
-
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+filterwarnings = [
+    # Match Zarr warning by message pattern
+    "ignore:.*Consolidated metadata is currently not part.*:UserWarning",
+    
+    # Match fastparquet/NumPy warning by message pattern
+    "ignore:.*The 'generic' unit for NumPy timedelta is deprecated.*:DeprecationWarning",
+    
+    # multiprocessing 'fork' warnings
+    "ignore:This process .* is multi-threaded, use of fork.. may lead to deadlocks:DeprecationWarning",
+    ]
+markers = [
+    "requires_rpc_server: mark test as requiring a running RPC daemon",
+    ]
 
 [project.scripts]
 dmanage-factory = "dmanage.remote.rpc:main"

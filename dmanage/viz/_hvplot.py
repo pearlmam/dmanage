@@ -5,9 +5,10 @@ import threading
 import webbrowser
 import pandas as pd
 import panel as pn
+import hvplot.pandas
 from panel.io.server import get_server
 
-__all__ = ["HvPlotExplorer"]
+__all__ = ["HvPlotExplorer","launch_explorer","sanitize_df","check_threads"]
 
 
 class HvPlotExplorer:

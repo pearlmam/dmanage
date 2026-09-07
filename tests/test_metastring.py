@@ -117,13 +117,6 @@ def test_compose_duck_typed_dataframe_without_pandas():
     
 
 if __name__ == "__main__":
-    test_compose_empty()
-    test_compose_dict_basic()
-    test_compose_dict_custom_separators()
-    test_compose_list()
-    test_compose_dict_formatting()
-    # test_compose_pandas_dataframe()
-    # test_compose_pandas_series()
-    # test_compose_duck_typed_dataframe_without_pandas()
+    pytest.main([__file__, "-v", "--pdb"])
     
     

@@ -53,6 +53,7 @@ class TestEngine(SubProcEngine):
 @pyro_expose
 @pyro_behavior(instance_mode="single")
 class TestDispatcher(Dispatcher):
+    __test__ = False 
     def __init__(self, run_base_dir = None, max_concurrent_jobs: int = 2, poll_interval: float = 1.0):
         super().__init__(TestEngine(), run_base_dir,max_concurrent_jobs, poll_interval)
         self.model_include_patterns = None

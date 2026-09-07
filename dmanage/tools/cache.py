@@ -208,7 +208,7 @@ class ParquetCache(HardCache):
             os.mkdir(path)
         except:
             pass
-        
+        # pd.set_option("io.parquet.engine", "pyarrow")  # TODO option to set the engine for future
         self.compression = compression
         self.debug = debug
         self.groups = {

@@ -1,32 +1,32 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Oct 14 13:31:59 2025
 
-@author: marcus
-"""
-from helpers.strata_objects import Parent,Component1,Component2,Component3,MyDataGroup,MyDataUnit
-
+from pandas.testing import assert_frame_equal
 import pytest
-from unittest import TestCase
+import os
+from helpers.strata_objects import (
+    Component1,
+    Component2,
+    Component3,
+    MyDataGroup,
+    MyDataUnit,
+    Parent,
+)
 
-
-baseDir = '/path/to/baseDir/'
-dataPath = 'file-99.test'
+baseDir = "/path/to/baseDir/"
+dataPath = "file-99.test"
 testN = 10
-kwargsDU = {'dataPath':dataPath}
-kwargsDG = {'baseDir':baseDir,'unitType':'test','testN':testN}
+kwargsDU = {"dataPath": dataPath}
+kwargsDG = {"baseDir": baseDir, "unitType": "test", "testN": testN}
+MAX_NC = min(4, os.cpu_count() or 1)
 
 parent = Parent()
 comp1 = Component1()
 comp2 = Component2()
 comp3 = Component3()
 
-class TestAll(TestCase):
-    run = True
-    def _run(self):
-        return self.run
-    
+
+class TestAll:
     def test_dataUnit(self):
         DU = MyDataUnit(dataPath)
         DU.gen_DataFrame()
@@ -36,45 +36,39 @@ class TestAll(TestCase):
 
     def test_dataGroup(self):
         DU = MyDataUnit(dataPath)
-        
-        DG = MyDataGroup(dataPath,testN=testN)
-        assert all([all(resultDG == resultDU) for (resultDG,resultDU) in zip(DG.gen_DataFrame(), ([DU.gen_DataFrame()]*testN))])
+        DG = MyDataGroup(dataPath, testN=testN)
+
+        # DataFrame list comparison
+        expected_dfs = [DU.gen_DataFrame()] * testN
+        for resultDG, resultDU in zip(DG.gen_DataFrame(), expected_dfs):
+            assert_frame_equal(resultDG, resultDU, check_names=False, check_dtype=False)
+
         assert DG.Comp.func() == DU.Comp.func()
-        assert DG.Comp.func_override() == [DU.Comp.func_override()]*testN
+        assert DG.Comp.func_override() == [DU.Comp.func_override()] * testN
         assert DG.parent_func() == DU.parent_func()
-        assert DG.parent_func_override() == [DU.parent_func_override()]*testN
-        
-        
-        # parallel
-        assert all([all(resultDG == resultDU) for (resultDG,resultDU) in zip(DG.gen_DataFrame(nc=4), ([DU.gen_DataFrame()]*testN))])
-        assert DG.Comp.func_override(nc=4) == [DU.Comp.func_override()]*testN
-        assert DG.parent_func_override(nc=4) == [DU.parent_func_override()]*testN
-        assert DG.access_private_method(nc=4) == [DU._private_method()]*testN
-        
+        assert DG.parent_func_override() == [DU.parent_func_override()] * testN
+
+        # Parallel execution checks
+        for resultDG, resultDU in zip(DG.gen_DataFrame(nc=MAX_NC), expected_dfs):
+            assert_frame_equal(resultDG, resultDU, check_names=False, check_dtype=False)
+
+        assert DG.Comp.func_override(nc=MAX_NC) == [DU.Comp.func_override()] * testN
+        assert DG.parent_func_override(nc=MAX_NC) == [DU.parent_func_override()] * testN
+        assert DG.access_private_method(nc=MAX_NC) == [DU._private_method()] * testN
+
+        # Unwrapped component test
         with pytest.raises(AssertionError):
-            # components of components are not currently overridden, so this throws an error
-            # when it doesn't, I will have successfully wrapped all sub components.
-            assert DG.Comp.Comp.func_override() == [DU.Comp.Comp.func_override()]*testN
+            assert DG.Comp.Comp.func_override() == [DU.Comp.Comp.func_override()] * testN
+
         assert DG.Comp.Comp.func() == DU.Comp.Comp.func()
-        
-        
-        
 
 
 if __name__ == "__main__":
-    test = TestAll()
-    test.test_dataUnit()
-    test.test_dataGroup()
-    
-    DU = MyDataUnit(dataPath)
-    DU.plot2(tagVars='file')
-    #DU.plot3(tagVars='file')
-    
-    DG = MyDataGroup(dataPath,testN=testN)
-    # DG.plot(nc=1)
-    DG.plot2(tagVars='file',nc=4)
-    # DG.plot3(tagVars='file',nc=1)
-    
-    # DG.plot(nc=1)
-    
-    
+    # Runs the test suite directly with pytest
+    pytest.main([__file__, "-v", "-s"])
+
+    # Optional: Manual plot calls for interactive visual inspection
+    # DU = MyDataUnit(dataPath)
+    # DU.plot2(tagVars='file')
+    # DG = MyDataGroup(dataPath, testN=testN)
+    # DG.plot2(tagVars='file', nc=MAX_NC)

@@ -5,7 +5,8 @@ import re
 import decimal
 from pathlib import Path
 
-from dmanage._compat import pd, HAS_PANDAS
+from dmanage import _compat
+from dmanage._compat import pd
 from dmanage.utils.objinfo import is_iterable
 from dmanage.parallel import parallelize_iterator_method
 
@@ -90,6 +91,7 @@ def compose(dataStruct, equiv='-', sep='_', order=False, format=None, numDecimal
 # ??? this also can only handle number values, need to include strings.
 # ??? should return DF
 
+
 def parse(files, checkVars=None, equiv='-', sep=['/','_'], asstring=False, nc=1):
     """ Description
     this parses through the filename to get variable values
@@ -114,14 +116,15 @@ def parse(files, checkVars=None, equiv='-', sep=['/','_'], asstring=False, nc=1)
         output2 = parseFilename(file=filenames, checkVars=['L-','T-','exp-'])
         output2 = np.array([[10,100,1],[500,400,25]])
     """
-    if not is_iterable(files): 
+    
+    if not is_iterable(files) or isinstance(files, str): 
         files = [files]
         
     parse_filename_ = parallelize_iterator_method(_parse)
     results = parse_filename_(files, checkVars, equiv=equiv, sep=sep, asstring=asstring, nc=nc)
 
-    # If pandas is installed, return a DataFrame; otherwise, fall back to a list of dicts
-    if HAS_PANDAS:
+    # Dynamically check _compat.HAS_PANDAS so patch() can override it during tests
+    if getattr(_compat, "HAS_PANDAS", False):
         return pd.DataFrame(results)
     return results
 
@@ -130,30 +133,34 @@ def _parse(file, checkVars=None, equiv='-', sep=['/','_'], asstring=False):
     file = Path(file)
     if not isinstance(sep, (list, tuple)):
         sep = [sep]
-    if (not is_iterable(checkVars)) and (checkVars is not None): 
-        checkVars = [checkVars]
     
-    # Pure Python dict eliminates Pandas dependency inside worker process
+    # Normalize checkVars identifiers (e.g., handles both ['L-'] and ['L'])
+    if checkVars is not None:
+        if not is_iterable(checkVars) or isinstance(checkVars, str):
+            checkVars = [checkVars]
+        checkVars = [str(v).rstrip(equiv) for v in checkVars]
+    
     row = {}
-
     file_name = str(file) if file.is_dir() else str(file.parent / file.stem)
     
     regex_pattern = '|'.join(map(re.escape, sep))
-    file_name = re.split(regex_pattern, file_name)
+    parts = re.split(regex_pattern, file_name)
     
     matchNumber = re.compile(r'-?\ *[0-9]+\.?[0-9]*(?:[Ee]\ *-?\ *[0-9]+)?')
-    for part in file_name:
-        if '-' in part:
+    for part in parts:
+        # Check against the passed `equiv` character instead of hardcoded '-'
+        if equiv in part:
             colVal = part.split(equiv, 1)
             col = colVal[0]
             valueStr = colVal[1]
             
-            if valueStr[0].isalpha():
-                value = []
-            else:
-                value = re.findall(matchNumber, valueStr)
-            
             if (checkVars is None) or (col in checkVars):
+                # Safely handle string checks and empty strings
+                if asstring or not valueStr or valueStr[0].isalpha():
+                    value = []
+                else:
+                    value = re.findall(matchNumber, valueStr)
+                
                 if len(value) == 0 or asstring:
                     row[col] = valueStr
                 else:

@@ -10,32 +10,48 @@ import atexit
 
 ##### Setup backend for Pool, checks config for which backend
 import dmanage.config
-from multiprocessing import Pool as StandardPool
+import multiprocessing
+import warnings
+
+import dmanage.config
+
 try:
-    from multiprocess import Pool as DillPool
+    import multiprocess
     HAS_MULTIPROCESS = True
 except ImportError:
-    DillPool = None
+    multiprocess = None
     HAS_MULTIPROCESS = False
 
-_BACKENDS = {
-    "multiprocess": DillPool,
-    "dill": DillPool,                  # Alias for convenience
-    "multiprocessing": StandardPool,
-    "pickle": StandardPool,            # Alias for convenience
-}
 
 def Pool(*args, **kwargs):
     backend_key = getattr(dmanage.config, "PARALLEL_BACKEND", "multiprocessing")
+    start_method = getattr(dmanage.config, "PARALLEL_START_METHOD", "fork")
+
+    # Handle missing multiprocess package fallback
     if backend_key in ("dill", "multiprocess") and not HAS_MULTIPROCESS:
         warnings.warn(
             f"Parallel backend '{backend_key}' requested, but the 'multiprocess' package "
             "is not installed. Falling back to standard 'multiprocessing'.",
             RuntimeWarning
-            )
-        return StandardPool(*args, **kwargs)
-    pool_cls = _BACKENDS.get(backend_key, StandardPool)
+        )
+        backend_key = "multiprocessing"
+
+    # Select backend module
+    backend_mod = multiprocess if backend_key in ("dill", "multiprocess") else multiprocessing
+
+    # Resolve Pool constructor using the configured start method
+    if start_method:
+        try:
+            pool_cls = backend_mod.get_context(start_method).Pool
+        except ValueError:
+            # Handles unsupported start methods (e.g. 'fork' on Windows)
+            pool_cls = backend_mod.Pool
+    else:
+        pool_cls = backend_mod.Pool
+
     return pool_cls(*args, **kwargs)
+
+
 __all__ = ["ReusablePool", "looperize", "parallelize_looped_method", "parallelize_iterator_method"]
 
 class ReusablePool:

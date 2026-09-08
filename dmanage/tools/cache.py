@@ -430,6 +430,7 @@ class ZarrCache(HardCache):
         except:
             self.root = self._zarr.open(self.path,mode='w')
             self.root = self._zarr.open(self.path,mode='r')
+        self._consolidated = True
     
     def keys(self):
         """Gets the keys of the availiable data"""
@@ -438,17 +439,19 @@ class ZarrCache(HardCache):
     def save(self,data,key,thread=False):
         """No thread check neccessary because zarr will just stop other thread and overwrite"""
         if thread:
-            kwargs={'data':data,'key':key}
+            kwargs={'data':data,'key':key,"consolidated":False}
             t = threading.Thread(target=self._save,kwargs=kwargs)
             self._threads[key] = t
             t.start()
         else:
             self._save(data,key)
     
-    def _save(self,data,key):
+    def _save(self,data,key,consolidated=True):
         """ Called from HardCache.save()
         No thread check neccessary because zarr will just stop other thread and overwrite"""
         #print('writing %s'%key)
+        if not consolidated:
+            self._consolidated = False
         if isinstance(data,(pd.core.frame.DataFrame)):
             xs = data.to_xarray()
             xs.attrs['dtype'] = 'DataFrame'
@@ -456,7 +459,7 @@ class ZarrCache(HardCache):
             xs = data.to_xarray()
             xs = xs.to_dataset(name=getattr(xs,key,'data'))
             xs.attrs['dtype'] = 'Series'
-        xs.to_zarr(store=self.path,group=key, mode="w", consolidated=True)
+        xs.to_zarr(store=self.path,group=key, mode="w", consolidated=consolidated)
             
     def remove(self,key):
         if key in self.root:
@@ -488,7 +491,19 @@ class ZarrCache(HardCache):
             data = None
             # raise Exception("No '%s' in keys and method=None, Define method to generate and hard cache the data."%(key))
         return data
-
+    
+    def flush(self):
+        super().flush()  # Wait for all worker threads to join
+    
+        # Only run if the store currently has un-consolidated writes
+        if not getattr(self, "_consolidated", True):
+            try:
+                self._zarr.consolidate_metadata(self.path)
+                self._consolidated = True  # Mark as clean ONLY after successful consolidation
+            except RuntimeError:
+                # Handles interpreter shutdown where ThreadPoolExecutor is already terminated
+                pass
+        
 class Summary():
     """This manages summary data in RAM and on the disk
     """

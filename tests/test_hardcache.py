@@ -80,8 +80,8 @@ class TestTabularCaches:
 
     def test_threading(self, dataframe_cache):
         DU = MyDataUnit()
-        N = 3
-        size = 10000
+        N = 20    # 20 threads
+        size = 200 # size of the dataframe 
         dfs = [DU.gen_DataFrame(i, size=size) for i in range(N)]
     
         for i, df in enumerate(dfs):

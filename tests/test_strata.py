@@ -25,6 +25,14 @@ comp1 = Component1()
 comp2 = Component2()
 comp3 = Component3()
 
+from dmanage.parallel import Pool # Adjust import to your dispatch module
+
+def test_debug_start_method():
+    p = Pool(1)
+    print(f"\nACTIVE START METHOD: {p._ctx.get_start_method()}")
+    p.close()
+    p.join()
+
 
 class TestAll:
     def test_dataUnit(self):

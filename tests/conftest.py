@@ -1,4 +1,5 @@
 import sys
+import os
 from pathlib import Path
 import subprocess
 import time
@@ -11,10 +12,15 @@ def is_port_open(host="127.0.0.1", port=44444):
         s.settimeout(0.5)
         return s.connect_ex((host, port)) == 0
 
-@pytest.fixture(autouse=True, scope="session")
-def configure_test_parallelism():
-    """Force fast process forking during tests."""
-    dmanage.config.PARALLEL_START_METHOD = "fork"
+def pytest_configure(config):
+    """Executes before test collection or imports begin."""
+    start_method = os.getenv("PARALLEL_START_METHOD", "fork")
+    
+    # Windows does not support fork; fall back to spawn on Windows
+    if start_method == "fork" and sys.platform == "win32":
+        start_method = "spawn"
+        
+    dmanage.config.PARALLEL_START_METHOD = start_method
 
 @pytest.fixture(autouse=True)
 def check_rpc_server_marker(request):
@@ -23,35 +29,47 @@ def check_rpc_server_marker(request):
         if not is_port_open():
             pytest.skip("RPC Factory server is not running on port 44444.")
 
+import sys
+import time
+import subprocess
+import pytest
+
 @pytest.fixture(scope="session")
 def rpc_factory_daemon():
-    """Launches dmanage-factory daemon using Spyder's active Python environment."""
+    """Launches dmanage-factory daemon using active Python environment."""
     if is_port_open():
         yield
         return
 
-    # Target dmanage-factory inside the exact bin folder running pytest/Spyder
-    active_env_bin = Path(sys.executable).parent
-    factory_bin = str(active_env_bin / "dmanage-factory")
-
     proc = subprocess.Popen(
-        [factory_bin, "--test"],
+        [sys.executable, "-m", "dmanage.remote.rpc", "--test"],
+        stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
     )
 
     start_time = time.time()
+    timeout = 15.0  # Accounts for Windows process spawn overhead
+
     while not is_port_open():
         if proc.poll() is not None:
-            _, stderr = proc.communicate()
+            stdout, stderr = proc.communicate()
             pytest.fail(
-                f"`dmanage-factory --test` crashed on startup (code {proc.returncode}).\n"
-                f"Daemon Error Output:\n{stderr}"
+                f"`dmanage-factory --test` exited prematurely (code {proc.returncode}).\n"
+                f"STDOUT:\n{stdout}\n"
+                f"STDERR:\n{stderr}"
             )
-        if time.time() - start_time > 5.0:
+            
+        if time.time() - start_time > timeout:
             proc.kill()
-            pytest.fail("Timed out waiting for `dmanage-factory` to open port 44444.")
-        time.sleep(0.1)
+            stdout, stderr = proc.communicate()
+            pytest.fail(
+                f"Timed out after {timeout}s waiting for `dmanage-factory` to open port 44444.\n"
+                f"STDOUT:\n{stdout}\n"
+                f"STDERR:\n{stderr}"
+            )
+            
+        time.sleep(0.2)
 
     yield proc
 

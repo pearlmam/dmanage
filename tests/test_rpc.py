@@ -264,6 +264,10 @@ class TestAllLocal:
         insecureObj = "os"  # loading this module
         with pytest.raises(Exception):
             Factory.create(insecureObj, **kwargsDU)
+            
+        # check backend
+        assert "fork" == Factory.get_parallel_start_method()
+        assert "multiprocessing" == Factory.get_parallel_backend()
 
 
 if __name__ == "__main__":

@@ -9,15 +9,21 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.11", "3.12","3.13","3.14"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11", "3.14"]
+        start-method: ["fork", "spawn"]
+        exclude:
+          # Windows does not support the fork start method
+          - os: windows-latest
+            start-method: "fork"
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -31,5 +37,7 @@ jobs:
           pip install -e .[test]
 
       - name: Run Pytest
+        env:
+          PARALLEL_START_METHOD: ${{ matrix.start-method }}
         run: |
-          pytest -ra --durations=0
+          pytest -ra -v --durations=0

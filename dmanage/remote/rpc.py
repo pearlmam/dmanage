@@ -154,9 +154,16 @@ class PyroFactory():
         if backend:
             dmanage.config.PARALLEL_BACKEND = backend
             print(f"Parallel backend changed to '{backend}'")
-            
+        
     def get_parallel_backend(self):
         return dmanage.config.PARALLEL_BACKEND
+    
+    def set_parallel_start_method(self,method=None):
+        dmanage.config.PARALLEL_START_METHOD = method
+        print(f"Parallel start method changed to '{method}'")
+        
+    def get_parallel_start_method(self):
+        return dmanage.config.PARALLEL_START_METHOD 
     
     @classmethod    
     def _create_instance(cls,*args,**kwargs):
@@ -401,6 +408,13 @@ class ProxyFactory():
             
     def get_parallel_backend(self):
         return self.Factory.get_parallel_backend()
+    
+    def set_parallel_start_method(self,backend=None):
+        self.Factory.set_parallel_start_method(backend)
+            
+    def get_parallel_start_method(self):
+        return self.Factory.get_parallel_start_method()
+    
     
     def __getattr__(self, class_name: str):
         """Fallback for undefined attributes: intercepts class names and routes to self.create()."""

@@ -12,6 +12,7 @@ ONLY_EXPOSED = False
 Pyro5.api.config.PICKLE_ENABLE = True  # Enabling pickle is a massive security risk
 Pyro5.api.config.SERIALIZER = "serpent"# serpent,json?,pickle,dill
 dmanage.config.PARALLEL_BACKEND = "multiprocessing" # This is the local serializer used in multiprocessing, safe!
+dmanage.config.PARALLEL_START_METHOD = "fork" # this is faster but can cause issues with threading
 
 EXPOSED_OBJECTS = {
     "Parent":Parent,

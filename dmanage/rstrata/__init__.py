@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# -*- coding: utf-8 -*-
 try:
     import Pyro5.api
 except ImportError:

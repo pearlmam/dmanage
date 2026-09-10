@@ -23,10 +23,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v7
+        uses: actions/checkout@v5
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -41,3 +41,14 @@ jobs:
           PARALLEL_START_METHOD: ${{ matrix.start-method }}
         run: |
           pytest -ra -v --durations=0
+          
+      - name: Upload Server Debug Logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: server-logs-${{ matrix.os }}-py${{ matrix.python-version }}-${{ matrix.start-method }}
+          path: server_debug.log
+          if-no-files-found: ignore
+          
+          
+          

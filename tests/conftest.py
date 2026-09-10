@@ -36,40 +36,54 @@ def rpc_factory_daemon():
         yield
         return
 
+    log_path = Path("server_debug.log")
+    log_file = open(log_path, "w", encoding="utf-8")
+
+    # Inherit system environment variables (CRITICAL for Windows winsock/DLL paths)
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+
     proc = subprocess.Popen(
-        [sys.executable, "-m", "dmanage.rstrata.server", "--test"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        text=True,
+        [sys.executable, "-m", "dmanage.rstrata.cli", "--test"],
+        stdout=log_file,
+        stderr=subprocess.STDOUT,  # Combined into log_file
+        env=env,
     )
 
     start_time = time.time()
-    timeout = 15.0  # Accounts for Windows process spawn overhead
+    timeout = 15.0
 
     while not is_port_open():
         if proc.poll() is not None:
-            stdout, stderr = proc.communicate()
+            log_file.flush()
+            log_file.close()
+            logs = log_path.read_text(encoding="utf-8")
             pytest.fail(
                 f"`dmanage-factory --test` exited prematurely (code {proc.returncode}).\n"
-                f"STDOUT:\n{stdout}\n"
-                f"STDERR:\n{stderr}"
+                f"SERVER LOGS:\n{logs}"
             )
-            
+
         if time.time() - start_time > timeout:
             proc.kill()
-            stdout, stderr = proc.communicate()
+            proc.wait()
+            log_file.flush()
+            log_file.close()
+            logs = log_path.read_text(encoding="utf-8")
             pytest.fail(
                 f"Timed out after {timeout}s waiting for `dmanage-factory` to open port 44444.\n"
-                f"STDOUT:\n{stdout}\n"
-                f"STDERR:\n{stderr}"
+                f"SERVER LOGS:\n{logs}"
             )
-            
+
         time.sleep(0.2)
 
     yield proc
 
+    # Teardown
     proc.terminate()
     try:
         proc.wait(timeout=2)
     except subprocess.TimeoutExpired:
         proc.kill()
+    finally:
+        if not log_file.closed:
+            log_file.close()

@@ -29,11 +29,6 @@ def check_rpc_server_marker(request):
         if not is_port_open():
             pytest.skip("RPC Factory server is not running on port 44444.")
 
-import sys
-import time
-import subprocess
-import pytest
-
 @pytest.fixture(scope="session")
 def rpc_factory_daemon():
     """Launches dmanage-factory daemon using active Python environment."""
@@ -42,9 +37,9 @@ def rpc_factory_daemon():
         return
 
     proc = subprocess.Popen(
-        [sys.executable, "-m", "dmanage.remote.rpc", "--test"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        [sys.executable, "-m", "dmanage.rstrata.server", "--test"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
         text=True,
     )
 

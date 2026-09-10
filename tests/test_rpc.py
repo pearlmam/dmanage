@@ -6,7 +6,7 @@ import Pyro5.api
 import pytest
 import os
 import dmanage
-import dmanage.remote.rpc as rpc
+import dmanage.rstrata as rstrata
 from helpers.strata_objects import (
     MyDataGroup,
     MyDataUnit,
@@ -47,7 +47,7 @@ class TestAllLocal:
         assert getattr(MyDataUnit, "_pyroExposed", False) is False
         assert getattr(Parent, "_pyroExposed", False) is False
 
-        rpc.expose_all(DU)
+        rstrata.utils.expose_all(DU)
 
         # class and instance are now exposed
         assert getattr(MyDataUnit, "_pyroExposed", False) is True
@@ -57,7 +57,7 @@ class TestAllLocal:
 
         # component is not exposed
         assert getattr(DU.Comp, "_pyroExposed", False) is False
-        rpc.expose_all(DU.Comp)
+        rstrata.utils.expose_all(DU.Comp)
         assert getattr(DU.Comp, "_pyroExposed", False) is True
 
     @requires_rpc_server
@@ -66,7 +66,7 @@ class TestAllLocal:
         Pyro5.api.config.SERIALIZER = "serpent"
         localDU = MyDataUnit(dataPath)
         uri = f"PYRO:ProxyFactory@{host}:{port}"
-        Factory = rpc.ProxyFactory(uri=uri)
+        Factory = rstrata.ProxyFactory(uri=uri)
 
         proxyDU = Factory.create(objDU, **kwargsDU)
         assert_frame_equal(proxyDU.gen_DataFrame(), localDU.gen_DataFrame(), check_names=False, check_dtype=False)
@@ -119,7 +119,7 @@ class TestAllLocal:
         localDG = MyDataGroup(baseDir, testN=testN)
 
         uri = f"PYRO:ProxyFactory@{host}:{port}"
-        Factory = rpc.ProxyFactory(uri=uri)
+        Factory = rstrata.ProxyFactory(uri=uri)
         proxyDG = Factory.create(objDG, **kwargsDG)
 
         for local_df, remote_df in zip(localDG.gen_DataFrame(nc=MAX_NC), proxyDG.gen_DataFrame(nc=MAX_NC)):
@@ -179,7 +179,7 @@ class TestAllLocal:
         localDU = MyNewDataUnit()
 
         uri = f"PYRO:ProxyFactory@{host}:{port}"
-        Factory = rpc.ProxyFactory(uri=uri)
+        Factory = rstrata.ProxyFactory(uri=uri)
         proxyDU = Factory.create(objNDU, **kwargsDU)
         assert_frame_equal(proxyDU.process_df(), localDU.process_df(), check_names=False, check_dtype=False)
         
@@ -193,7 +193,7 @@ class TestAllLocal:
         localDG = MyNewDataGroup(baseDir, testN=testN)
 
         uri = f"PYRO:ProxyFactory@{host}:{port}"
-        Factory = rpc.ProxyFactory(uri=uri)
+        Factory = rstrata.ProxyFactory(uri=uri)
         proxyDG = Factory.create(objNDG, **kwargsDG)
 
         for local_df, remote_df in zip(localDG.gen_DataFrame(nc=MAX_NC), proxyDG.gen_DataFrame(nc=MAX_NC)):
@@ -258,7 +258,7 @@ class TestAllLocal:
     def test_factory(self):
         """Make sure factory is running with terminal command 'dmanage-factory'"""
         uri = f"PYRO:ProxyFactory@{host}:{port}"
-        Factory = rpc.ProxyFactory(uri=uri)
+        Factory = rstrata.ProxyFactory(uri=uri)
 
         ######    security    #######
         insecureObj = "os"  # loading this module
@@ -285,10 +285,10 @@ if __name__ == "__main__":
     
     #localDU = MyDataUnit(dataPath)
     
-    # # comps = rpc.get_components(localDU)
+    # # comps = rstrata.get_components(localDU)
     # # print(comps)
     # uri = "PYRO:ProxyFactory@{host}:%s"%port
-    # Factory = rpc.ProxyFactory(uri=uri)
+    # Factory = rstrata.ProxyFactory(uri=uri)
     
     # proxyDU = Factory.create(objDU,**kwargsDU)
     # kwargsDU = {'dataPath':'path2.test'}
@@ -299,7 +299,7 @@ if __name__ == "__main__":
     
     # localDG = MyDataGroup(baseDir,unitType='test')
     # uri = "PYRO:ProxyFactory@{host}:44444"
-    # Factory = rpc.ProxyFactory(uri=uri)
+    # Factory = rstrata.ProxyFactory(uri=uri)
     
     # proxyDG = Factory.create(objDG,**kwargsDG)
     # a = localDG.parallel_method(parallelDUInput,ncPass=True,nc=MAX_NC)

@@ -129,7 +129,7 @@ markers = [
     ]
 
 [project.scripts]
-dmanage-factory = "dmanage.remote.rpc:main"
+dmanage-factory = "dmanage.rstrata.server:main"
 
 [project.urls]
 Homepage = "https://github.com/pearlmam/dmanage/"

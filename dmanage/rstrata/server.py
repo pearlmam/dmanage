@@ -76,7 +76,7 @@ class PyroFactory:
             print(f"Object '{name}' already shared, 'reload=False': using cached uri")
             return self._pyro_uris[name]
 
-        print(f"Creating pyro object: '{name}'...", end=" ")
+        print(f"Creating pyro object: '{name}'...", end=" ", flush=True)
         obj = self._get_object(name)
         if not self.ONLY_EXPOSED:
             obj = expose_all(obj)

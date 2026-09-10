@@ -7,7 +7,7 @@ import time
 from dmanage.ops.dfmethods import plot
 from dmanage.parallel import parallelize_iterator_method
 from dmanage.strata import make_data_unit, make_data_group, override, plot_override, helpers
-from dmanage.metadata import metastring
+from dmanage import metastring
 
 from pathlib import Path
 import sys

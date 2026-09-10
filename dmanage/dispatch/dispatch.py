@@ -8,7 +8,7 @@ from pathlib import Path
 import os
 import uuid
 
-import dmanage.metadata.metastring as meta
+from dmanage import metastring as ms
 from .scheduler import Scheduler
 from .job import Job,PrettyList
 
@@ -76,10 +76,7 @@ class Dispatcher():
     
     def _compose_path(self,params, equiv='-', sep='/', order=False,format=None,numDecimals=3):
         run_base_dir = Path(self.run_base_dir)
-        if meta:
-            tail_path = Path(meta.compose(params,equiv, sep, order,format,numDecimals) )
-        else:
-            raise ModuleNotFoundError("package dmanage is required to automatically compose paths, you must specify the 'run_path' for each job.")
+        tail_path = Path(ms.compose(params,equiv, sep, order,format,numDecimals) )
         return run_base_dir / tail_path
     
     ##########################

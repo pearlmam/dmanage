@@ -3,7 +3,7 @@
 import signal
 import os
 from abc import ABC, abstractmethod
-from .job import Job
+from ._job import Job
 import subprocess
 import shutil
 from pathlib import Path

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from dmanage._compat import pd
-from .client import ProxyWrap
+from ._client import ProxyWrap
 
 try:
     import Pyro5.api
@@ -8,6 +8,8 @@ try:
     HAS_PICKLE = hasattr(Pyro5.api.config, "PICKLE_ENABLE")
 except ImportError:
     HAS_PICKLE = False
+
+__all__ = []
 
 # --- URI Hooks ---
 URIHook = type("URIHook", (str,), {})

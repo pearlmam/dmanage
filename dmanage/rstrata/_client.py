@@ -5,6 +5,8 @@ from pathlib import Path
 import Pyro5.api
 from Pyro5.server import is_private_attribute
 
+__all__ = ["client_ssh_setup","client_ssh_close","ProxyFactory","ProxyWrap"]
+
 def client_ssh_setup(user, server, localPort=44444, remotePort=44444, verbose=False):
     """
     sets up ssh port forwarding on the client

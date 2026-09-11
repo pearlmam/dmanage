@@ -4,6 +4,8 @@ import Pyro5.api
 from dmanage.rstrata import PyroFactory
 from argparse import ArgumentParser
 
+
+__all__ = ["main"]
 defaultPyroFactoryHost = "127.0.0.1"
 defaultPyroFactoryPort = 44444
 defaultPyroFactoryName = "ProxyFactory"

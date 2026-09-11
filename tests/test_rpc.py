@@ -47,7 +47,7 @@ class TestAllLocal:
         assert getattr(MyDataUnit, "_pyroExposed", False) is False
         assert getattr(Parent, "_pyroExposed", False) is False
 
-        rstrata.utils.expose_all(DU)
+        rstrata._utils.expose_all(DU)
 
         # class and instance are now exposed
         assert getattr(MyDataUnit, "_pyroExposed", False) is True
@@ -57,7 +57,7 @@ class TestAllLocal:
 
         # component is not exposed
         assert getattr(DU.Comp, "_pyroExposed", False) is False
-        rstrata.utils.expose_all(DU.Comp)
+        rstrata._utils.expose_all(DU.Comp)
         assert getattr(DU.Comp, "_pyroExposed", False) is True
 
     @requires_rpc_server

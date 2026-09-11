@@ -9,8 +9,8 @@ import os
 import uuid
 
 from dmanage import metastring as ms
-from .scheduler import Scheduler
-from .job import Job,PrettyList
+from ._scheduler import Scheduler
+from ._job import Job,PrettyList
 
 try:
     import Pyro5.api

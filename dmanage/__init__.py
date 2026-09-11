@@ -3,5 +3,5 @@
 
 #__all__ = ["dfmethods", "arrays"]
 from dmanage import config
-from .meta import metastring
-from .physics import constants
+from ._meta import metastring
+from ._physics import constants

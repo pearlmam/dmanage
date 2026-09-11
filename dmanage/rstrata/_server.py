@@ -4,7 +4,9 @@ import importlib.util
 import Pyro5.api
 
 import dmanage.config
-from .utils import expose_all, pyroize_object
+from ._utils import expose_all, pyroize_object
+
+__all__ = ["PyroFactory","start_factory"]
 
 @Pyro5.api.expose
 class PyroFactory:

@@ -66,8 +66,8 @@ df = pd.DataFrame(
 explorer = viz.HvPlotExplorer(df,port=5007)
 explorer.start(True)
 
-explorer2 = viz.HvPlotExplorer2(df)
-explorer2.start(True)
+# explorer2 = viz.HvPlotExplorer2(df)
+# explorer2.start(True)
 
 
 

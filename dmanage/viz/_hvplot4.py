@@ -1,7 +1,6 @@
-import asyncio
-import threading
+# -*- coding: utf-8 -*-
+
 import time
-import webbrowser
 import numpy as np
 import pandas as pd
 import panel as pn
@@ -9,7 +8,6 @@ import param
 import holoviews as hv
 import hvplot.pandas
 from bokeh.models import ColumnDataSource, CustomJS, Legend, LegendItem
-from panel.io.server import get_server
 
 __all__ = ["BasePanelServer", "HvPlotExplorer", "HvPlotExplorer2", "sanitize_df"]
 
@@ -25,19 +23,18 @@ def sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
             df_clean[col] = df_clean[col].astype(str)
     return df_clean
 
+
 # =============================================================================
-# BASE SERVER CLASS (Context Manager & Thread Management)
+# REFACTORED BASE SERVER CLASS (pn.serve Context Manager)
 # =============================================================================
 class BasePanelServer:
-    """Base class managing background thread lifecycle and sockets via Context Manager."""
+    """Base class managing background server lifecycle via pn.serve Context Manager."""
 
     _ACTIVE_SERVERS = {}
 
     def __init__(self, port: int = 5006):
         self.port = port
         self._server = None
-        self._loop = None
-        self._thread = None
 
     def __enter__(self):
         """Context manager entry point."""
@@ -45,7 +42,7 @@ class BasePanelServer:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit point to guarantee clean teardown."""
+        """Context manager exit point guaranteeing clean server teardown."""
         self.stop()
 
     @classmethod
@@ -59,72 +56,38 @@ class BasePanelServer:
         """Override in subclasses to build and return the Panel layout."""
         raise NotImplementedError("Subclasses must implement create_app().")
 
-    def _run_server_thread(self, ready_event: threading.Event):
-        """Initializes and runs the event loop in a background thread."""
-        self._loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self._loop)
-
-        self._server = get_server(
-            self.create_app,
-            port=self.port,
-            start=False,
-            show=False,
-            websocket_origin="*",
-        )
-
-        BasePanelServer._ACTIVE_SERVERS[self.port] = self
-        self._server.start()
-        ready_event.set()
-        self._loop.run_forever()
-
     def start(self, show: bool = True):
-        """Starts the Panel app non-blockingly in a background thread."""
+        """Starts the Panel app in a non-blocking background thread using pn.serve."""
         BasePanelServer.stop_port(self.port)
         pn.extension()
 
-        ready_event = threading.Event()
-        self._thread = threading.Thread(
-            target=self._run_server_thread, args=(ready_event,), daemon=True
+        # pn.serve manages the thread, event loop, and socket binding internally
+        self._server = pn.serve(
+            self.create_app,
+            port=self.port,
+            show=show,
+            threaded=True,
+            websocket_origin="*",
         )
-        self._thread.start()
-
-        ready_event.wait(timeout=2.0)
-
-        url = f"http://localhost:{self.port}"
-        if show:
-            time.sleep(0.1)
-            webbrowser.open(url)
-
-        print(f"Background explorer running at {url}")
+        BasePanelServer._ACTIVE_SERVERS[self.port] = self
+        print(f"Background explorer running on port {self.port}")
         return self
 
     def stop(self):
-        """Explicitly unbinds sockets and stops the background thread loop."""
+        """Stops the underlying Bokeh/Panel server instance cleanly."""
         BasePanelServer._ACTIVE_SERVERS.pop(self.port, None)
-
         if self._server is not None:
             try:
-                self._server.unlisten()
                 self._server.stop()
-                if hasattr(self._server, "io_loop") and self._server.io_loop:
-                    self._server.io_loop.add_callback(self._server.io_loop.stop)
-                print(f"Port {self.port} sockets unbound.")
+                print(f"Server on port {self.port} stopped cleanly.")
             except Exception as e:
-                print(f"Error releasing port {self.port}: {e}")
+                print(f"Error stopping server on port {self.port}: {e}")
             finally:
                 self._server = None
 
-        if self._loop is not None and self._loop.is_running():
-            try:
-                self._loop.call_soon_threadsafe(self._loop.stop)
-                print(f"Thread event loop on port {self.port} halted.")
-            except Exception as e:
-                print(f"Error stopping event loop: {e}")
-            finally:
-                self._loop = None
 
 # =============================================================================
-# REFACTORED PARAMETERIZED EXPLORER
+#  PARAMETERIZED EXPLORER
 # =============================================================================
 class HvPlotExplorer(BasePanelServer, param.Parameterized):
     """Declarative Interactive Explorer powered by param.Parameterized."""
@@ -203,18 +166,16 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
         temp_df = self.df.copy()
         if self.group_by == "None":
             return temp_df
-    
+
         group_keys = [self.group_by]
-    
-        # Include categorical X axis
+
         if (
             self.x != self.group_by
             and self.x in temp_df.columns
             and not pd.api.types.is_numeric_dtype(temp_df[self.x])
         ):
             group_keys.append(self.x)
-    
-        # Include categorical Color By
+
         if (
             self.color_by != "None"
             and self.color_by not in group_keys
@@ -222,8 +183,7 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
             and not pd.api.types.is_numeric_dtype(temp_df[self.color_by])
         ):
             group_keys.append(self.color_by)
-    
-        # Include categorical Marker By
+
         if (
             self.marker_by != "None"
             and self.marker_by not in group_keys
@@ -231,7 +191,7 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
             and not pd.api.types.is_numeric_dtype(temp_df[self.marker_by])
         ):
             group_keys.append(self.marker_by)
-    
+
         try:
             if self.aggregation == "count":
                 temp_df = (
@@ -245,17 +205,17 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                 )
         except Exception as e:
             print(f"Aggregation error: {e}")
-    
+
         return temp_df
 
     def _add_marker_legend_hook(self, plot, element, shape_map):
         bokeh_fig = plot.handles["plot"]
-    
+
         # 1. Align existing right-panel items (ColorBy legend/colorbar) to top
         for item in bokeh_fig.right:
             if hasattr(item, "location"):
                 item.location = "top_right" if item.__class__.__name__ == "ColorBar" else "top"
-    
+
         # 2. Identify scatter renderers
         main_sources = []
         main_renderers = []
@@ -265,7 +225,7 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                 if ds_data and ("_marker_shape" in ds_data or (self.marker_by != "None" and self.marker_by in ds_data)):
                     main_sources.append(r.data_source)
                     main_renderers.append(r)
-    
+
         # 3. Shield native ColorBy legend swatches from vector _alpha changes
         for legend in list(bokeh_fig.right) + list(bokeh_fig.center):
             if isinstance(legend, Legend):
@@ -274,37 +234,35 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                         orig_r = item.renderers[0]
                         fc = getattr(orig_r.glyph, "fill_color", "#555555")
                         lc = getattr(orig_r.glyph, "line_color", fc)
-    
-                        # Create dummy renderer with scalar fill_alpha=1.0 for swatch drawing
+
                         dummy_ds = ColumnDataSource(data=dict(x=[np.nan], y=[np.nan]))
                         dummy_r = bokeh_fig.scatter(
                             x="x", y="y", source=dummy_ds,
                             fill_color=fc, line_color=lc,
                             fill_alpha=1.0, line_alpha=1.0, size=10
                         )
-                        # Prepending ensures Bokeh uses dummy_r to render the legend swatch
                         item.renderers = [dummy_r] + list(item.renderers)
-    
+
         # 4. Bind glyph attributes to vector fields for scatter renderers
         for r in main_renderers:
             ds = r.data_source
             n_pts = len(next(iter(ds.data.values()))) if ds.data else 0
             if n_pts == 0:
                 continue
-    
+
             base_size = float(r.glyph.size) if isinstance(r.glyph.size, (int, float)) else 12.0
-    
+
             if "_alpha" not in ds.data:
                 ds.data["_alpha"] = np.ones(n_pts, dtype=float)
             if "_size" not in ds.data:
                 ds.data["_size"] = np.full(n_pts, base_size, dtype=float)
             if "_orig_size" not in ds.data:
                 ds.data["_orig_size"] = np.full(n_pts, base_size, dtype=float)
-    
+
             r.glyph.fill_alpha = "_alpha"
             r.glyph.line_alpha = "_alpha"
             r.glyph.size = "_size"
-    
+
         # 5. Construct Marker legend
         if self.marker_by != "None" and shape_map and main_renderers:
             legend_items = []
@@ -314,7 +272,7 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                     x="x", y="y", source=dummy_ds, marker=shape,
                     fill_color="#555555", line_color="#222222", size=10, fill_alpha=0.8
                 )
-    
+
                 js_code = """
                     const is_visible = cb_obj.visible;
                     const target_val = String(val);
@@ -341,7 +299,7 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                     CustomJS(args=dict(sources=main_sources, val=str(val), marker_by=self.marker_by), code=js_code)
                 )
                 legend_items.append(LegendItem(label=str(val), renderers=[dummy_r]))
-    
+
             marker_legend = Legend(
                 items=legend_items,
                 title=f"Marker: {self.marker_by}",
@@ -350,10 +308,9 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                 location="top",
                 click_policy="hide"
             )
-    
+
             bokeh_fig.add_layout(marker_legend, "right")
-        
-    
+
     @param.depends("x", "y", "color_by", "marker_by", "group_by", "aggregation")
     def make_plot(self):
         temp_df = self._prepare_data()
@@ -364,7 +321,6 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
 
         if self.color_by != "None" and self.color_by in temp_df.columns:
             if pd.api.types.is_numeric_dtype(temp_df[self.color_by]):
-                # Pass colorbar_position inside hvplot kwargs for numeric colorbars
                 plot_kwargs.update(
                     c=self.color_by,
                     cmap="viridis",
@@ -390,7 +346,6 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
 
         hook = lambda plot, element: self._add_marker_legend_hook(plot, element, shape_map)
 
-        # Only pass options valid for NdOverlay containers here
         plot = temp_df.hvplot.scatter(**plot_kwargs).opts(
             hooks=[hook],
             legend_position="right",
@@ -425,9 +380,8 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
 
     def create_app(self) -> pn.viewable.Viewable:
         """Assembles user interface declarative components with compact widgets."""
-        CONTROL_WIDTH = 150  # Target width for all dropdowns and inputs
+        CONTROL_WIDTH = 150
 
-        # Custom widget overrides for Param
         controls_widgets = {
             p: {"width": CONTROL_WIDTH}
             for p in ["x", "y", "color_by", "marker_by", "group_by", "aggregation"]
@@ -439,7 +393,6 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
             "create_category": {"width": CONTROL_WIDTH, "button_type": "primary"},
         }
 
-        # Auto-generated parameter controls with custom width
         controls_ui = pn.Param(
             self.param,
             parameters=["x", "y", "color_by", "marker_by", "group_by", "aggregation"],
@@ -465,7 +418,6 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
             width=CONTROL_WIDTH + 30,
         )
 
-        # Bind HoloViews tap coordinates to detail pane renderer
         details_pane = pn.bind(
             self._render_details,
             x=self.tap_stream.param.x,

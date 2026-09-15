@@ -159,7 +159,7 @@ def sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
 # IMPLEMENTATION 1: CUSTOM INTERACTIVE EXPLORER
 # =============================================================================
 class HvPlotExplorer(BasePanelServer):
-    """Custom Panel server with click-to-toggle Color and Marker legends."""
+    """Custom Panel server with click-to-toggle Color/Marker legends and GroupBy aggregation."""
 
     MARKER_PALETTE = [
         "circle",
@@ -188,6 +188,7 @@ class HvPlotExplorer(BasePanelServer):
         y_widget: pn.widgets.Select,
         by_widget: pn.widgets.Select,
         marker_by_widget: pn.widgets.Select,
+        groupby_widget: pn.widgets.Select,
     ):
         target_col = cat_col_widget.value
         n_bins = bins_widget.value
@@ -220,6 +221,7 @@ class HvPlotExplorer(BasePanelServer):
             x_widget.options = all_cols
             y_widget.options = all_cols
             by_widget.options = ["None"] + all_cols
+            groupby_widget.options = ["None"] + all_cols
             marker_by_widget.options = ["None"] + cat_cols
             cat_col_widget.options = ["None"] + num_cols
 
@@ -253,13 +255,11 @@ class HvPlotExplorer(BasePanelServer):
             if n_pts == 0 or getattr(ds, "_alpha_initialized", False):
                 continue
 
-            if isinstance(r.glyph.size, (int, float)):
-                base_size = float(r.glyph.size)
-            elif hasattr(r.glyph.size, "value"):
-                base_size = float(r.glyph.size.value)
-            else:
-                base_size = 10.0
-
+            base_size = (
+                float(r.glyph.size)
+                if isinstance(r.glyph.size, (int, float))
+                else 10.0
+            )
             ds.data["_alpha"] = np.ones(n_pts, dtype=float)
             ds.data["_orig_size"] = np.full(n_pts, base_size, dtype=float)
             ds.data["_size"] = np.full(n_pts, base_size, dtype=float)
@@ -308,23 +308,11 @@ class HvPlotExplorer(BasePanelServer):
                 )
 
                 mk = getattr(main_r.glyph, "marker", "circle")
-                if hasattr(mk, "value"):
-                    marker_shape = mk.value
-                elif isinstance(mk, str) and mk != "_marker_shape":
-                    marker_shape = mk
-                else:
-                    marker_shape = "circle"
-                    if (
-                        hasattr(main_r, "data_source")
-                        and main_r.data_source is not None
-                    ):
-                        m_arr = main_r.data_source.data.get(
-                            "_marker_shape", []
-                        )
-                        for m_val in m_arr:
-                            if m_val and isinstance(m_val, str):
-                                marker_shape = m_val
-                                break
+                marker_shape = (
+                    mk.value
+                    if hasattr(mk, "value")
+                    else (mk if isinstance(mk, str) else "circle")
+                )
 
                 dummy_ds = ColumnDataSource(data=dict(x=[np.nan], y=[np.nan]))
                 dummy_r = bokeh_fig.scatter(
@@ -413,8 +401,50 @@ class HvPlotExplorer(BasePanelServer):
                 item.location = "top_left"
 
     @classmethod
-    def _create_plot(cls, df_box, palette, x, y, by, marker_by, tap_stream):
+    def _create_plot(
+        cls,
+        df_box,
+        palette,
+        x,
+        y,
+        by,
+        marker_by,
+        groupby_col,
+        agg_func,
+        tap_stream,
+    ):
         temp_df = df_box[0].copy()
+
+        # Handle GroupBy Aggregation
+        if groupby_col != "None":
+            group_keys = [groupby_col]
+            # Retain non-numeric X or Color dimensions as grouping keys if present
+            if (
+                x != groupby_col
+                and x in temp_df.columns
+                and not pd.api.types.is_numeric_dtype(temp_df[x])
+            ):
+                group_keys.append(x)
+            if (
+                by != "None"
+                and by != groupby_col
+                and by not in group_keys
+                and not pd.api.types.is_numeric_dtype(temp_df[by])
+            ):
+                group_keys.append(by)
+
+            try:
+                if agg_func == "count":
+                    temp_df = temp_df.groupby(
+                        group_keys, as_index=False
+                    ).size()
+                    temp_df = temp_df.rename(columns={"size": y})
+                else:
+                    temp_df = temp_df.groupby(group_keys, as_index=False).agg(
+                        agg_func, numeric_only=True
+                    )
+            except Exception as e:
+                print(f"Aggregation error: {e}")
 
         plot_kwargs = dict(
             x=x,
@@ -425,13 +455,13 @@ class HvPlotExplorer(BasePanelServer):
             tools=["tap", "box_select"],
         )
 
-        if by != "None":
+        if by != "None" and by in temp_df.columns:
             if pd.api.types.is_numeric_dtype(temp_df[by]):
                 plot_kwargs.update(c=by, cmap="viridis", colorbar=True)
             else:
                 plot_kwargs.update(by=by, legend="right")
 
-        if marker_by != "None":
+        if marker_by != "None" and marker_by in temp_df.columns:
             unique_vals = [v for v in temp_df[marker_by].dropna().unique()]
             shape_map = {
                 val: palette[i % len(palette)]
@@ -484,7 +514,7 @@ class HvPlotExplorer(BasePanelServer):
         df_clean = df_box[0]
         if x is None or y is None:
             return pn.pane.Markdown(
-                "### Details Panel\n*Click any point on the plot above to display row details here.*"
+                "### Details Panel\n*Click any point on the plot above to display details here.*"
             )
 
         selected_rows = cls._find_closest_record(df_clean, x_col, y_col, x, y)
@@ -494,7 +524,7 @@ class HvPlotExplorer(BasePanelServer):
         records = selected_rows.to_dict(orient="records")
         return pn.Column(
             pn.pane.Markdown(
-                f"### Selected Record Details (Row Index {selected_rows.index[0]})"
+                f"### Selected Record Details (Index {selected_rows.index[0]})"
             ),
             pn.pane.JSON(records[0], depth=3, theme="light"),
         )
@@ -513,6 +543,7 @@ class HvPlotExplorer(BasePanelServer):
             ).columns
         )
 
+        # Controls
         x_widget = pn.widgets.Select(
             name="X Axis",
             options=all_cols,
@@ -538,6 +569,21 @@ class HvPlotExplorer(BasePanelServer):
             width=WIDGET_WIDTH,
         )
 
+        # GroupBy & Aggregation Widgets
+        groupby_widget = pn.widgets.Select(
+            name="Group By",
+            options=["None"] + all_cols,
+            value="None",
+            width=WIDGET_WIDTH,
+        )
+        agg_widget = pn.widgets.Select(
+            name="Aggregation",
+            options=["mean", "sum", "count", "min", "max", "std"],
+            value="mean",
+            width=WIDGET_WIDTH,
+        )
+
+        # Binning Widgets
         cat_col_widget = pn.widgets.Select(
             name="Categorize Numeric",
             options=["None"] + num_cols,
@@ -569,6 +615,7 @@ class HvPlotExplorer(BasePanelServer):
                 y_widget=y_widget,
                 by_widget=by_widget,
                 marker_by_widget=marker_by_widget,
+                groupby_widget=groupby_widget,
             )
         )
 
@@ -582,6 +629,8 @@ class HvPlotExplorer(BasePanelServer):
             y=y_widget,
             by=by_widget,
             marker_by=marker_by_widget,
+            groupby_col=groupby_widget,
+            agg_func=agg_widget,
             tap_stream=tap_stream,
         )
 
@@ -594,21 +643,34 @@ class HvPlotExplorer(BasePanelServer):
             y=tap_stream.param.y,
         )
 
+        # Tabbed Sidebar Layout
+        controls_tab = pn.Column(
+            x_widget,
+            y_widget,
+            by_widget,
+            marker_by_widget,
+            pn.layout.Divider(),
+            groupby_widget,
+            agg_widget,
+            margin=(10, 5),
+        )
+
+        binning_tab = pn.Column(
+            cat_col_widget,
+            bins_widget,
+            add_cat_btn,
+            status_pane,
+            margin=(10, 5),
+        )
+
+        sidebar_tabs = pn.Tabs(
+            ("Controls", controls_tab),
+            ("Bin Numeric", binning_tab),
+            width=210,
+        )
+
         top_row = pn.Row(
-            pn.Column(
-                "### Controls",
-                x_widget,
-                y_widget,
-                by_widget,
-                marker_by_widget,
-                pn.layout.Divider(),
-                "### Bin Numeric",
-                cat_col_widget,
-                bins_widget,
-                add_cat_btn,
-                status_pane,
-                width=200,
-            ),
+            sidebar_tabs,
             pn.Column(plot_pane, sizing_mode="stretch_width"),
             sizing_mode="stretch_width",
         )
@@ -620,7 +682,6 @@ class HvPlotExplorer(BasePanelServer):
         )
 
         return pn.Column(top_row, bottom_row, sizing_mode="stretch_width")
-
 
 # =============================================================================
 # IMPLEMENTATION 2: NATIVE HVPLOT EXPLORER
@@ -642,19 +703,4 @@ class HvPlotExplorer2(BasePanelServer):
 # USAGE EXAMPLE & DEL PROOF
 # =============================================================================
 if __name__ == "__main__":
-    df = pd.DataFrame(
-        {
-            "x": [1, 2, 3, 4, 5, 6, 7, 8],
-            "y": [10, 15, 13, 17, 20, 25, 22, 28],
-            "score": [88.5, 92.1, 75.4, 61.0, 99.2, 83.7, 54.2, 79.0],
-            "category": ["Alpha", "Beta", "Alpha", "Beta", "Alpha", "Beta", "Alpha", "Beta"],
-            "region": ["East", "East", "West", "West", "East", "West", "East", "West"],
-        }
-    )
-
-    app = HvPlotExplorer(df, port=5006)
-    app.start(show=False)
-
-    time.sleep(1)
-    print("Deleting app object...")
-    del app  # Sockets and loop immediately shut down via finalizer
+    pass

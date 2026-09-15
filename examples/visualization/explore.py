@@ -4,6 +4,7 @@
 import dmanage.viz as viz
 from dmanage._compat import pd
 import numpy as np
+import time
 
 np.random.seed(101)
 n = 600
@@ -63,8 +64,14 @@ df = pd.DataFrame(
         }
     )
 
-explorer = viz.HvPlotExplorer(df,port=5007)
-explorer.start(True)
+
+# explorer = viz.HvPlotExplorer(df,port=5007)
+# explorer.start(True)
+
+with viz.HvPlotExplorer(df, port=5006) as exp:
+    while True:
+        time.sleep(2)  # Keep running while inspecting in the browser
+
 
 # explorer2 = viz.HvPlotExplorer2(df)
 # explorer2.start(True)

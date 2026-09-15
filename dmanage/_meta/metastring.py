@@ -3,6 +3,7 @@ import natsort
 import numpy as np
 import re
 import decimal
+from datetime import datetime
 from pathlib import Path
 
 from dmanage import _compat
@@ -91,8 +92,7 @@ def compose(dataStruct, equiv='-', sep='_', order=False, format=None, numDecimal
 # ??? this also can only handle number values, need to include strings.
 # ??? should return DF
 
-
-def parse(files, checkVars=None, equiv='-', sep=['/','_'], asstring=False, nc=1):
+def parse(files, checkVars=None, equiv='-', sep=['/','_'], fmt=None, nc=1):
     """ Description
     this parses through the filename to get variable values
 
@@ -116,58 +116,105 @@ def parse(files, checkVars=None, equiv='-', sep=['/','_'], asstring=False, nc=1)
         output2 = parseFilename(file=filenames, checkVars=['L-','T-','exp-'])
         output2 = np.array([[10,100,1],[500,400,25]])
     """
-    
     if not is_iterable(files) or isinstance(files, str): 
         files = [files]
         
     parse_filename_ = parallelize_iterator_method(_parse)
-    results = parse_filename_(files, checkVars, equiv=equiv, sep=sep, asstring=asstring, nc=nc)
+    results = parse_filename_(files, checkVars, equiv=equiv, sep=sep, fmt=fmt, nc=nc)
 
-    # Dynamically check _compat.HAS_PANDAS so patch() can override it during tests
     if getattr(_compat, "HAS_PANDAS", False):
         return pd.DataFrame(results)
     return results
 
 
-def _parse(file, checkVars=None, equiv='-', sep=['/','_'], asstring=False):
+def _parse(file, checkVars=None, equiv='-', sep=['/', '_'], fmt=None):
     file = Path(file)
     if not isinstance(sep, (list, tuple)):
         sep = [sep]
-    
-    # Normalize checkVars identifiers (e.g., handles both ['L-'] and ['L'])
+
     if checkVars is not None:
-        if not is_iterable(checkVars) or isinstance(checkVars, str):
+        if isinstance(checkVars, str) or not hasattr(checkVars, '__iter__'):
             checkVars = [checkVars]
         checkVars = [str(v).rstrip(equiv) for v in checkVars]
-    
+
+    # Normalize list-like `fmt` (lists, tuples, arrays)
+    fmt_map = None
+    is_fmt_sequence = (
+        hasattr(fmt, '__iter__') 
+        and not isinstance(fmt, (str, bytes, dict, type))
+    )
+
+    if is_fmt_sequence:
+        fmt_list = list(fmt)
+        if checkVars is not None:
+            # Pair checkVars order directly to fmt rules
+            fmt_map = {var: fmt_list[i] for i, var in enumerate(checkVars) if i < len(fmt_list)}
+
     row = {}
     file_name = str(file) if file.is_dir() else str(file.parent / file.stem)
-    
     regex_pattern = '|'.join(map(re.escape, sep))
     parts = re.split(regex_pattern, file_name)
     
-    matchNumber = re.compile(r'-?\ *[0-9]+\.?[0-9]*(?:[Ee]\ *-?\ *[0-9]+)?')
+    discovery_idx = 0
     for part in parts:
-        # Check against the passed `equiv` character instead of hardcoded '-'
         if equiv in part:
-            colVal = part.split(equiv, 1)
-            col = colVal[0]
-            valueStr = colVal[1]
-            
-            if (checkVars is None) or (col in checkVars):
-                # Safely handle string checks and empty strings
-                if asstring or not valueStr or valueStr[0].isalpha():
-                    value = []
+            col, value_str = part.split(equiv, 1)
+
+            if checkVars is None or col in checkVars:
+                # Rule selection priority: Dict -> Formatted Sequence -> Discovery Order -> Scalar Rule
+                if isinstance(fmt, dict):
+                    col_rule = fmt.get(col)
+                elif fmt_map is not None:
+                    col_rule = fmt_map.get(col)
+                elif is_fmt_sequence:
+                    col_rule = fmt_list[discovery_idx] if discovery_idx < len(fmt_list) else None
                 else:
-                    value = re.findall(matchNumber, valueStr)
-                
-                if len(value) == 0 or asstring:
-                    row[col] = valueStr
-                else:
-                    row[col] = float(value[0])
-                    
+                    col_rule = fmt
+
+                try:
+                    row[col] = format_value(value_str, col_rule)
+                except (ValueError, TypeError):
+                    row[col] = value_str
+
+                discovery_idx += 1
+
     return row
 
+
+def format_value(val_str, rule):
+    regex_number = re.compile(r'-?\ *[0-9]+\.?[0-9]*(?:[Ee]\ *-?\ *[0-9]+)?')
+
+    # Forced string
+    if rule in (str, 'str'):
+        return val_str
+
+    # Forced numeric types
+    if rule in (int, 'int'):
+        nums = regex_number.findall(val_str)
+        return int(float(nums[0])) if nums else int(val_str)
+    if rule in (float, 'float'):
+        nums = regex_number.findall(val_str)
+        return float(nums[0]) if nums else float(val_str)
+
+    # Forced datetime by strptime pattern or ISO
+    if isinstance(rule, str) and '%' in rule:
+        return datetime.strptime(val_str, rule)
+    if rule in (datetime, 'datetime', 'iso'):
+        return datetime.fromisoformat(val_str)
+
+    # Automatic / Default Mode (rule is None)
+    if len(val_str) >= 8 and '-' in val_str:
+        try:
+            return datetime.fromisoformat(val_str)
+        except ValueError:
+            pass
+
+    if val_str and not val_str[0].isalpha():
+        nums = regex_number.findall(val_str)
+        if nums and nums[0]:
+            return float(nums[0])
+
+    return val_str
 
 if __name__ == "__main__":
     # fileName = '/path/to/file/name_L-10mW_T--100C_exp-1ms_V--100.0e-3_ND-0_target-seeds/'

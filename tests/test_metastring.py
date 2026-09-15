@@ -34,7 +34,7 @@ def test_parse_with_checkvars_filter(sample_file):
 
 
 def test_parse_as_string(sample_file):
-    result = ms._parse(sample_file, checkVars=["L", "T"], asstring=True)
+    result = ms._parse(sample_file, checkVars=["L", "T"], fmt=str)
     assert result == {"L": "10mW", "T": "100C"}
 
 

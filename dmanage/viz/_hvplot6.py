@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import sys
 import time
 import json
 import numpy as np
@@ -10,6 +10,12 @@ import holoviews as hv
 import hvplot.pandas
 from bokeh.models import ColumnDataSource, CustomJS, Legend, LegendItem
 
+from panel.io.server import get_server
+from tornado.ioloop import IOLoop
+import weakref
+import threading
+import asyncio
+hv.extension('bokeh')
 
 __all__ = ["BasePanelServer", "HvPlotExplorer", "HvPlotExplorer2", "sanitize_df"]
 
@@ -49,59 +55,157 @@ def _to_numeric_coords(series: pd.Series, raw_val):
             target_idx = float(mapping.get(str(raw_val), 0))
         return s_str.map(mapping).astype(float), target_idx
 
+
+
+
 # =============================================================================
 # BASE PANEL SERVER CLASS
 # =============================================================================
+
+# Persistent registry attached to Python process state (survives module reloads)
+if not hasattr(sys, "_panel_server_registry"):
+    sys._panel_server_registry = {}
+
+
 class BasePanelServer:
-    """Base class managing background server lifecycle via pn.serve Context Manager."""
-
-    _ACTIVE_SERVERS = {}
-
-    def __init__(self, port: int = 5006):
+    def __init__(self, port=5006):
         self.port = port
-        self._server = None
+        self.thread = None
 
-    def __enter__(self):
-        self.start(show=True)
-        return self
+    @staticmethod
+    def _stop_container(container):
+        """Synchronously unbinds socket and kills thread."""
+        if not container:
+            return
+        server = container.get("server")
+        io_loop = container.get("io_loop")
+        thread = container.get("thread")
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
+        if io_loop:
 
-    @classmethod
-    def stop_port(cls, port: int):
-        if port in cls._ACTIVE_SERVERS:
-            server_instance = cls._ACTIVE_SERVERS.pop(port)
-            server_instance.stop()
+            def _cleanup():
+                if server:
+                    try:
+                        server.unlisten()  # Releases OS port immediately
+                        server.stop()
+                    except Exception:
+                        pass
+                io_loop.stop()
 
-    def create_app(self) -> pn.viewable.Viewable:
-        raise NotImplementedError("Subclasses must implement create_app().")
+            io_loop.add_callback(_cleanup)
 
-    def start(self, show: bool = True):
-        BasePanelServer.stop_port(self.port)
-        pn.extension()
+        if thread and thread.is_alive():
+            thread.join(timeout=2.0)
 
-        self._server = pn.serve(
-            self.create_app,
-            port=self.port,
-            show=show,
-            threaded=True,
-            websocket_origin="*",
-        )
-        BasePanelServer._ACTIVE_SERVERS[self.port] = self
-        print(f"Background explorer running on port {self.port}")
-        return self
+    def start(self):
+        if self.thread and self.thread.is_alive():
+            return
+
+        # 1. Reclaim port using process-wide sys registry
+        if self.port in sys._panel_server_registry:
+            old_container = sys._panel_server_registry.pop(self.port)
+            BasePanelServer._stop_container(old_container)
+
+        container = {}
+        ready_event = threading.Event()
+        self_ref = weakref.ref(self)
+
+        def app_factory():
+            instance = self_ref()
+            if instance is not None:
+                return instance.get_app()
+            return pn.pane.Markdown("App instance replaced.")
+
+        def _thread_target():
+            async_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(async_loop)
+            io_loop = IOLoop.current()
+
+            server = get_server(
+                app_factory,
+                port=self.port,
+                loop=io_loop,
+                start=False,
+                show=False,
+            )
+            server.start()
+
+            container["server"] = server
+            container["io_loop"] = io_loop
+            ready_event.set()
+
+            io_loop.start()
+
+        self.thread = threading.Thread(target=_thread_target, daemon=True)
+        container["thread"] = self.thread
+
+        # 2. Store server container in sys-level registry
+        sys._panel_server_registry[self.port] = container
+
+        self.thread.start()
+        ready_event.wait()
 
     def stop(self):
-        BasePanelServer._ACTIVE_SERVERS.pop(self.port, None)
-        if self._server is not None:
-            try:
-                self._server.stop()
-                print(f"Server on port {self.port} stopped cleanly.")
-            except Exception as e:
-                print(f"Error stopping server on port {self.port}: {e}")
-            finally:
-                self._server = None
+        """Explicit stop method."""
+        container = sys._panel_server_registry.pop(self.port, None)
+        BasePanelServer._stop_container(container)
+
+    def get_app(self):
+        raise NotImplementedError
+
+# # =============================================================================
+# # BASE PANEL SERVER CLASS
+# # =============================================================================
+# class BasePanelServer:
+#     """Base class managing background server lifecycle via pn.serve Context Manager."""
+
+#     _ACTIVE_SERVERS = {}
+
+#     def __init__(self, port: int = 5006):
+#         self.port = port
+#         self._server = None
+
+#     def __enter__(self):
+#         self.start(show=True)
+#         return self
+
+#     def __exit__(self, exc_type, exc_val, exc_tb):
+#         self.stop()
+
+#     @classmethod
+#     def stop_port(cls, port: int):
+#         if port in cls._ACTIVE_SERVERS:
+#             server_instance = cls._ACTIVE_SERVERS.pop(port)
+#             server_instance.stop()
+
+#     def create_app(self) -> pn.viewable.Viewable:
+#         raise NotImplementedError("Subclasses must implement create_app().")
+
+#     def start(self, show: bool = True):
+#         BasePanelServer.stop_port(self.port)
+#         pn.extension()
+
+#         self._server = pn.serve(
+#             self.create_app,
+#             port=self.port,
+#             show=show,
+#             threaded=True,
+#             websocket_origin="*",
+#         )
+#         BasePanelServer._ACTIVE_SERVERS[self.port] = self
+#         print(f"Background explorer running on port {self.port}")
+#         return self
+
+#     def stop(self):
+#         BasePanelServer._ACTIVE_SERVERS.pop(self.port, None)
+#         if self._server is not None:
+#             try:
+#                 self._server.stop()
+#                 print(f"Server on port {self.port} stopped cleanly.")
+#             except Exception as e:
+#                 print(f"Error stopping server on port {self.port}: {e}")
+#             finally:
+#                 self._server = None
 
 
 # =============================================================================
@@ -414,6 +518,10 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
             )
         except Exception as e:
             return pn.pane.Markdown(f"*Error matching selected point: {e}*")
+        
+    def get_app(self) -> pn.viewable.Viewable:
+        """Connects BasePanelServer's setup call to your Panel layout."""
+        return self.create_app()
 
     def create_app(self) -> pn.viewable.Viewable:
         CONTROL_WIDTH = 160

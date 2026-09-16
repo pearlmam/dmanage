@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
-
+import sys
 import time
 import json
+import asyncio
+import threading
+import weakref
 import numpy as np
 import pandas as pd
 import panel as pn
@@ -9,9 +12,18 @@ import param
 import holoviews as hv
 import hvplot.pandas
 from bokeh.models import ColumnDataSource, CustomJS, Legend, LegendItem
+from panel.io.server import get_server
+from tornado.ioloop import IOLoop
 
+hv.extension('bokeh')
 
-__all__ = ["BasePanelServer", "HvPlotExplorer", "HvPlotExplorer2", "sanitize_df"]
+__all__ = [
+    "PanelServer",
+    "launch_server",
+    "HvPlotExplorer",
+    "HvPlotExplorer2",
+    "sanitize_df",
+]
 
 
 # =============================================================================
@@ -49,65 +61,142 @@ def _to_numeric_coords(series: pd.Series, raw_val):
             target_idx = float(mapping.get(str(raw_val), 0))
         return s_str.map(mapping).astype(float), target_idx
 
-# =============================================================================
-# BASE PANEL SERVER CLASS
-# =============================================================================
-class BasePanelServer:
-    """Base class managing background server lifecycle via pn.serve Context Manager."""
 
-    _ACTIVE_SERVERS = {}
+# =============================================================================
+# BASE PANEL SERVER & LAUNCHER
+# =============================================================================
 
-    def __init__(self, port: int = 5006):
+# Persistent registry attached to Python process state (survives module reloads)
+if not hasattr(sys, "_panel_server_registry"):
+    sys._panel_server_registry = {}
+
+
+class PanelServer:
+    """Lightweight server wrapper with zero UI callback references."""
+
+    def __init__(self, app_factory, port=5006):
+        self.app_factory = app_factory
         self.port = port
-        self._server = None
+        self.thread = None
+        self._finalizer = None
+
+    @staticmethod
+    def _stop_container(container):
+        if not container or container.get("stopped"):
+            return
+        container["stopped"] = True
+
+        server = container.get("server")
+        io_loop = container.get("io_loop")
+        port = container.get("port")
+
+        if io_loop:
+            def _in_thread_shutdown():
+                if server:
+                    try:
+                        server.unlisten()  # Unbinds OS socket immediately
+                        server.stop()
+                    except Exception:
+                        pass
+                io_loop.stop()
+
+            try:
+                io_loop.add_callback(_in_thread_shutdown)
+            except Exception:
+                pass
+
+        if port and sys._panel_server_registry.get(port) is container:
+            sys._panel_server_registry.pop(port, None)
+
+        if port:
+            print(f"Server on port {port} stopped cleanly.")
+
+    @staticmethod
+    def _thread_target(app_factory, port, container, ready_event):
+        async_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(async_loop)
+        io_loop = IOLoop.current()
+
+        server = get_server(
+            app_factory,
+            port=port,
+            loop=io_loop,
+            start=False,
+            show=False,
+        )
+        server.start()
+
+        container["server"] = server
+        container["io_loop"] = io_loop
+        ready_event.set()
+
+        io_loop.start()
+
+    def start(self):
+        if self.thread and self.thread.is_alive():
+            return
+
+        # Reclaim port if a previous server container exists
+        if self.port in sys._panel_server_registry:
+            old_container = sys._panel_server_registry.get(self.port)
+            PanelServer._stop_container(old_container)
+
+        container = {"port": self.port}
+        ready_event = threading.Event()
+
+        # Finalizer is bound ONLY to this wrapper instance
+        self._finalizer = weakref.finalize(
+            self, PanelServer._stop_container, container
+        )
+
+        self.thread = threading.Thread(
+            target=PanelServer._thread_target,
+            args=(self.app_factory, self.port, container, ready_event),
+            daemon=True,
+        )
+        container["thread"] = self.thread
+
+        sys._panel_server_registry[self.port] = container
+
+        self.thread.start()
+        ready_event.wait()
+        print(f"Background explorer running at http://localhost:{self.port}")
+
+    def stop(self):
+        if self._finalizer and self._finalizer.alive:
+            self._finalizer()
+        else:
+            container = sys._panel_server_registry.get(self.port)
+            PanelServer._stop_container(container)
 
     def __enter__(self):
-        self.start(show=True)
+        self.start()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop()
 
-    @classmethod
-    def stop_port(cls, port: int):
-        if port in cls._ACTIVE_SERVERS:
-            server_instance = cls._ACTIVE_SERVERS.pop(port)
-            server_instance.stop()
 
-    def create_app(self) -> pn.viewable.Viewable:
-        raise NotImplementedError("Subclasses must implement create_app().")
+def launch_server(app_or_factory, port: int = 5006) -> PanelServer:
+    """Helper function to construct, start, and return a non-blocking PanelServer."""
+    if hasattr(app_or_factory, "create_app"):
+        factory = app_or_factory.create_app
+    elif hasattr(app_or_factory, "get_app"):
+        factory = app_or_factory.get_app
+    elif callable(app_or_factory):
+        factory = app_or_factory
+    else:
+        factory = lambda: app_or_factory
 
-    def start(self, show: bool = True):
-        BasePanelServer.stop_port(self.port)
-        pn.extension()
-
-        self._server = pn.serve(
-            self.create_app,
-            port=self.port,
-            show=show,
-            threaded=True,
-            websocket_origin="*",
-        )
-        BasePanelServer._ACTIVE_SERVERS[self.port] = self
-        print(f"Background explorer running on port {self.port}")
-        return self
-
-    def stop(self):
-        BasePanelServer._ACTIVE_SERVERS.pop(self.port, None)
-        if self._server is not None:
-            try:
-                self._server.stop()
-                print(f"Server on port {self.port} stopped cleanly.")
-            except Exception as e:
-                print(f"Error stopping server on port {self.port}: {e}")
-            finally:
-                self._server = None
+    server = PanelServer(factory, port=port)
+    server.start()
+    return server
 
 
 # =============================================================================
 # PARAMETERIZED EXPLORER WITH IMMUTABLE MARKERS
 # =============================================================================
-class HvPlotExplorer(BasePanelServer, param.Parameterized):
+class HvPlotExplorer(param.Parameterized):
     """Declarative Interactive Explorer supporting multi-column Color and Marker grouping."""
 
     x = param.Selector(doc="X Axis Column")
@@ -133,10 +222,8 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
         "cross", "hex", "asterisk", "inverted_triangle", "plus"
     ]
 
-    def __init__(self, df: pd.DataFrame, port: int = 5006, **params):
-        BasePanelServer.__init__(self, port=port)
-        param.Parameterized.__init__(self, **params)
-
+    def __init__(self, df: pd.DataFrame, **params):
+        super().__init__(**params)
         self.df = sanitize_df(df)
         self.tap_stream = hv.streams.Tap()
         self._update_column_options()
@@ -214,34 +301,28 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
     def _add_marker_legend_hook(self, plot, element, shape_map, marker_cols):
         bokeh_fig = plot.handles["plot"]
 
-        # 1. Neutralize all Bokeh selection tools so clicks never trigger visual selection state changes
+        # Neutralize selection tools
         for t in bokeh_fig.tools:
             if hasattr(t, "renderers"):
                 t.renderers = []
 
-        # 2. Clean up old custom marker legends across all layout containers
+        # Remove old marker legends
         valid_containers = [
-            bokeh_fig.above,
-            bokeh_fig.below,
-            bokeh_fig.left,
-            bokeh_fig.right,
-            bokeh_fig.center,
+            bokeh_fig.above, bokeh_fig.below, bokeh_fig.left, bokeh_fig.right, bokeh_fig.center
         ]
         for container in valid_containers:
             for layout_item in list(container):
                 if isinstance(layout_item, Legend) and getattr(layout_item, "name", None) == "marker_legend":
                     container.remove(layout_item)
 
-        # 3. Force scatter renderers to lock their selection/nonselection glyphs to the base glyph
-        main_sources = []
-        main_renderers = []
+        # Lock scatter glyphs
+        main_sources, main_renderers = [], []
         for r in bokeh_fig.renderers:
             if hasattr(r, "glyph") and hasattr(r.glyph, "marker") and hasattr(r, "data_source"):
                 main_renderers.append(r)
                 if r.data_source not in main_sources:
                     main_sources.append(r.data_source)
 
-                # Direct assignment prevents Bokeh JS from substituting default Circle glyphs on click
                 r.selection_glyph = r.glyph
                 r.nonselection_glyph = r.glyph
                 r.hover_glyph = None
@@ -256,7 +337,7 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                     r.glyph.fill_alpha = {"field": "_alpha"}
                     r.glyph.line_alpha = {"field": "_alpha"}
 
-        # 4. Construct Custom Marker Legend if marker columns are active
+        # Construct Custom Marker Legend
         if marker_cols and shape_map and main_renderers:
             legend_items = []
             for val, shape in shape_map.items():
@@ -295,7 +376,6 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                 item = LegendItem(label=str(val), renderers=[dummy_r])
                 item.js_on_change("visible", custom_js)
                 dummy_r.js_on_change("visible", custom_js)
-
                 legend_items.append(item)
 
             title_str = ", ".join(marker_cols)
@@ -310,7 +390,7 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
             )
             bokeh_fig.add_layout(marker_legend, "right")
 
-        # 5. Consolidate ALL legends into bokeh_fig.right and pin them to top_left
+        # Consolidate ALL legends into right side
         all_legends = []
         for container in [bokeh_fig.above, bokeh_fig.below, bokeh_fig.left, bokeh_fig.center, bokeh_fig.right]:
             for item in list(container):
@@ -339,7 +419,6 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
         color_cols = [c for c in (self.color_by or []) if c in temp_df.columns]
         marker_cols = [c for c in (self.marker_by or []) if c in temp_df.columns]
 
-        # ColorBy setup
         if color_cols:
             if len(color_cols) == 1 and pd.api.types.is_numeric_dtype(temp_df[color_cols[0]]):
                 plot_kwargs.update(c=color_cols[0], cmap="viridis", colorbar=True)
@@ -351,9 +430,8 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                 ).agg(" | ".join, axis=1)
                 plot_kwargs.update(by="color_composite")
 
-        # MarkerBy setup
-        hover_cols = []
         shape_map = {}
+        hover_cols = []
         if marker_cols:
             if len(marker_cols) == 1:
                 temp_df["marker_composite"] = temp_df[marker_cols[0]].astype(str)
@@ -477,13 +555,12 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
 
 
 # =============================================================================
-# IMPLEMENTATION 2: NATIVE HVPLOT EXPLORER
+# NATIVE HVPLOT EXPLORER WRAPPER
 # =============================================================================
-class HvPlotExplorer2(BasePanelServer):
-    """Wrapper managing native `df.hvplot.explorer()` inside an isolated Panel server."""
+class HvPlotExplorer2:
+    """Wrapper managing native `df.hvplot.explorer()` layout."""
 
-    def __init__(self, df: pd.DataFrame, port: int = 5006, **explorer_kwargs):
-        super().__init__(port=port)
+    def __init__(self, df: pd.DataFrame, **explorer_kwargs):
         self.df = df
         self.explorer_kwargs = explorer_kwargs
 
@@ -493,7 +570,7 @@ class HvPlotExplorer2(BasePanelServer):
 
 
 # =============================================================================
-# USAGE EXAMPLE
+# USAGE PATTERNS
 # =============================================================================
 if __name__ == "__main__":
     df = pd.DataFrame({
@@ -506,6 +583,10 @@ if __name__ == "__main__":
         "shape2": np.random.choice(["High", "Low"], size=100),
     })
 
-    with HvPlotExplorer(df, port=5006) as exp:
-        while True:
-            time.sleep(2)
+    # Option 1: Standard top-level non-blocking launcher (for interactive terminal scripts)
+    explorer = HvPlotExplorer(df)
+    server = launch_server(explorer, port=5006)
+
+    # Option 2: Context manager usage
+    # with launch_server(explorer, port=5006):
+    #     time.sleep(10)

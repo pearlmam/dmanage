@@ -11,9 +11,10 @@ import panel as pn
 import param
 import holoviews as hv
 import hvplot.pandas
-from bokeh.models import ColumnDataSource, CustomJS, Legend, LegendItem
+from bokeh.models import ColumnDataSource, CustomJS, Legend, LegendItem,Slider
 from panel.io.server import get_server
 from tornado.ioloop import IOLoop
+import webbrowser
 
 hv.extension('bokeh')
 
@@ -132,7 +133,7 @@ class PanelServer:
 
         io_loop.start()
 
-    def start(self):
+    def start(self,show=True):
         if self.thread and self.thread.is_alive():
             return
 
@@ -157,10 +158,12 @@ class PanelServer:
         container["thread"] = self.thread
 
         sys._panel_server_registry[self.port] = container
-
+        
+        url = f"http://localhost:{self.port}"
         self.thread.start()
         ready_event.wait()
-        print(f"Background explorer running at http://localhost:{self.port}")
+        print(f"Background explorer running at {url}")
+        webbrowser.open(url)
 
     def stop(self):
         if self._finalizer and self._finalizer.alive:
@@ -196,6 +199,8 @@ def launch_server(app_or_factory, port: int = 5006) -> PanelServer:
 # =============================================================================
 # PARAMETERIZED EXPLORER WITH IMMUTABLE MARKERS
 # =============================================================================
+
+
 class HvPlotExplorer(param.Parameterized):
     """Declarative Interactive Explorer supporting multi-column Color and Marker grouping."""
 
@@ -226,6 +231,22 @@ class HvPlotExplorer(param.Parameterized):
         super().__init__(**params)
         self.df = sanitize_df(df)
         self.tap_stream = hv.streams.Tap()
+        self._main_sources = []
+
+        # 1. Initialize Options Widgets persistent instances
+        self.opacity_slider = Slider(
+            start=0.0, end=1.0, value=0.15, step=0.05,
+            title="Deselected Opacity", width=160,
+            name="deselected_opacity_slider"
+        )
+
+        # 2. Assemble Plot Options Layout once
+        self._options_layout = pn.Column(
+            pn.pane.Markdown("### Plot Options"),
+            pn.pane.Bokeh(self.opacity_slider),
+            width=180,
+        )
+
         self._update_column_options()
 
         all_cols = self.param.x.objects
@@ -301,24 +322,58 @@ class HvPlotExplorer(param.Parameterized):
     def _add_marker_legend_hook(self, plot, element, shape_map, marker_cols):
         bokeh_fig = plot.handles["plot"]
 
-        # Neutralize selection tools
+        # Shared JavaScript helper string to calculate alpha and emit changes
+        JS_UPDATE_ALPHA = """
+        function updateSourceAlpha(src, inactiveAlpha) {
+            const d = src.data;
+            if (!d || !d['_alpha']) return;
+            const ca = d['_color_active'], ma = d['_marker_active'];
+            const calpha = d['_color_alpha'], malpha = d['_marker_alpha'], alpha = d['_alpha'];
+            for (let i = 0; i < alpha.length; i++) {
+                calpha[i] = ca[i] ? 1.0 : inactiveAlpha;
+                malpha[i] = ma[i] ? 1.0 : inactiveAlpha;
+                alpha[i] = Math.min(calpha[i], malpha[i]);
+            }
+            src.data = Object.assign({}, src.data);
+            src.change.emit();
+        }
+        """
+
+        # 1. Deduplicate & configure tools
+        seen_tools = set()
+        unique_tools = []
+        wheel_zoom, hover_tool = None, None
+
         for t in bokeh_fig.tools:
-            if hasattr(t, "renderers"):
-                t.renderers = []
+            ttype = type(t).__name__
+            if ttype == "WheelZoomTool":
+                wheel_zoom = t
+            elif ttype == "HoverTool":
+                hover_tool = t
 
-        # Remove old marker legends
-        valid_containers = [
-            bokeh_fig.above, bokeh_fig.below, bokeh_fig.left, bokeh_fig.right, bokeh_fig.center
-        ]
-        for container in valid_containers:
-            for layout_item in list(container):
-                if isinstance(layout_item, Legend) and getattr(layout_item, "name", None) == "marker_legend":
-                    container.remove(layout_item)
+            if ttype in {"ResetTool", "PanTool", "WheelZoomTool", "BoxZoomTool", "SaveTool", "HoverTool"}:
+                if ttype in seen_tools:
+                    continue
+                seen_tools.add(ttype)
 
-        # Lock scatter glyphs
+            if ttype in {"TapTool", "BoxSelectTool", "LassoSelectTool", "PolySelectTool"}:
+                if hasattr(t, "renderers"):
+                    t.renderers = []
+
+            unique_tools.append(t)
+
+        bokeh_fig.tools = unique_tools
+        if wheel_zoom:
+            bokeh_fig.toolbar.active_scroll = wheel_zoom
+
+        # 2. Collect renderers & initialize CDS arrays
         main_sources, main_renderers = [], []
+        self._main_sources = main_sources
+
         for r in bokeh_fig.renderers:
             if hasattr(r, "glyph") and hasattr(r.glyph, "marker") and hasattr(r, "data_source"):
+                if getattr(r, "name", None) == "dummy_legend_renderer":
+                    continue
                 main_renderers.append(r)
                 if r.data_source not in main_sources:
                     main_sources.append(r.data_source)
@@ -329,79 +384,149 @@ class HvPlotExplorer(param.Parameterized):
 
                 ds = r.data_source
                 if ds and ds.data:
-                    first_col = next(iter(ds.data.values()), [])
-                    n_pts = len(first_col)
-                    if n_pts > 0 and ("_alpha" not in ds.data or len(ds.data["_alpha"]) != n_pts):
-                        ds.data["_alpha"] = np.ones(n_pts, dtype=float)
+                    n_pts = len(next(iter(ds.data.values()), []))
+                    if n_pts > 0:
+                        for col, default_val in [
+                            ("_color_active", 1), ("_marker_active", 1),
+                            ("_color_alpha", 1.0), ("_marker_alpha", 1.0), ("_alpha", 1.0)
+                        ]:
+                            if col not in ds.data or len(ds.data[col]) != n_pts:
+                                ds.data[col] = np.full(n_pts, default_val)
 
                     r.glyph.fill_alpha = {"field": "_alpha"}
                     r.glyph.line_alpha = {"field": "_alpha"}
 
-        # Construct Custom Marker Legend
+        # Filter out internal/composite columns from HoverTool tooltips UI
+        if hover_tool and main_renderers:
+            hover_tool.renderers = main_renderers
+            if isinstance(hover_tool.tooltips, list):
+                exclude_fields = {
+                    "marker_composite", "_marker_shape", "color_composite",
+                    "_color_active", "_marker_active", "_color_alpha",
+                    "_marker_alpha", "_alpha"
+                }
+                hover_tool.tooltips = [
+                    item for item in hover_tool.tooltips
+                    if item[0] not in exclude_fields and not str(item[0]).startswith("_")
+                ]
+
+        # 3. Bind Opacity Slider JS Callback
+        self.opacity_slider.js_property_callbacks.clear()
+        self.opacity_slider.js_on_change("value", CustomJS(
+            args=dict(sources=main_sources, slider=self.opacity_slider),
+            code=JS_UPDATE_ALPHA + """
+                for (let src of sources) {
+                    updateSourceAlpha(src, slider.value);
+                }
+            """
+        ))
+
+        containers = [bokeh_fig.above, bokeh_fig.below, bokeh_fig.left, bokeh_fig.right, bokeh_fig.center]
+
+        # 4. Remove existing custom marker legend
+        for c in containers:
+            for item in list(c):
+                if isinstance(item, Legend) and getattr(item, "name", None) == "marker_legend":
+                    c.remove(item)
+
+        # 5. Decouple Color Legend items
+        for c in containers:
+            for legend in list(c):
+                if isinstance(legend, Legend) and getattr(legend, "name", None) != "marker_legend":
+                    legend.click_policy = "hide"
+                    for item in legend.items:
+                        reals = [r for r in item.renderers if r in main_renderers]
+                        if not reals:
+                            continue
+
+                        target_r = reals[0]
+                        target_src = target_r.data_source
+
+                        fill_c = getattr(target_r.glyph, "fill_color", "#555555")
+                        line_c = getattr(target_r.glyph, "line_color", "#222222")
+                        m_shape = getattr(target_r.glyph, "marker", "circle")
+
+                        fill_c = fill_c if isinstance(fill_c, (str, tuple, list)) else "#555555"
+                        line_c = line_c if isinstance(line_c, (str, tuple, list)) else "#222222"
+                        m_shape = m_shape if isinstance(m_shape, str) else "circle"
+
+                        dummy_ds = ColumnDataSource(data=dict(x=[np.nan], y=[np.nan]))
+                        dummy_r = bokeh_fig.scatter(
+                            x="x", y="y", source=dummy_ds, marker=m_shape,
+                            fill_color=fill_c, line_color=line_c, size=10,
+                            name="dummy_legend_renderer"
+                        )
+                        dummy_r.visible = True
+                        item.renderers = [dummy_r]
+
+                        cb = CustomJS(
+                            args=dict(target_src=target_src, slider=self.opacity_slider),
+                            code=JS_UPDATE_ALPHA + """
+                                const is_vis = cb_obj.visible;
+                                const data = target_src.data;
+                                if (!data || !data['_color_active']) return;
+                                for (let i = 0; i < data['_color_active'].length; i++) {
+                                    data['_color_active'][i] = is_vis ? 1 : 0;
+                                }
+                                updateSourceAlpha(target_src, slider.value);
+                            """
+                        )
+                        dummy_r.js_on_change("visible", cb)
+
+        # 6. Construct Custom Marker Legend
         if marker_cols and shape_map and main_renderers:
             legend_items = []
             for val, shape in shape_map.items():
                 dummy_ds = ColumnDataSource(data=dict(x=[np.nan], y=[np.nan]))
                 dummy_r = bokeh_fig.scatter(
                     x="x", y="y", source=dummy_ds, marker=shape,
-                    fill_color="#555555", line_color="#222222", size=10, fill_alpha=0.8
+                    fill_color="#555555", line_color="#222222", size=10,
+                    name="dummy_legend_renderer"
                 )
 
-                js_code = """
-                    const is_visible = cb_obj.visible;
-                    const target_val = String(val);
+                cb = CustomJS(
+                    args=dict(sources=main_sources, val=str(val), slider=self.opacity_slider),
+                    code=JS_UPDATE_ALPHA + """
+                        const is_vis = cb_obj.visible;
+                        const target = String(val);
+                        for (let src of sources) {
+                            const d = src.data;
+                            const markers = d['marker_composite'] || d['_marker_composite'];
+                            if (!markers || !d['_marker_active']) continue;
 
-                    for (let src of sources) {
-                        const data = src.data;
-                        const markers = data['marker_composite'] || data['_marker_composite'];
-                        if (!markers) continue;
-
-                        const alpha = data['_alpha'];
-                        if (!alpha) continue;
-
-                        let modified = false;
-                        for (let i = 0; i < markers.length; i++) {
-                            if (String(markers[i]) === target_val) {
-                                alpha[i] = is_visible ? 1.0 : 0.15;
-                                modified = true;
+                            let mod = false;
+                            for (let i = 0; i < markers.length; i++) {
+                                if (String(markers[i]) === target) {
+                                    d['_marker_active'][i] = is_vis ? 1 : 0;
+                                    mod = true;
+                                }
+                            }
+                            if (mod) {
+                                updateSourceAlpha(src, slider.value);
                             }
                         }
-                        if (modified) {
-                            src.change.emit();
-                        }
-                    }
-                """
-                custom_js = CustomJS(args=dict(sources=main_sources, val=str(val)), code=js_code)
-
+                    """
+                )
                 item = LegendItem(label=str(val), renderers=[dummy_r])
-                item.js_on_change("visible", custom_js)
-                dummy_r.js_on_change("visible", custom_js)
+                item.js_on_change("visible", cb)
+                dummy_r.js_on_change("visible", cb)
                 legend_items.append(item)
 
-            title_str = ", ".join(marker_cols)
             marker_legend = Legend(
-                items=legend_items,
-                title=f"Marker: {title_str}",
-                orientation="vertical",
-                background_fill_alpha=0.8,
-                margin=5,
-                click_policy="hide",
-                name="marker_legend",
+                items=legend_items, title=f"Marker: {', '.join(marker_cols)}",
+                orientation="vertical", background_fill_alpha=0.8,
+                margin=5, click_policy="hide", name="marker_legend"
             )
             bokeh_fig.add_layout(marker_legend, "right")
 
-        # Consolidate ALL legends into right side
-        all_legends = []
-        for container in [bokeh_fig.above, bokeh_fig.below, bokeh_fig.left, bokeh_fig.center, bokeh_fig.right]:
-            for item in list(container):
+        # 7. Consolidate ALL legends to the right layout panel
+        for c in containers:
+            for item in list(c):
                 if isinstance(item, Legend):
-                    all_legends.append((container, item))
-
-        for orig_container, leg in all_legends:
-            leg.location = "top_left"
-            if orig_container is not bokeh_fig.right:
-                orig_container.remove(leg)
-                bokeh_fig.add_layout(leg, "right")
+                    item.location = "top_left"
+                    if c is not bokeh_fig.right:
+                        c.remove(item)
+                        bokeh_fig.add_layout(item, "right")
 
     @param.depends("x", "y", "color_by", "marker_by", "group_by", "aggregation")
     def make_plot(self):
@@ -413,7 +538,7 @@ class HvPlotExplorer(param.Parameterized):
             size=120,
             height=420,
             responsive=True,
-            tools=["hover", "pan", "wheel_zoom", "reset"],
+            tools=["hover"],
         )
 
         color_cols = [c for c in (self.color_by or []) if c in temp_df.columns]
@@ -447,6 +572,7 @@ class HvPlotExplorer(param.Parameterized):
             }
             temp_df["_marker_shape"] = temp_df["marker_composite"].map(shape_map)
             plot_kwargs["marker"] = "_marker_shape"
+            # Include marker_composite so hvplot creates the column in the Bokeh DataSource
             hover_cols.extend(["marker_composite"] + marker_cols)
 
         if hover_cols:
@@ -533,6 +659,7 @@ class HvPlotExplorer(param.Parameterized):
         sidebar_tabs = pn.Tabs(
             ("Controls", controls_ui),
             ("Bin Numeric", binning_ui),
+            ("Plot Options", self._options_layout),
             width=CONTROL_WIDTH + 30,
         )
 
@@ -552,8 +679,7 @@ class HvPlotExplorer(param.Parameterized):
         )
 
         return pn.Column(top_row, bottom_row, sizing_mode="stretch_width")
-
-
+    
 # =============================================================================
 # NATIVE HVPLOT EXPLORER WRAPPER
 # =============================================================================

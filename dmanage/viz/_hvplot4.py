@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import time
+import json
 import numpy as np
 import pandas as pd
 import panel as pn
 import param
 import holoviews as hv
 import hvplot.pandas
-import json
 from bokeh.models import ColumnDataSource, CustomJS, Legend, LegendItem
 
 __all__ = ["BasePanelServer", "HvPlotExplorer", "HvPlotExplorer2", "sanitize_df"]
@@ -24,26 +24,30 @@ def sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
             df_clean[col] = df_clean[col].astype(str)
     return df_clean
 
+
 def _to_numeric_coords(series: pd.Series, raw_val):
     """Converts Numeric, Datetime, or Categorical values to unified float coordinates."""
     if pd.api.types.is_numeric_dtype(series):
         return pd.to_numeric(series, errors="coerce"), float(raw_val)
     elif pd.api.types.is_datetime64_any_dtype(series):
-        # Convert series to Epoch Milliseconds (Bokeh UTC plot space)
         s_ms = pd.to_datetime(series).astype("int64") // 10**6
-        val_ms = float(raw_val) if isinstance(raw_val, (int, float)) else float(pd.Timestamp(raw_val).value // 10**6)
+        val_ms = (
+            float(raw_val)
+            if isinstance(raw_val, (int, float))
+            else float(pd.Timestamp(raw_val).value // 10**6)
+        )
         return s_ms, val_ms
     else:
-        # Map Categorical factors to 0-based integer index positions
         s_str = series.astype(str)
         uniques = list(s_str.unique())
         mapping = {cat: idx for idx, cat in enumerate(uniques)}
-        
+
         if isinstance(raw_val, (int, float)):
             target_idx = float(raw_val)
         else:
             target_idx = float(mapping.get(str(raw_val), 0))
         return s_str.map(mapping).astype(float), target_idx
+
 
 # =============================================================================
 # REFACTORED BASE SERVER CLASS (pn.serve Context Manager)
@@ -58,31 +62,25 @@ class BasePanelServer:
         self._server = None
 
     def __enter__(self):
-        """Context manager entry point."""
         self.start(show=True)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit point guaranteeing clean server teardown."""
         self.stop()
 
     @classmethod
     def stop_port(cls, port: int):
-        """Stops any active server running on the target port."""
         if port in cls._ACTIVE_SERVERS:
             server_instance = cls._ACTIVE_SERVERS.pop(port)
             server_instance.stop()
 
     def create_app(self) -> pn.viewable.Viewable:
-        """Override in subclasses to build and return the Panel layout."""
         raise NotImplementedError("Subclasses must implement create_app().")
 
     def start(self, show: bool = True):
-        """Starts the Panel app in a non-blocking background thread using pn.serve."""
         BasePanelServer.stop_port(self.port)
         pn.extension()
 
-        # pn.serve manages the thread, event loop, and socket binding internally
         self._server = pn.serve(
             self.create_app,
             port=self.port,
@@ -95,7 +93,6 @@ class BasePanelServer:
         return self
 
     def stop(self):
-        """Stops the underlying Bokeh/Panel server instance cleanly."""
         BasePanelServer._ACTIVE_SERVERS.pop(self.port, None)
         if self._server is not None:
             try:
@@ -108,12 +105,11 @@ class BasePanelServer:
 
 
 # =============================================================================
-#  PARAMETERIZED EXPLORER
+# PARAMETERIZED EXPLORER (SINGLE SELECTOR VARIANT)
 # =============================================================================
 class HvPlotExplorer(BasePanelServer, param.Parameterized):
     """Declarative Interactive Explorer powered by param.Parameterized."""
 
-    # Plotting Controls
     x = param.Selector(doc="X Axis Column")
     y = param.Selector(doc="Y Axis Column")
     color_by = param.Selector(default="None", doc="Color By Column")
@@ -125,7 +121,6 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
         doc="Aggregation Function",
     )
 
-    # Dynamic Binning Controls
     cat_col = param.Selector(default="None", doc="Column to Bin")
     n_bins = param.Integer(default=4, bounds=(2, 20), doc="Number of Bins")
     create_category = param.Action(
@@ -143,17 +138,19 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
         self.tap_stream = hv.streams.Tap()
         self._update_column_options()
 
-        # Set sensible default axis choices
         all_cols = self.param.x.objects
         num_cols = list(self.df.select_dtypes(include=[np.number]).columns)
         self.x = num_cols[0] if num_cols else all_cols[0]
         self.y = num_cols[1] if len(num_cols) > 1 else all_cols[0]
 
     def _update_column_options(self):
-        """Updates Parameter options dynamically when columns change."""
         all_cols = list(self.df.columns)
         num_cols = list(self.df.select_dtypes(include=[np.number]).columns)
-        cat_cols = list(self.df.select_dtypes(include=["object","category","string","datetime","datetimetz"]).columns)
+        cat_cols = list(
+            self.df.select_dtypes(
+                include=["object", "category", "string", "datetime", "datetimetz"]
+            ).columns
+        )
 
         self.param.x.objects = all_cols
         self.param.y.objects = all_cols
@@ -163,7 +160,6 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
         self.param.cat_col.objects = ["None"] + num_cols
 
     def _add_category_action(self):
-        """Action handler to bin numeric columns into discrete string categories."""
         if self.cat_col == "None" or self.n_bins < 2:
             self.status_msg = "*Select a valid column and bins (>1).*"
             return
@@ -183,7 +179,6 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
             self.status_msg = f"*Error:* {e}"
 
     def _prepare_data(self) -> pd.DataFrame:
-        """Applies grouping and aggregation state to dataset."""
         temp_df = self.df.copy()
         if self.group_by == "None":
             return temp_df
@@ -231,23 +226,32 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
 
     def _add_marker_legend_hook(self, plot, element, shape_map):
         bokeh_fig = plot.handles["plot"]
-    
-        # 1. Align existing right-panel items (ColorBy legend/colorbar) to top
-        for item in bokeh_fig.right:
-            if hasattr(item, "location"):
-                item.location = "top_right" if item.__class__.__name__ == "ColorBar" else "top"
-    
-        # 2. Identify scatter renderers
+
+        # 1. Clear tool renderers so Bokeh tap selection tools never alter glyphs
+        for t in bokeh_fig.tools:
+            if hasattr(t, "renderers"):
+                t.renderers = []
+
+        # 2. Identify scatter renderers and bind selection/nonselection directly to base glyph
         main_sources = []
         main_renderers = []
         for r in bokeh_fig.renderers:
-            if hasattr(r, "data_source") and r.data_source:
-                ds_data = r.data_source.data
-                if ds_data and ("_marker_shape" in ds_data or (self.marker_by != "None" and self.marker_by in ds_data)):
+            if hasattr(r, "glyph") and hasattr(r.glyph, "marker") and hasattr(r, "data_source"):
+                main_renderers.append(r)
+                if r.data_source not in main_sources:
                     main_sources.append(r.data_source)
-                    main_renderers.append(r)
-    
-        # 3. Shield native ColorBy legend swatches from vector _alpha changes
+
+                # Direct assignment forces Bokeh JS to maintain existing marker shape on click
+                r.selection_glyph = r.glyph
+                r.nonselection_glyph = r.glyph
+                r.hover_glyph = None
+
+        # 3. Align existing right-panel items
+        for item in bokeh_fig.right:
+            if hasattr(item, "location"):
+                item.location = "top_right" if item.__class__.__name__ == "ColorBar" else "top"
+
+        # 4. Shield native ColorBy legend swatches from vector _alpha changes
         for legend in list(bokeh_fig.right) + list(bokeh_fig.center):
             if isinstance(legend, Legend):
                 for item in legend.items:
@@ -255,7 +259,7 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                         orig_r = item.renderers[0]
                         fc = getattr(orig_r.glyph, "fill_color", "#555555")
                         lc = getattr(orig_r.glyph, "line_color", fc)
-    
+
                         dummy_ds = ColumnDataSource(data=dict(x=[np.nan], y=[np.nan]))
                         dummy_r = bokeh_fig.scatter(
                             x="x", y="y", source=dummy_ds,
@@ -263,34 +267,28 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                             fill_alpha=1.0, line_alpha=1.0, size=10
                         )
                         item.renderers = [dummy_r] + list(item.renderers)
-    
-        # 4. Lock marker attributes and bind vector fields
+
+        # 5. Bind vector fields for alpha and size
         for r in main_renderers:
-            r.hover_glyph = None
-    
-            for state_glyph in [r.selection_glyph, r.nonselection_glyph, r.muted_glyph]:
-                if state_glyph is not None and hasattr(state_glyph, "marker"):
-                    state_glyph.marker = r.glyph.marker
-    
             ds = r.data_source
             n_pts = len(next(iter(ds.data.values()))) if ds.data else 0
             if n_pts == 0:
                 continue
-    
+
             base_size = float(r.glyph.size) if isinstance(r.glyph.size, (int, float)) else 12.0
-    
+
             if "_alpha" not in ds.data:
                 ds.data["_alpha"] = np.ones(n_pts, dtype=float)
             if "_size" not in ds.data:
                 ds.data["_size"] = np.full(n_pts, base_size, dtype=float)
             if "_orig_size" not in ds.data:
                 ds.data["_orig_size"] = np.full(n_pts, base_size, dtype=float)
-    
+
             r.glyph.fill_alpha = "_alpha"
             r.glyph.line_alpha = "_alpha"
             r.glyph.size = "_size"
-    
-        # 5. Construct Marker legend with Datetime Epoch MS support
+
+        # 6. Construct Custom Marker legend with Datetime Epoch MS support
         if self.marker_by != "None" and shape_map and main_renderers:
             legend_items = []
             for val, shape in shape_map.items():
@@ -299,20 +297,21 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                     x="x", y="y", source=dummy_ds, marker=shape,
                     fill_color="#555555", line_color="#222222", size=10, fill_alpha=0.8
                 )
-    
-                # Compute epoch milliseconds if value is a datetime/timestamp
+
                 val_ms = None
-                if pd.api.types.is_datetime64_any_dtype(type(val)) or isinstance(val, (pd.Timestamp, np.datetime64)):
+                if pd.api.types.is_datetime64_any_dtype(type(val)) or isinstance(
+                    val, (pd.Timestamp, np.datetime64)
+                ):
                     try:
                         val_ms = int(pd.Timestamp(val).value // 10**6)
                     except Exception:
                         val_ms = None
-    
+
                 js_code = """
                     const is_visible = cb_obj.visible;
                     const target_val = String(val);
                     const target_ms = val_ms;
-    
+
                     for (let src of sources) {
                         const data = src.data;
                         if (!data[marker_by]) continue;
@@ -321,17 +320,17 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                         const size = data['_size'];
                         const orig_size = data['_orig_size'];
                         let modified = false;
-    
+
                         for (let i = 0; i < markers.length; i++) {
                             const m = markers[i];
                             let is_match = false;
-    
+
                             if (target_ms !== null && typeof m === 'number') {
                                 is_match = (m === target_ms);
                             } else {
                                 is_match = (String(m) === target_val);
                             }
-    
+
                             if (is_match) {
                                 alpha[i] = is_visible ? 1.0 : 0.15;
                                 size[i] = orig_size[i];
@@ -354,7 +353,7 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                     ),
                 )
                 legend_items.append(LegendItem(label=str(val), renderers=[dummy_r]))
-    
+
             marker_legend = Legend(
                 items=legend_items,
                 title=f"Marker: {self.marker_by}",
@@ -363,15 +362,21 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
                 location="top",
                 click_policy="hide",
             )
-    
+
             bokeh_fig.add_layout(marker_legend, "right")
 
     @param.depends("x", "y", "color_by", "marker_by", "group_by", "aggregation")
     def make_plot(self):
         temp_df = self._prepare_data()
 
+        # Removed 'tap' and 'box_select' tools to prevent Bokeh default marker replacement
         plot_kwargs = dict(
-            x=self.x, y=self.y, size=120, height=420, responsive=True, tools=["tap", "box_select"]
+            x=self.x,
+            y=self.y,
+            size=120,
+            height=420,
+            responsive=True,
+            tools=["hover", "pan", "wheel_zoom", "reset"],
         )
 
         if self.color_by != "None" and self.color_by in temp_df.columns:
@@ -409,30 +414,28 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
         return plot
 
     def _render_details(self, x, y):
-        """Renders details using Tap spatial coordinates normalized across numeric, datetime, and categorical types."""
         if x is None or y is None:
             return pn.pane.Markdown(
                 "### Details Panel\n*Click any point on the plot above to display details here.*"
             )
-    
+
         temp_df = self._prepare_data()
         if temp_df.empty or self.x not in temp_df.columns or self.y not in temp_df.columns:
             return pn.pane.Markdown("*No matching data found.*")
-    
+
         try:
             x_series, target_x = _to_numeric_coords(temp_df[self.x], x)
             y_series, target_y = _to_numeric_coords(temp_df[self.y], y)
-    
+
             x_std = x_series.std() if (pd.notna(x_series.std()) and x_series.std() > 0) else 1.0
             y_std = y_series.std() if (pd.notna(y_series.std()) and y_series.std() > 0) else 1.0
-    
+
             dist = np.sqrt(((x_series - target_x) / x_std) ** 2 + ((y_series - target_y) / y_std) ** 2)
             best_idx = dist.idxmin()
             selected_row = temp_df.loc[[best_idx]]
-    
-            # Serialize Pandas types cleanly to standard JSON objects
+
             json_data = json.loads(selected_row.to_json(orient="records", date_format="iso"))[0]
-    
+
             return pn.Column(
                 pn.pane.Markdown(f"### Selected Record Details (Index {best_idx})"),
                 pn.pane.JSON(json_data, depth=3, theme="light"),
@@ -441,14 +444,13 @@ class HvPlotExplorer(BasePanelServer, param.Parameterized):
             return pn.pane.Markdown(f"*Error matching selected point: {e}*")
 
     def create_app(self) -> pn.viewable.Viewable:
-        """Assembles user interface declarative components with compact widgets."""
         CONTROL_WIDTH = 150
 
         controls_widgets = {
             p: {"width": CONTROL_WIDTH}
             for p in ["x", "y", "color_by", "marker_by", "group_by", "aggregation"]
         }
-        
+
         binning_widgets = {
             "cat_col": {"width": CONTROL_WIDTH},
             "n_bins": {"width": CONTROL_WIDTH},

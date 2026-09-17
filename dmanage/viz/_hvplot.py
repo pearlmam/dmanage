@@ -11,6 +11,7 @@ import panel as pn
 import param
 import holoviews as hv
 import hvplot.pandas
+from bokeh.core.properties import field
 from bokeh.models import ColumnDataSource, CustomJS, Legend, LegendItem,Slider
 from panel.io.server import get_server
 from tornado.ioloop import IOLoop
@@ -200,7 +201,6 @@ def launch_server(app_or_factory, port: int = 5006) -> PanelServer:
 # PARAMETERIZED EXPLORER WITH IMMUTABLE MARKERS
 # =============================================================================
 
-
 class HvPlotExplorer(param.Parameterized):
     """Declarative Interactive Explorer supporting multi-column Color and Marker grouping."""
 
@@ -223,21 +223,57 @@ class HvPlotExplorer(param.Parameterized):
     status_msg = param.String(default="", doc="Status Message")
 
     MARKER_PALETTE = [
-        "circle", "square", "triangle", "diamond", "star",
-        "cross", "hex", "asterisk", "inverted_triangle", "plus"
+        "circle",
+        "square",
+        "triangle",
+        "diamond",
+        "star",
+        "cross",
+        "hex",
+        "asterisk",
+        "inverted_triangle",
+        "plus",
+    ]
+
+    # High-contrast, saturated primary hues first (Red & Blue start)
+    COLOR_PALETTE = [
+        "#e41a1c",  # Vivid Red
+        "#377eb8",  # Strong Blue
+        "#4daf4a",  # Vibrant Green
+        "#ff7f00",  # Bright Orange
+        "#984ea3",  # Deep Purple
+        "#00bed6",  # Vibrant Cyan/Teal
+        "#e6ab02",  # Gold / Deep Yellow
+        "#f781bf",  # Bright Pink
+        "#a65628",  # Brown
+        "#2d3748",  # Dark Slate
+        # Lighter / pastels reserved only if category counts exceed 10
+        "#aec7e8",  # Light Blue
+        "#ffbb78",  # Light Orange
+        "#98df8a",  # Light Green
+        "#ff9896",  # Light Red
+        "#c5b0d5",  # Light Purple
+        "#c49c94",  # Light Brown
+        "#f7b6d2",  # Light Pink
+        "#dbdb8d",  # Light Yellow-Green
+        "#9edae5",  # Light Cyan
+        "#c7c7c7",  # Light Grey
     ]
 
     def __init__(self, df: pd.DataFrame, **params):
         super().__init__(**params)
         self.df = sanitize_df(df)
         self.tap_stream = hv.streams.Tap()
-        self._main_sources = []
 
         # 1. Initialize Options Widgets persistent instances
         self.opacity_slider = Slider(
-            start=0.0, end=1.0, value=0.15, step=0.05,
-            title="Deselected Opacity", width=160,
-            name="deselected_opacity_slider"
+            start=0.0,
+            end=1.0,
+            value=0.15,
+            step=0.05,
+            title="Deselected Opacity",
+            width=160,
+            name="deselected_opacity_slider",
         )
 
         # 2. Assemble Plot Options Layout once
@@ -259,7 +295,14 @@ class HvPlotExplorer(param.Parameterized):
         num_cols = list(self.df.select_dtypes(include=[np.number]).columns)
         cat_cols = list(
             self.df.select_dtypes(
-                include=["object", "category", "string", "datetime", "datetimetz", "bool"]
+                include=[
+                    "object",
+                    "category",
+                    "string",
+                    "datetime",
+                    "datetimetz",
+                    "bool",
+                ]
             ).columns
         )
 
@@ -282,7 +325,9 @@ class HvPlotExplorer(param.Parameterized):
                 new_col_name = f"{base_name}_{counter}"
                 counter += 1
 
-            self.df[new_col_name] = pd.cut(self.df[self.cat_col], bins=self.n_bins).astype(str)
+            self.df[new_col_name] = pd.cut(
+                self.df[self.cat_col], bins=self.n_bins
+            ).astype(str)
             self._update_column_options()
             self.color_by = [new_col_name]
             self.status_msg = f"✓ Added **{new_col_name}**"
@@ -319,10 +364,11 @@ class HvPlotExplorer(param.Parameterized):
 
         return temp_df
 
-    def _add_marker_legend_hook(self, plot, element, shape_map, marker_cols):
+    def _add_marker_legend_hook(
+        self, plot, element, color_map, shape_map, color_cols, marker_cols
+    ):
         bokeh_fig = plot.handles["plot"]
 
-        # Shared JavaScript helper string to calculate alpha and emit changes
         JS_UPDATE_ALPHA = """
         function updateSourceAlpha(src, inactiveAlpha) {
             const d = src.data;
@@ -351,12 +397,24 @@ class HvPlotExplorer(param.Parameterized):
             elif ttype == "HoverTool":
                 hover_tool = t
 
-            if ttype in {"ResetTool", "PanTool", "WheelZoomTool", "BoxZoomTool", "SaveTool", "HoverTool"}:
+            if ttype in {
+                "ResetTool",
+                "PanTool",
+                "WheelZoomTool",
+                "BoxZoomTool",
+                "SaveTool",
+                "HoverTool",
+            }:
                 if ttype in seen_tools:
                     continue
                 seen_tools.add(ttype)
 
-            if ttype in {"TapTool", "BoxSelectTool", "LassoSelectTool", "PolySelectTool"}:
+            if ttype in {
+                "TapTool",
+                "BoxSelectTool",
+                "LassoSelectTool",
+                "PolySelectTool",
+            }:
                 if hasattr(t, "renderers"):
                     t.renderers = []
 
@@ -368,10 +426,13 @@ class HvPlotExplorer(param.Parameterized):
 
         # 2. Collect renderers & initialize CDS arrays
         main_sources, main_renderers = [], []
-        self._main_sources = main_sources
 
         for r in bokeh_fig.renderers:
-            if hasattr(r, "glyph") and hasattr(r.glyph, "marker") and hasattr(r, "data_source"):
+            if (
+                hasattr(r, "glyph")
+                and hasattr(r.glyph, "marker")
+                and hasattr(r, "data_source")
+            ):
                 if getattr(r, "name", None) == "dummy_legend_renderer":
                     continue
                 main_renderers.append(r)
@@ -387,8 +448,11 @@ class HvPlotExplorer(param.Parameterized):
                     n_pts = len(next(iter(ds.data.values()), []))
                     if n_pts > 0:
                         for col, default_val in [
-                            ("_color_active", 1), ("_marker_active", 1),
-                            ("_color_alpha", 1.0), ("_marker_alpha", 1.0), ("_alpha", 1.0)
+                            ("_color_active", 1),
+                            ("_marker_active", 1),
+                            ("_color_alpha", 1.0),
+                            ("_marker_alpha", 1.0),
+                            ("_alpha", 1.0),
                         ]:
                             if col not in ds.data or len(ds.data[col]) != n_pts:
                                 ds.data[col] = np.full(n_pts, default_val)
@@ -396,97 +460,135 @@ class HvPlotExplorer(param.Parameterized):
                     r.glyph.fill_alpha = {"field": "_alpha"}
                     r.glyph.line_alpha = {"field": "_alpha"}
 
-        # Filter out internal/composite columns from HoverTool tooltips UI
+        # Filter internal/composite fields from hover tooltips
         if hover_tool and main_renderers:
             hover_tool.renderers = main_renderers
             if isinstance(hover_tool.tooltips, list):
                 exclude_fields = {
-                    "marker_composite", "_marker_shape", "color_composite",
-                    "_color_active", "_marker_active", "_color_alpha",
-                    "_marker_alpha", "_alpha"
+                    "marker_composite",
+                    "color_composite",
+                    "_color_active",
+                    "_marker_active",
+                    "_color_alpha",
+                    "_marker_alpha",
+                    "_alpha",
                 }
                 hover_tool.tooltips = [
-                    item for item in hover_tool.tooltips
-                    if item[0] not in exclude_fields and not str(item[0]).startswith("_")
+                    item
+                    for item in hover_tool.tooltips
+                    if item[0] not in exclude_fields
+                    and not str(item[0]).startswith("_")
                 ]
 
         # 3. Bind Opacity Slider JS Callback
         self.opacity_slider.js_property_callbacks.clear()
-        self.opacity_slider.js_on_change("value", CustomJS(
-            args=dict(sources=main_sources, slider=self.opacity_slider),
-            code=JS_UPDATE_ALPHA + """
+        self.opacity_slider.js_on_change(
+            "value",
+            CustomJS(
+                args=dict(sources=main_sources, slider=self.opacity_slider),
+                code=JS_UPDATE_ALPHA
+                + """
                 for (let src of sources) {
                     updateSourceAlpha(src, slider.value);
                 }
-            """
-        ))
+            """,
+            ),
+        )
 
-        containers = [bokeh_fig.above, bokeh_fig.below, bokeh_fig.left, bokeh_fig.right, bokeh_fig.center]
-
-        # 4. Remove existing custom marker legend
+        # 4. Remove all auto-generated / old custom legends
+        containers = [
+            bokeh_fig.above,
+            bokeh_fig.below,
+            bokeh_fig.left,
+            bokeh_fig.right,
+            bokeh_fig.center,
+        ]
         for c in containers:
             for item in list(c):
-                if isinstance(item, Legend) and getattr(item, "name", None) == "marker_legend":
+                if isinstance(item, Legend):
                     c.remove(item)
 
-        # 5. Decouple Color Legend items
-        for c in containers:
-            for legend in list(c):
-                if isinstance(legend, Legend) and getattr(legend, "name", None) != "marker_legend":
-                    legend.click_policy = "hide"
-                    for item in legend.items:
-                        reals = [r for r in item.renderers if r in main_renderers]
-                        if not reals:
-                            continue
+        # 5. Construct Custom Color Legend
+        if color_map and color_cols:
+            color_legend_items = []
+            for val, hex_color in color_map.items():
+                dummy_ds = ColumnDataSource(data=dict(x=[np.nan], y=[np.nan]))
+                dummy_r = bokeh_fig.scatter(
+                    x="x",
+                    y="y",
+                    source=dummy_ds,
+                    marker="circle",
+                    fill_color=hex_color,
+                    line_color="#222222",
+                    size=10,
+                    name="dummy_legend_renderer",
+                )
+                cb = CustomJS(
+                    args=dict(
+                        sources=main_sources,
+                        val=str(val),
+                        slider=self.opacity_slider,
+                    ),
+                    code=JS_UPDATE_ALPHA
+                    + """
+                        const is_vis = cb_obj.visible;
+                        const target = String(val);
+                        for (let src of sources) {
+                            const d = src.data;
+                            const colors = d['color_composite'] || d['_color_composite'];
+                            if (!colors || !d['_color_active']) continue;
 
-                        target_r = reals[0]
-                        target_src = target_r.data_source
-
-                        fill_c = getattr(target_r.glyph, "fill_color", "#555555")
-                        line_c = getattr(target_r.glyph, "line_color", "#222222")
-                        m_shape = getattr(target_r.glyph, "marker", "circle")
-
-                        fill_c = fill_c if isinstance(fill_c, (str, tuple, list)) else "#555555"
-                        line_c = line_c if isinstance(line_c, (str, tuple, list)) else "#222222"
-                        m_shape = m_shape if isinstance(m_shape, str) else "circle"
-
-                        dummy_ds = ColumnDataSource(data=dict(x=[np.nan], y=[np.nan]))
-                        dummy_r = bokeh_fig.scatter(
-                            x="x", y="y", source=dummy_ds, marker=m_shape,
-                            fill_color=fill_c, line_color=line_c, size=10,
-                            name="dummy_legend_renderer"
-                        )
-                        dummy_r.visible = True
-                        item.renderers = [dummy_r]
-
-                        cb = CustomJS(
-                            args=dict(target_src=target_src, slider=self.opacity_slider),
-                            code=JS_UPDATE_ALPHA + """
-                                const is_vis = cb_obj.visible;
-                                const data = target_src.data;
-                                if (!data || !data['_color_active']) return;
-                                for (let i = 0; i < data['_color_active'].length; i++) {
-                                    data['_color_active'][i] = is_vis ? 1 : 0;
+                            let mod = false;
+                            for (let i = 0; i < colors.length; i++) {
+                                if (String(colors[i]) === target) {
+                                    d['_color_active'][i] = is_vis ? 1 : 0;
+                                    mod = true;
                                 }
-                                updateSourceAlpha(target_src, slider.value);
-                            """
-                        )
-                        dummy_r.js_on_change("visible", cb)
+                            }
+                            if (mod) updateSourceAlpha(src, slider.value);
+                        }
+                    """,
+                )
+                item = LegendItem(label=str(val), renderers=[dummy_r])
+                item.js_on_change("visible", cb)
+                dummy_r.js_on_change("visible", cb)
+                color_legend_items.append(item)
+
+            color_legend = Legend(
+                items=color_legend_items,
+                title=f"Color: {', '.join(color_cols)}",
+                orientation="vertical",
+                background_fill_alpha=0.8,
+                margin=5,
+                click_policy="hide",
+                name="custom_color_legend",
+            )
+            bokeh_fig.add_layout(color_legend, "right")
 
         # 6. Construct Custom Marker Legend
-        if marker_cols and shape_map and main_renderers:
-            legend_items = []
+        if shape_map and marker_cols:
+            marker_legend_items = []
             for val, shape in shape_map.items():
                 dummy_ds = ColumnDataSource(data=dict(x=[np.nan], y=[np.nan]))
                 dummy_r = bokeh_fig.scatter(
-                    x="x", y="y", source=dummy_ds, marker=shape,
-                    fill_color="#555555", line_color="#222222", size=10,
-                    name="dummy_legend_renderer"
+                    x="x",
+                    y="y",
+                    source=dummy_ds,
+                    marker=shape,
+                    fill_color="#555555",
+                    line_color="#222222",
+                    size=10,
+                    name="dummy_legend_renderer",
                 )
 
                 cb = CustomJS(
-                    args=dict(sources=main_sources, val=str(val), slider=self.opacity_slider),
-                    code=JS_UPDATE_ALPHA + """
+                    args=dict(
+                        sources=main_sources,
+                        val=str(val),
+                        slider=self.opacity_slider,
+                    ),
+                    code=JS_UPDATE_ALPHA
+                    + """
                         const is_vis = cb_obj.visible;
                         const target = String(val);
                         for (let src of sources) {
@@ -501,32 +603,25 @@ class HvPlotExplorer(param.Parameterized):
                                     mod = true;
                                 }
                             }
-                            if (mod) {
-                                updateSourceAlpha(src, slider.value);
-                            }
+                            if (mod) updateSourceAlpha(src, slider.value);
                         }
-                    """
+                    """,
                 )
                 item = LegendItem(label=str(val), renderers=[dummy_r])
                 item.js_on_change("visible", cb)
                 dummy_r.js_on_change("visible", cb)
-                legend_items.append(item)
+                marker_legend_items.append(item)
 
             marker_legend = Legend(
-                items=legend_items, title=f"Marker: {', '.join(marker_cols)}",
-                orientation="vertical", background_fill_alpha=0.8,
-                margin=5, click_policy="hide", name="marker_legend"
+                items=marker_legend_items,
+                title=f"Marker: {', '.join(marker_cols)}",
+                orientation="vertical",
+                background_fill_alpha=0.8,
+                margin=5,
+                click_policy="hide",
+                name="custom_marker_legend",
             )
             bokeh_fig.add_layout(marker_legend, "right")
-
-        # 7. Consolidate ALL legends to the right layout panel
-        for c in containers:
-            for item in list(c):
-                if isinstance(item, Legend):
-                    item.location = "top_left"
-                    if c is not bokeh_fig.right:
-                        c.remove(item)
-                        bokeh_fig.add_layout(item, "right")
 
     @param.depends("x", "y", "color_by", "marker_by", "group_by", "aggregation")
     def make_plot(self):
@@ -543,50 +638,159 @@ class HvPlotExplorer(param.Parameterized):
 
         color_cols = [c for c in (self.color_by or []) if c in temp_df.columns]
         marker_cols = [c for c in (self.marker_by or []) if c in temp_df.columns]
+        hover_cols = []
+
+        # 1. COLOR CONFIGURATION
+        color_map = {}
+        is_numeric_color = False
 
         if color_cols:
-            if len(color_cols) == 1 and pd.api.types.is_numeric_dtype(temp_df[color_cols[0]]):
-                plot_kwargs.update(c=color_cols[0], cmap="viridis", colorbar=True)
-            elif len(color_cols) == 1:
-                plot_kwargs.update(by=color_cols[0])
+            if len(color_cols) == 1 and pd.api.types.is_numeric_dtype(
+                temp_df[color_cols[0]]
+            ):
+                is_numeric_color = True
+                col_name = color_cols[0]
+                c_min = (
+                    float(self.df[col_name].min()) if not self.df.empty else 0.0
+                )
+                c_max = (
+                    float(self.df[col_name].max()) if not self.df.empty else 1.0
+                )
+                plot_kwargs.update(
+                    c=col_name,
+                    cmap="viridis",
+                    colorbar=True,
+                    clim=(c_min, c_max),
+                )
             else:
-                temp_df["color_composite"] = temp_df[color_cols].apply(
-                    lambda col: col.astype(str)
-                ).agg(" | ".join, axis=1)
-                plot_kwargs.update(by="color_composite")
+                if len(color_cols) == 1:
+                    temp_df["color_composite"] = temp_df[color_cols[0]].astype(
+                        str
+                    )
+                    full_color_cats = sorted(
+                        self.df[color_cols[0]].astype(str).unique().tolist()
+                    )
+                else:
+                    temp_df["color_composite"] = temp_df[color_cols].apply(
+                        lambda col: col.astype(str)
+                    ).agg(" | ".join, axis=1)
+                    full_color_cats = sorted(
+                        self.df[color_cols]
+                        .drop_duplicates()
+                        .apply(lambda col: col.astype(str))
+                        .agg(" | ".join, axis=1)
+                        .tolist()
+                    )
 
+                color_map = {
+                    cat: self.COLOR_PALETTE[i % len(self.COLOR_PALETTE)]
+                    for i, cat in enumerate(full_color_cats)
+                }
+                hover_cols.extend(["color_composite"] + color_cols)
+
+        # 2. MARKER CONFIGURATION
         shape_map = {}
-        hover_cols = []
         if marker_cols:
             if len(marker_cols) == 1:
-                temp_df["marker_composite"] = temp_df[marker_cols[0]].astype(str)
+                temp_df["marker_composite"] = temp_df[marker_cols[0]].astype(
+                    str
+                )
+                full_marker_cats = sorted(
+                    self.df[marker_cols[0]].astype(str).unique().tolist()
+                )
             else:
                 temp_df["marker_composite"] = temp_df[marker_cols].apply(
                     lambda col: col.astype(str)
                 ).agg(" | ".join, axis=1)
+                full_marker_cats = sorted(
+                    self.df[marker_cols]
+                    .drop_duplicates()
+                    .apply(lambda col: col.astype(str))
+                    .agg(" | ".join, axis=1)
+                    .tolist()
+                )
 
-            unique_vals = list(temp_df["marker_composite"].dropna().unique())
             shape_map = {
                 val: self.MARKER_PALETTE[i % len(self.MARKER_PALETTE)]
-                for i, val in enumerate(unique_vals)
+                for i, val in enumerate(full_marker_cats)
             }
-            temp_df["_marker_shape"] = temp_df["marker_composite"].map(shape_map)
-            plot_kwargs["marker"] = "_marker_shape"
-            # Include marker_composite so hvplot creates the column in the Bokeh DataSource
             hover_cols.extend(["marker_composite"] + marker_cols)
 
         if hover_cols:
             plot_kwargs["hover_cols"] = list(set(hover_cols))
 
         hook = lambda plot, element: self._add_marker_legend_hook(
-            plot, element, shape_map, marker_cols
+            plot, element, color_map, shape_map, color_cols, marker_cols
         )
 
-        plot = temp_df.hvplot.scatter(**plot_kwargs).opts(
-            hooks=[hook],
-            legend_position="right",
-        )
-        self.tap_stream.source = plot
+        # 3. BUILD SUB-PLOTS WITH HARDCODED LITERAL PROPERTIES
+        sub_plots = []
+
+        if shape_map and color_map:
+            # Categorical Color + Marker Shapes
+            for m_val, shape_name in shape_map.items():
+                for c_val, color_hex in color_map.items():
+                    sub_df = temp_df[
+                        (temp_df["marker_composite"] == m_val)
+                        & (temp_df["color_composite"] == c_val)
+                    ]
+                    if sub_df.empty:
+                        continue
+                    sp = sub_df.hvplot.scatter(
+                        marker=shape_name, color=color_hex, **plot_kwargs
+                    )
+                    sub_plots.append(sp)
+
+        elif shape_map and is_numeric_color:
+            # Numeric Color + Marker Shapes
+            for m_val, shape_name in shape_map.items():
+                sub_df = temp_df[temp_df["marker_composite"] == m_val]
+                if sub_df.empty:
+                    continue
+                sp = sub_df.hvplot.scatter(marker=shape_name, **plot_kwargs)
+                sub_plots.append(sp)
+
+        elif shape_map:
+            # No Color + Marker Shapes
+            for m_val, shape_name in shape_map.items():
+                sub_df = temp_df[temp_df["marker_composite"] == m_val]
+                if sub_df.empty:
+                    continue
+                sp = sub_df.hvplot.scatter(
+                    marker=shape_name, color="#377eb8", **plot_kwargs
+                )
+                sub_plots.append(sp)
+
+        elif color_map:
+            # Categorical Color + No Marker Shapes
+            for c_val, color_hex in color_map.items():
+                sub_df = temp_df[temp_df["color_composite"] == c_val]
+                if sub_df.empty:
+                    continue
+                sp = sub_df.hvplot.scatter(color=color_hex, **plot_kwargs)
+                sub_plots.append(sp)
+
+        else:
+            # Default Single Plot
+            if not is_numeric_color:
+                plot_kwargs["color"] = "#377eb8"
+            sp = temp_df.hvplot.scatter(**plot_kwargs)
+            sub_plots.append(sp)
+
+        if len(sub_plots) > 1:
+            plot = hv.Overlay(sub_plots).opts(
+                hooks=[hook],
+                legend_position="right",
+            )
+        else:
+            plot = sub_plots[0].opts(
+                hooks=[hook],
+                legend_position="right",
+            )
+
+        if hasattr(self, "tap_stream") and self.tap_stream is not None:
+            self.tap_stream.source = plot
+
         return plot
 
     def _render_details(self, x, y):
@@ -596,24 +800,43 @@ class HvPlotExplorer(param.Parameterized):
             )
 
         temp_df = self._prepare_data()
-        if temp_df.empty or self.x not in temp_df.columns or self.y not in temp_df.columns:
+        if (
+            temp_df.empty
+            or self.x not in temp_df.columns
+            or self.y not in temp_df.columns
+        ):
             return pn.pane.Markdown("*No matching data found.*")
 
         try:
             x_series, target_x = _to_numeric_coords(temp_df[self.x], x)
             y_series, target_y = _to_numeric_coords(temp_df[self.y], y)
 
-            x_std = x_series.std() if (pd.notna(x_series.std()) and x_series.std() > 0) else 1.0
-            y_std = y_series.std() if (pd.notna(y_series.std()) and y_series.std() > 0) else 1.0
+            x_std = (
+                x_series.std()
+                if (pd.notna(x_series.std()) and x_series.std() > 0)
+                else 1.0
+            )
+            y_std = (
+                y_series.std()
+                if (pd.notna(y_series.std()) and y_series.std() > 0)
+                else 1.0
+            )
 
-            dist = np.sqrt(((x_series - target_x) / x_std) ** 2 + ((y_series - target_y) / y_std) ** 2)
+            dist = np.sqrt(
+                ((x_series - target_x) / x_std) ** 2
+                + ((y_series - target_y) / y_std) ** 2
+            )
             best_idx = dist.idxmin()
             selected_row = temp_df.loc[[best_idx]]
 
-            json_data = json.loads(selected_row.to_json(orient="records", date_format="iso"))[0]
+            json_data = json.loads(
+                selected_row.to_json(orient="records", date_format="iso")
+            )[0]
 
             return pn.Column(
-                pn.pane.Markdown(f"### Selected Record Details (Index {best_idx})"),
+                pn.pane.Markdown(
+                    f"### Selected Record Details (Index {best_idx})"
+                ),
                 pn.pane.JSON(json_data, depth=3, theme="light"),
             )
         except Exception as e:
@@ -639,7 +862,14 @@ class HvPlotExplorer(param.Parameterized):
 
         controls_ui = pn.Param(
             self.param,
-            parameters=["x", "y", "color_by", "marker_by", "group_by", "aggregation"],
+            parameters=[
+                "x",
+                "y",
+                "color_by",
+                "marker_by",
+                "group_by",
+                "aggregation",
+            ],
             widgets=controls_widgets,
             name="Controls",
             width=CONTROL_WIDTH + 20,

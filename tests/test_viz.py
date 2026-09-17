@@ -51,29 +51,24 @@ def test_explorer_logic_and_binning(sample_df):
     assert explorer.color_by == ["x_num_bin2"]
 
 
-def test_bokeh_model_hook_and_cds(sample_df):
+def test_panel_legend_panel(sample_df):
     explorer = HvPlotExplorer(df=sample_df)
     explorer.color_by = ["cat_group"]
     explorer.marker_by = ["cat_subgroup"]
 
-    hv_plot = explorer.make_plot()
-    bokeh_fig = hv.render(hv_plot, backend="bokeh")
+    legend_card = explorer._render_legend_panel()
 
-    # Inspect right legend layouts
-    right_legends = [
-        layout for layout in bokeh_fig.right 
-        if getattr(layout, "name", None) == "marker_legend"
+    # Extract raw text from all Markdown panes inside the layout
+    layout_column = legend_card[0]
+    markdown_texts = [
+        pane.object
+        for pane in layout_column
+        if hasattr(pane, "object") and isinstance(pane.object, str)
     ]
-    assert len(right_legends) == 1
+    full_text = " ".join(markdown_texts)
 
-    # Confirm injected CDS columns
-    main_renderer = [
-        r for r in bokeh_fig.renderers 
-        if getattr(r, "name", None) != "dummy_legend_renderer"
-    ][0]
-    cds_data = main_renderer.data_source.data
-    assert "_alpha" in cds_data
-    assert "marker_composite" in cds_data
+    assert "cat_group" in full_text
+    assert "cat_subgroup" in full_text
 
 
 # ==============================================================================

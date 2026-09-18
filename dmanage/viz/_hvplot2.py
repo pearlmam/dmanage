@@ -6,8 +6,17 @@ import panel as pn
 import param
 import holoviews as hv
 import hvplot.pandas
+from bokeh.models import CustomJS, TextInput
 
 from ._base import launch_server,sanitize_df,_to_numeric_coords
+
+import warnings
+from bokeh.util.warnings import BokehUserWarning
+
+# Suppress harmless Bokeh document model re-registration warnings
+warnings.filterwarnings("ignore", category=BokehUserWarning)
+warnings.filterwarnings("ignore", message=".*reference already known.*")
+
 
 __all__ = ["HvPlotExplorer","HvPlotExplorer2",]
 
@@ -16,9 +25,8 @@ hv.extension('bokeh')
 # =============================================================================
 # PARAMETERIZED EXPLORER WITH IMMUTABLE MARKERS
 # =============================================================================
-
 class HvPlotExplorer(param.Parameterized):
-    """Lean Explorer with right-side Filter/Legend panel and continuous colorbar support."""
+    """Lean Explorer with persistent viewport zooming and custom dataset reset."""
 
     x = param.Selector(doc="X Axis Column")
     y = param.Selector(doc="Y Axis Column")
@@ -41,10 +49,24 @@ class HvPlotExplorer(param.Parameterized):
     create_category = param.Action(
         lambda self: self._add_category_action(), label="Create Category"
     )
+
+    # Custom action to reset zoom state to full data extents
+    reset_zoom = param.Action(
+        lambda self: self._reset_zoom_action(), label="Reset Plot View"
+    )
+
     status_msg = param.String(default="", doc="Status Message")
 
-    MARKER_PALETTE = ["circle","square","triangle","diamond","hexagon","star",
-                      "inverted_triangle","cross"]
+    MARKER_PALETTE = [
+        "circle",
+        "square",
+        "triangle",
+        "diamond",
+        "hexagon",
+        "star",
+        "inverted_triangle",
+        "cross",
+    ]
     MARKER_SYMBOLS = {
         "circle": "●",
         "square": "■",
@@ -55,19 +77,66 @@ class HvPlotExplorer(param.Parameterized):
         "inverted_triangle": "▼",
         "cross": "✖",
     }
-    COLOR_PALETTE = ["#e41a1c","#377eb8","#4daf4a","#ff7f00","#984ea3","#00bed6",
-                     "#e6ab02","#f781bf","#a65628","#2d3748"]
+    COLOR_PALETTE = [
+        "#e41a1c",
+        "#377eb8",
+        "#4daf4a",
+        "#ff7f00",
+        "#984ea3",
+        "#00bed6",
+        "#e6ab02",
+        "#f781bf",
+        "#a65628",
+        "#2d3748",
+    ]
 
     def __init__(self, df: pd.DataFrame, **params):
         super().__init__(**params)
         self.df = sanitize_df(df)
         self.tap_stream = hv.streams.Tap()
 
+        # Combined range stream for tracking interactive zoom/pan
+        self.range_xy = hv.streams.RangeXY()
+
         self._update_column_options()
         all_cols = self.param.x.objects
         num_cols = list(self.df.select_dtypes(include=[np.number]).columns)
         self.x = num_cols[0] if num_cols else all_cols[0]
         self.y = num_cols[1] if len(num_cols) > 1 else all_cols[0]
+
+    @param.depends("x", "y", watch=True)
+    def _on_axis_change(self):
+        """Reset custom viewport limits whenever the underlying axes change."""
+        self.range_xy.reset()
+
+    def _reset_zoom_action(self):
+        """Clears zoom streams and triggers a plot re-render using full data limits."""
+        self.range_xy.reset()
+        self.param.trigger("x")
+
+    def _configure_toolbar(self, plot, element):
+        """HoloViews hook: removes duplicate/unwanted tools and sets explicit tool defaults."""
+        fig = plot.state
+
+        # Filter out native reset and help tools
+        cleaned_tools = []
+        seen_types = set()
+        for tool in list(fig.tools):
+            tool_type = type(tool).__name__
+            if tool_type in ("ResetTool", "HelpTool"):
+                continue
+            if tool_type not in seen_types:
+                seen_types.add(tool_type)
+                cleaned_tools.append(tool)
+
+        fig.tools = cleaned_tools
+
+        # Consistently activate Pan and WheelZoom tools by default
+        tool_map = {type(t).__name__: t for t in fig.tools}
+        if "PanTool" in tool_map:
+            fig.toolbar.active_drag = tool_map["PanTool"]
+        if "WheelZoomTool" in tool_map:
+            fig.toolbar.active_scroll = tool_map["WheelZoomTool"]
 
     def _has_continuous_col(self, df: pd.DataFrame, cols: list) -> bool:
         return any(
@@ -84,7 +153,7 @@ class HvPlotExplorer(param.Parameterized):
     def _update_column_options(self):
         all_cols = list(self.df.columns)
         num_cols = list(self.df.select_dtypes(include=[np.number]).columns)
-        cat_dtypes = ["object","category","string","datetime","datetimetz","bool"]
+        cat_dtypes = ["object", "category", "string", "datetime", "datetimetz", "bool"]
         cat_cols = list(self.df.select_dtypes(include=cat_dtypes).columns)
 
         self.param.x.objects = all_cols
@@ -161,15 +230,12 @@ class HvPlotExplorer(param.Parameterized):
     def _prepare_data(self) -> pd.DataFrame:
         temp_df = self.df.copy()
 
-        # 1. Filter out empty/invalid/None values from color and marker selectors
         color_cols = [
-            c
-            for c in (self.color_by or [])
+            c for c in (self.color_by or [])
             if c in temp_df.columns and c not in ("None", None, "")
         ]
         marker_cols = [
-            c
-            for c in (self.marker_by or [])
+            c for c in (self.marker_by or [])
             if c in temp_df.columns and c not in ("None", None, "")
         ]
 
@@ -179,14 +245,12 @@ class HvPlotExplorer(param.Parameterized):
             and group_col not in ("None", None, "")
             and group_col in temp_df.columns
         ):
-            # 2. Build group keys strictly from active columns
             group_keys = [group_col]
             for c in color_cols + marker_cols:
                 if c not in group_keys:
                     group_keys.append(c)
 
             try:
-                # 3. Round float group keys to prevent micro-precision group splits
                 if pd.api.types.is_float_dtype(temp_df[group_col]):
                     temp_df[group_col] = temp_df[group_col].round(6)
 
@@ -201,7 +265,6 @@ class HvPlotExplorer(param.Parameterized):
                         self.aggregation, numeric_only=True
                     )
 
-                # 4. Retain x for plotting if it was omitted during numeric aggregation
                 if self.x in temp_df.columns and self.x not in agg_df.columns:
                     if pd.api.types.is_numeric_dtype(temp_df[self.x]):
                         x_vals = temp_df.groupby(group_keys, as_index=False)[
@@ -218,7 +281,6 @@ class HvPlotExplorer(param.Parameterized):
             except Exception as e:
                 print(f"Aggregation error: {e}")
 
-        # Compute composite helper columns AFTER aggregation
         if color_cols and not self._is_continuous_color(temp_df, color_cols):
             c_series, _ = self._get_composite_series(temp_df, color_cols)
             if c_series is not None:
@@ -309,9 +371,20 @@ class HvPlotExplorer(param.Parameterized):
             self.df, color_cols
         )
 
-        items = [pn.pane.Markdown("### Legend & Filters")]
+        reset_btn = pn.widgets.Button(
+            name="↺ Reset View Extents",
+            button_type="primary",
+            sizing_mode="stretch_width",
+            margin=(5, 0, 10, 0),
+        )
+        reset_btn.on_click(lambda event: self._reset_zoom_action())
 
-        # 1. Color Section
+        items = [
+            pn.pane.Markdown("### Legend & Filters"),
+            reset_btn,
+            pn.layout.Divider(),
+        ]
+
         if has_invalid_color:
             items.extend(
                 [
@@ -327,11 +400,7 @@ class HvPlotExplorer(param.Parameterized):
             c_str = ", ".join(color_cols)
             if is_continuous:
                 s = self.df[color_cols[0]].dropna()
-                if not s.empty:
-                    min_v, max_v = float(s.min()), float(s.max())
-                else:
-                    min_v, max_v = 0.0, 1.0
-
+                min_v, max_v = (float(s.min()), float(s.max())) if not s.empty else (0.0, 1.0)
                 step_val = (max_v - min_v) / 100 if max_v > min_v else 0.01
                 rs = pn.widgets.RangeSlider(
                     name="Range Filter",
@@ -354,10 +423,7 @@ class HvPlotExplorer(param.Parameterized):
             else:
                 _, c_cats = self._get_composite_series(self.df, color_cols)
                 c_rows = self._create_filter_rows(
-                    c_cats,
-                    self.color_filter,
-                    "color_filter",
-                    self.COLOR_PALETTE,
+                    c_cats, self.color_filter, "color_filter", self.COLOR_PALETTE
                 )
                 items.extend(
                     [
@@ -367,16 +433,11 @@ class HvPlotExplorer(param.Parameterized):
                     ]
                 )
 
-        # 2. Marker Section
         if marker_cols:
             m_str = ", ".join(marker_cols)
             _, m_cats = self._get_composite_series(self.df, marker_cols)
             m_rows = self._create_filter_rows(
-                m_cats,
-                self.marker_filter,
-                "marker_filter",
-                self.MARKER_PALETTE,
-                self.MARKER_SYMBOLS,
+                m_cats, self.marker_filter, "marker_filter", self.MARKER_PALETTE, self.MARKER_SYMBOLS
             )
             items.extend(
                 [
@@ -399,6 +460,35 @@ class HvPlotExplorer(param.Parameterized):
             width=210,
         )
 
+    def _render_details(self, x, y):
+        if x is None or y is None:
+            return pn.pane.Markdown("### Details Panel\n*Click any point on the plot above.*")
+
+        temp_df = self._prepare_data()
+        if temp_df.empty or self.x not in temp_df.columns or self.y not in temp_df.columns:
+            return pn.pane.Markdown("*No matching data found.*")
+
+        try:
+            x_series, target_x = _to_numeric_coords(temp_df[self.x], x)
+            y_series, target_y = _to_numeric_coords(temp_df[self.y], y)
+
+            x_std = x_series.std() if pd.notna(x_series.std()) and x_series.std() > 0 else 1.0
+            y_std = y_series.std() if pd.notna(y_series.std()) and y_series.std() > 0 else 1.0
+
+            dist = np.sqrt(((x_series - target_x) / x_std) ** 2 + ((y_series - target_y) / y_std) ** 2)
+            best_idx = dist.idxmin()
+
+            display_cols = [c for c in temp_df.columns if not str(c).startswith("_")]
+            selected_row = temp_df.loc[[best_idx], display_cols]
+
+            json_data = json.loads(selected_row.to_json(orient="records", date_format="iso"))[0]
+            return pn.Column(
+                pn.pane.Markdown(f"### Selected Record Details (Index {best_idx})"),
+                pn.pane.JSON(json_data, depth=3, theme="light"),
+            )
+        except Exception as e:
+            return pn.pane.Markdown(f"*Error matching selected point: {e}*")
+
     @param.depends(
         "x",
         "y",
@@ -413,32 +503,27 @@ class HvPlotExplorer(param.Parameterized):
     def make_plot(self):
         temp_df = self._prepare_data()
         color_cols = [
-            c
-            for c in (self.color_by or [])
+            c for c in (self.color_by or [])
             if c in temp_df.columns and c not in ("None", None, "")
         ]
         marker_cols = [
-            c
-            for c in (self.marker_by or [])
+            c for c in (self.marker_by or [])
             if c in temp_df.columns and c not in ("None", None, "")
         ]
 
         if len(color_cols) > 1 and self._has_continuous_col(temp_df, color_cols):
             return hv.Scatter([]).opts(
-                title=(
-                    "Error: Multiple selections are not possible when a "
-                    "continuous (colorbar) column is selected in 'Color By'."
-                ),
+                title="Error: Multiple selections not possible with continuous column.",
                 height=420,
                 responsive=True,
             )
 
-        # Collect active color and marker columns for hover tooltips
         hover_cols = [
-            c
-            for c in list(dict.fromkeys(color_cols + marker_cols))
+            c for c in list(dict.fromkeys(color_cols + marker_cols))
             if c in temp_df.columns and not str(c).startswith("_")
         ]
+
+        tools_list = ["pan", "wheel_zoom", "box_zoom", "hover", "save"]
 
         hvplot_opts = dict(
             x=self.x,
@@ -448,22 +533,29 @@ class HvPlotExplorer(param.Parameterized):
             size=120,
             height=420,
             responsive=True,
-            tools=["hover"],
+            tools=tools_list,
         )
         if hover_cols:
             hvplot_opts["hover_cols"] = hover_cols
 
-        hv_element_opts = dict(height=420, responsive=True, tools=["hover"])
+        hv_element_opts = dict(
+            height=420,
+            responsive=True,
+            tools=tools_list,
+        )
 
-        if self.x in temp_df.columns and (
-            x_lim := self._get_axis_limits(temp_df[self.x])
-        ):
+        # Preserve user zoom bounds across updates
+        if self.range_xy.x_range is not None:
+            hvplot_opts["xlim"] = self.range_xy.x_range
+            hv_element_opts["xlim"] = self.range_xy.x_range
+        elif self.x in self.df.columns and (x_lim := self._get_axis_limits(self.df[self.x])):
             hvplot_opts["xlim"] = x_lim
             hv_element_opts["xlim"] = x_lim
 
-        if self.y in temp_df.columns and (
-            y_lim := self._get_axis_limits(temp_df[self.y])
-        ):
+        if self.range_xy.y_range is not None:
+            hvplot_opts["ylim"] = self.range_xy.y_range
+            hv_element_opts["ylim"] = self.range_xy.y_range
+        elif self.y in self.df.columns and (y_lim := self._get_axis_limits(self.df[self.y])):
             hvplot_opts["ylim"] = y_lim
             hv_element_opts["ylim"] = y_lim
 
@@ -471,31 +563,16 @@ class HvPlotExplorer(param.Parameterized):
         has_color = bool(color_cols and ("_c_val" in temp_df.columns or is_continuous))
         has_marker = bool(marker_cols and "_m_val" in temp_df.columns)
 
-        if has_color and not is_continuous:
-            _, all_c_cats = self._get_composite_series(self.df, color_cols)
-        else:
-            all_c_cats = []
+        all_c_cats = self._get_composite_series(self.df, color_cols)[1] if (has_color and not is_continuous) else []
+        all_m_cats = self._get_composite_series(self.df, marker_cols)[1] if has_marker else []
 
-        if has_marker:
-            _, all_m_cats = self._get_composite_series(self.df, marker_cols)
-        else:
-            all_m_cats = []
+        color_map = {cat: self.COLOR_PALETTE[i % len(self.COLOR_PALETTE)] for i, cat in enumerate(all_c_cats)}
+        shape_map = {cat: self.MARKER_PALETTE[i % len(self.MARKER_PALETTE)] for i, cat in enumerate(all_m_cats)}
 
-        color_map = {
-            cat: self.COLOR_PALETTE[i % len(self.COLOR_PALETTE)]
-            for i, cat in enumerate(all_c_cats)
-        }
-        shape_map = {
-            cat: self.MARKER_PALETTE[i % len(self.MARKER_PALETTE)]
-            for i, cat in enumerate(all_m_cats)
-        }
-
-        # Apply Filters
+        # Filtering logic
         if is_continuous and color_cols and self.color_range:
             c_min, c_max = self.color_range
-            temp_df = temp_df[
-                (temp_df[color_cols[0]] >= c_min) & (temp_df[color_cols[0]] <= c_max)
-            ]
+            temp_df = temp_df[(temp_df[color_cols[0]] >= c_min) & (temp_df[color_cols[0]] <= c_max)]
         elif color_cols and "_c_val" in temp_df.columns:
             active_c_filter = self.color_filter if self.color_filter else all_c_cats
             temp_df = temp_df[temp_df["_c_val"].isin(active_c_filter)]
@@ -506,29 +583,23 @@ class HvPlotExplorer(param.Parameterized):
 
         if temp_df.empty:
             return hv.Scatter([]).opts(
-                title="No Data Matches Selected Filters", **hv_element_opts
+                title="No Data Matches Selected Filters",
+                hooks=[self._configure_toolbar],
+                **hv_element_opts,
             )
 
         sub_plots = []
         m_cats = all_m_cats if has_marker else [None]
 
-        # Subplot Loop
         if is_continuous:
             col_name = color_cols[0]
             s = self.df[col_name].dropna()
-            c_min, c_max = (
-                (float(s.min()), float(s.max())) if not s.empty else (0.0, 1.0)
-            )
+            c_min, c_max = (float(s.min()), float(s.max())) if not s.empty else (0.0, 1.0)
 
             for m_val in m_cats:
-                if m_val is None:
-                    sub_df = temp_df
-                else:
-                    sub_df = temp_df[temp_df["_m_val"] == m_val]
-
+                sub_df = temp_df if m_val is None else temp_df[temp_df["_m_val"] == m_val]
                 if sub_df.empty:
                     continue
-
                 opts = dict(
                     c=col_name,
                     cmap="Viridis",
@@ -549,10 +620,8 @@ class HvPlotExplorer(param.Parameterized):
                         sub_df = sub_df[sub_df["_c_val"] == c_val]
                     if m_val:
                         sub_df = sub_df[sub_df["_m_val"] == m_val]
-
                     if sub_df.empty:
                         continue
-
                     opts = dict(**hvplot_opts)
                     opts["color"] = color_map[c_val] if c_val else "#377eb8"
                     if m_val:
@@ -560,73 +629,18 @@ class HvPlotExplorer(param.Parameterized):
                     sub_plots.append(sub_df.hvplot.scatter(**opts))
 
         plot = hv.Overlay(sub_plots) if len(sub_plots) > 1 else sub_plots[0]
-        plot = plot.opts(show_legend=False)
+
+        plot = plot.opts(
+            show_legend=False,
+            hooks=[self._configure_toolbar],
+        )
+
+        self.range_xy.source = plot
 
         if hasattr(self, "tap_stream") and self.tap_stream is not None:
             self.tap_stream.source = plot
 
         return plot
-
-    def _render_details(self, x, y):
-        if x is None or y is None:
-            return pn.pane.Markdown(
-                "### Details Panel\n"
-                "*Click any point on the plot above to display details here.*"
-            )
-
-        temp_df = self._prepare_data()
-        has_required_cols = (
-            self.x in temp_df.columns and self.y in temp_df.columns
-        )
-        if temp_df.empty or not has_required_cols:
-            return pn.pane.Markdown("*No matching data found.*")
-
-        try:
-            x_series, target_x = _to_numeric_coords(temp_df[self.x], x)
-            y_series, target_y = _to_numeric_coords(temp_df[self.y], y)
-
-            has_valid_x_std = pd.notna(x_series.std()) and x_series.std() > 0
-            x_std = x_series.std() if has_valid_x_std else 1.0
-
-            has_valid_y_std = pd.notna(y_series.std()) and y_series.std() > 0
-            y_std = y_series.std() if has_valid_y_std else 1.0
-
-            dist = np.sqrt(
-                ((x_series - target_x) / x_std) ** 2
-                + ((y_series - target_y) / y_std) ** 2
-            )
-            best_idx = dist.idxmin()
-
-            # Filter out hidden/internal helper columns starting with '_'
-            display_cols = [
-                c for c in temp_df.columns if not str(c).startswith("_")
-            ]
-            selected_row = temp_df.loc[[best_idx], display_cols]
-
-            json_data = json.loads(
-                selected_row.to_json(orient="records", date_format="iso")
-            )[0]
-
-            return pn.Column(
-                pn.pane.Markdown(f"### Selected Record Details (Index {best_idx})"),
-                pn.pane.JSON(json_data, depth=3, theme="light"),
-            )
-        except Exception as e:
-            return pn.pane.Markdown(f"*Error matching selected point: {e}*")
-
-    @param.depends(
-        "x",
-        "y",
-        "color_by",
-        "marker_by",
-        "color_filter",
-        "color_range",
-        "marker_filter",
-        "group_by",
-        "aggregation",
-    )
-    def _render_plot(self):
-        return pn.pane.HoloViews(self.make_plot(), sizing_mode="stretch_width")
 
     def create_app(self) -> pn.viewable.Viewable:
         control_width = 180
@@ -645,7 +659,7 @@ class HvPlotExplorer(param.Parameterized):
         binning_widgets = {
             "cat_col": {"width": control_width},
             "n_bins": {"width": control_width},
-            "create_category": {"width": control_width, "color": "primary"},
+            "create_category": {"width": control_width, "button_type": "primary"},
         }
 
         controls_ui = pn.Param(
@@ -677,9 +691,11 @@ class HvPlotExplorer(param.Parameterized):
             y=self.tap_stream.param.y,
         )
 
+        plot_pane = pn.pane.HoloViews(self.make_plot, sizing_mode="stretch_width")
+
         top_row = pn.Row(
             sidebar_tabs,
-            pn.Column(self._render_plot, sizing_mode="stretch_width"),
+            pn.Column(plot_pane, sizing_mode="stretch_width"),
             self._render_legend_panel,
             sizing_mode="stretch_width",
         )

@@ -1,7 +1,7 @@
 Components
 ==========
 
-Components are basically parts of your data unit. These can be data components or helper classes. Describe what components are and how they are used.
+Components are basically parts of your data unit. 
 
 Data Components
 ---------------
@@ -11,20 +11,19 @@ These are the parts of the data unit. The distinction between components can be 
 Component Classes
 -----------------
 
-These are associated with ``DataUnit``.
+These are classes that are attached to your ``DataUnit`` as attributes. Each component class loads, processes, and visualizes ONE data component. The first advantage of using component classes is code separation: instead of having one behemoth of a ``DataUnit`` where code is difficult to find, you have multiple places for speaciallized code to make it easier to find. Another advantage is code re-use: speciallized component classes can be used for multiple similarly formated data components.
 
-Plugin Components
-^^^^^^^^^^^^^^^^^
-These are user-defined component classes that can load or generate data for specific software, hardware, or special use cases.
+Usage
+-----
 
-Helper Components
-^^^^^^^^^^^^^^^^^
+Each component class must have ``__init__()`` and ``is_valid()`` methods defined. 
 
-These are component classes of your ``DataUnit`` that aid in processing. The current list of helper components ``dmanage`` provides are
+``__init__()`` generally will have one argument that represents the path to the data component. This method sets up the instantiated class with all relevant information to access and process the data component. This makes the component class self sufficient so it can tell you anything you want to know about the data component.
 
-* SoftCache
-* HardCache
-* Server (Not Implemented)
+``is_valid()`` checks whether the data component is valid or not. This provides a way for the data unit layer to check if this data component exists and is valid so that one missing or bad data component doesn't crash the processing of other valid data components. This should be a class or static method because the data must be valid in order to instantiate the component class. Attempting to instantiate a component class on invalid data will cause an exception. You may want to use this method inside ``__init__()`` to escape without exception if one attempts to instantiate a component class on invalid data.
+
+
+
 
 
 

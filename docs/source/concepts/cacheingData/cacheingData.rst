@@ -1,7 +1,7 @@
 Caching Processed Data
 =======================
 
-The concept is simple, storing data for use somewhere else. Often this data is passed around as inputs to functions, but this can be a burden to micromanage data like this. So in D-Manage, we can cache the data.
+The concept is simple, storing data for use somewhere else or later. Often this data is passed around as inputs to functions, but this can be a burden to micromanage data like this. So in D-Manage, we can cache the data.
 
 There are two places to "cache" data: 
 

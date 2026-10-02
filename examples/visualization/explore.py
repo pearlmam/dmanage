@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # -*- coding: utf-8 -*-
-import dmanage.viz as viz
+import dmanage.explore as explore
 from dmanage._compat import pd
 import numpy as np
 import time
@@ -68,7 +68,7 @@ df = pd.DataFrame(
 # explorer = viz.HvPlotExplorer(df,port=5007)
 # explorer.start(True)
 
-with viz.HvPlotExplorer(df, port=5006) as exp:
+with explore.HvPlotExplorer(df, port=5006) as exp:
     while True:
         time.sleep(2)  # Keep running while inspecting in the browser
 

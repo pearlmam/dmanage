@@ -16,7 +16,7 @@ if not hasattr(sys, "_panel_server_registry"):
     sys._panel_server_registry = {}
 
 # Import your class and helper function here
-from dmanage.viz import HvPlotExplorer,launch_server
+from dmanage.explore import HvPlotExplorer,launch_server
 
 @pytest.fixture(autouse=True)
 def prevent_browser_open():

@@ -372,8 +372,8 @@ class HvPlotExplorer(param.Parameterized):
         )
 
         reset_btn = pn.widgets.Button(
-            name="↺ Reset View Extents",
-            button_type="primary",
+            label="↺ Reset View Extents",
+            color="primary",
             sizing_mode="stretch_width",
             margin=(5, 0, 10, 0),
         )
@@ -659,7 +659,7 @@ class HvPlotExplorer(param.Parameterized):
         binning_widgets = {
             "cat_col": {"width": control_width},
             "n_bins": {"width": control_width},
-            "create_category": {"width": control_width, "button_type": "primary"},
+            "create_category": {"width": control_width, "color": "primary"},
         }
 
         controls_ui = pn.Param(

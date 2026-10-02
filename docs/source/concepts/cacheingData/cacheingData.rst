@@ -1,5 +1,5 @@
-Caching Processed Data
-=======================
+Caching Data
+============
 
 The concept is simple, storing data for use somewhere else or later. Often this data is passed around as inputs to functions, but this can be a burden to micromanage data like this. So in D-Manage, we can cache the data.
 
@@ -40,7 +40,7 @@ Here is a tutorial for how soft cache is implemented.
 Hard Cache
 ----------
 
-Sometimes we need the result from ``method1()`` that takes a long time for other methods. ``method1()`` is validated and does not need to be re-run every time we use the result from that method. This is a perfect application for a hard cache: we can store the result on the disk for use in other methods to minimize computation time. Lets discuss some caveats:
+Similar to the example in Soft Cache, we need the result from ``method1()`` for use in other methods except ``method1()`` takes a long time to compute. ``method1()`` is well-validated and does not need to be re-run every time we use the result from that method. This is a perfect application for a hard cache: we can store the result on the disk for use in other methods to minimize computation time. Lets discuss some caveats:
 
 * Data storage must be as small as possible
   

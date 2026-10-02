@@ -1,6 +1,13 @@
 
+.. admonition:: What D-Manage offers
+
+    "D-Manage offers low level access to your data with a high level API that you create!"
+    
+
 Introduction
 ============
+
+
 
 D-Manage is a Python package, a methodology, and a community!
 
@@ -23,11 +30,11 @@ this package provides:
 * Metadata methods to organize and interpret processed data
 * Algorithms for signal processing, coordinate transformation, and more
 * Data Plotting tools 
-* Data visualization interface, IN DEVELOPMENT
-* Server interface to run your project remotely as if it was local, IN DEVELOPMENT
+* Data visualization interface
+* Server interface to run your project remotely as if it was local
 * Creating databases from experimental and simulation files, IN DEVELOPMENT
 * Data refactoring methods to help homogenize your data, IN DEVELOPMENT 
-* Community developed plugins to interface with common software and datatypes, IN DEVELOPMENT
+* Community developed projects to interface with common software and datatypes, IN DEVELOPMENT
 
 D-Manage as a Methodology
 -------------------------

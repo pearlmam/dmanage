@@ -1,7 +1,7 @@
 Refactoring Data
 ================
 
-When you first start generating data, sometimes we name variables in a non-ideal way or the data has mistakes. This is detremental for post-processing algorithms. Post-processing algorithms need to be robust to ignore problematic data, but we also want access to this data. To access this data, we have two options: refactor the data itself or refactor our code to access problematic data.
+When you first start generating data, sometimes we name variables in a non-ideal way or the data has formating errors. This can be detremental for post-processing algorithms, causing exceptions at worst or ignored data at best. Post-processing algorithms need to be robust to ignore problematic data, but ideally we want access to this data with minimal code changes. To access this data, we have two options: refactor the data itself or refactor our code to access problematic data.
 
 
 Example Data
@@ -32,20 +32,23 @@ We have data that consists of input and output voltages and currents versus time
     1.90E-04,2.63E+00,6.31E+00,2.63E-03,6.31E-03
     2.00E-04,2.69E+00,6.46E+00,2.69E-03,6.46E-03
 
-There are 5 columns. We are happy with the `Time`,`Vin`, and `Vout` headers, but we are unhappy with the 'INPUT_CURRENT' and 'OUTPUT_CURRENT' headers. We want to change these headers to 'Iin' and 'Iout' but we have already generated tons of data with these horrible naming scheme that doesn't work well with :ref:`Filenaming`. You want to change the variable name, but you still need the old data. How do we change the name without breaking all the code we developed? What do we do???
+There are 5 columns. We are happy with the `Time`,`Vin`, and `Vout` headers, but we are unhappy with the 'INPUT_CURRENT' and 'OUTPUT_CURRENT' headers. We want to change these headers to 'Iin' and 'Iout' but we have already generated tons of data with this non-ideal naming scheme that doesn't work well with :ref:`Filenaming`. You want to change the variable name, but you still need the old data. How do we change the name without breaking all the code we developed? What do we do???
 
 
 Refactoring Data
 ----------------
 
-The header in the csv is reletively simple to refactor and if we own the csv file, we can develop a scheme to refactor the data itself. This refactoring scheme will be generic so that we can refactor the data again in the future if needed; this makes it simple to change variable names at will as our needs evolve. To be continued...
+The header in the csv is reletively simple to refactor if we own the csv file, so we can develop a scheme to refactor the data itself. This refactoring scheme will be generic so that we can refactor the data again in the future if needed; this makes it simple to change variable names at will as our needs evolve. To be continued...
 
 Code to refactor csv files here. It shows a DataUnit/Component method that refactors the header easily. The DataGroup class can then apply this method to all data in the group.
 
 
-Refactoring Data Coding
------------------------
+Refactoring Data Processing Code
+--------------------------------
 
+.. note::
+   This method could be improved? It's not the most pretty...
+   
 Refactoring the actual data might be infeasible if we don't own the data or the data is formated in way we can't change. So we apply a workaround in our processing code. We generate a VarNames data structure class of all the relevant variable names, with a case statement to choose which naming scheme depending on the version. The DataUnit level checks the variable naming version, and instantiates the VarNames class as a DataUnit component! An example is below.
 
 In this example we want to calculate the instantaneous input and output power of the DataUnit. To do this we must multiply voltages and currents and access them through the header. 

@@ -6,10 +6,12 @@ These are the fundamental concepts of the package philosophy
 .. toctree::
    :maxdepth: 2
    
-   dataHierarchy/dataHierarchy
-   pandas/pandas
+   strataHierarchy/strataHierarchy
    metadata
+   dataVisualization
+   dataExplorer
    dfmethods
+   pandas/pandas
    server
    refactoringData/refactoringData
    cacheingData/cacheingData

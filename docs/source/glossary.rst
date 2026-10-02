@@ -33,6 +33,9 @@ Data Hierarchy Terms
       
    self-sufficient method
       This is a method that doesn't **require** input from another method result. The method may still use the result from another method, but it calls that method internally and is essentially transparent to the user. 
+   
+   order agnostic
+      The order in which operations are computed is transparent to the user. Even though the order in which methods are executed is essential (when the result from one method is required for execution of another method), the methods are coded in such a way that the user doesn't need to manually execute the methods in order AND computational efficiency is maintained (no redundant computations).
       
    robust method
       A robust method is one that can corrupted or missing data without raising an exception except when absolutely necessary. Often times the units of a data group can have missing data components or unique unexpected data that the method can't handle. A robust method will ignore missing data and/or unexpected data so that most properly formatted data units can be processed. Exceptions should only be raised if necessary.

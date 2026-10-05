@@ -30,6 +30,7 @@ extensions = [
    'sphinx.ext.autodoc',         # Automatic code documentation
    "sphinx.ext.autosummary",     # code documentation
    'sphinx.ext.doctest',         # for traditional documentation and code
+   "sphinx.ext.autosectionlabel",# for section labeling
    'nbsphinx',                   # for notebooks
    'sphinx_rtd_dark_mode',       # Dark mode toggle for sphinx_rtd_theme
    'sphinxcontrib.spelling',     # spell check
@@ -40,6 +41,9 @@ templates_path = ['_templates']
 exclude_patterns = []
 primary_domain = 'py'
 
+# Prevent duplicate label conflicts across files
+autosectionlabel_prefix_document = True
+autosectionlabel_maxdepth = 1
 # -- Options for autodoc -------------------------------------------------
 autosummary_generate = True
 autosummary_imported_members = False

@@ -28,6 +28,8 @@ Caching Data
 ^^^^^^^^^^^^
 update tutorial for it to remove writing to the cache within the function, just need Cache.get() call to automatically write to cache.
 
+Enhance the hard cache capabilities.
+
 
 Near Term
 ---------
@@ -53,9 +55,6 @@ Change Name to DManage?
 Yup? NO?
 
 
-Caching Data
-^^^^^^^^^^^^
-Enhance the hard cache capabilities.
 
 Long Term
 ---------

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   version="1.1"
+   id="svg1"
+   width="1718"
+   height="1259.2747"
+   viewBox="0 0 1718 1259.2747"
+   sodipodi:docname="dataframeExplorer_annotated.svg"
+   inkscape:version="1.4.4 (1:1.4.4+202605061432+dcaf3e7d9e)"
+   inkscape:export-filename="dataframeExplorer_annotated.jpg"
+   inkscape:export-xdpi="109.689"
+   inkscape:export-ydpi="109.689"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <marker
+       style="overflow:visible"
+       id="marker9"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Concave triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.7)"
+         d="M -2,-4 9,0 -2,4 c 2,-2.33 2,-5.66 0,-8 z"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:none"
+         id="path9" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="marker5"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Concave triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.7)"
+         d="M -2,-4 9,0 -2,4 c 2,-2.33 2,-5.66 0,-8 z"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:none"
+         id="path5" />
+    </marker>
+    <marker
+       style="overflow:visible"
+       id="ConcaveTriangle"
+       refX="0"
+       refY="0"
+       orient="auto-start-reverse"
+       inkscape:stockid="Concave triangle arrow"
+       markerWidth="1"
+       markerHeight="1"
+       viewBox="0 0 1 1"
+       inkscape:isstock="true"
+       inkscape:collect="always"
+       preserveAspectRatio="xMidYMid">
+      <path
+         transform="scale(0.7)"
+         d="M -2,-4 9,0 -2,4 c 2,-2.33 2,-5.66 0,-8 z"
+         style="fill:context-stroke;fill-rule:evenodd;stroke:none"
+         id="path7" />
+    </marker>
+    <clipPath
+       clipPathUnits="userSpaceOnUse"
+       id="clipPath1">
+      <rect
+         style="fill:#ffffff;stroke:#000000;stroke-width:5;stroke-linejoin:round"
+         id="rect2"
+         width="1718"
+         height="1209.2454"
+         x="0"
+         y="178.75465" />
+    </clipPath>
+  </defs>
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.83861671"
+     inkscape:cx="437.02921"
+     inkscape:cy="375.61856"
+     inkscape:window-width="2560"
+     inkscape:window-height="1372"
+     inkscape:window-x="2560"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g1" />
+  <g
+     inkscape:groupmode="layer"
+     inkscape:label="Image"
+     id="g1"
+     transform="translate(0,-133.72533)">
+    <image
+       width="1718"
+       height="1388"
+       preserveAspectRatio="none"
+       xlink:href="dataframeExplorer.png"
+       id="image1"
+       clip-path="url(#clipPath1)" />
+    <text
+       xml:space="preserve"
+       style="font-weight:bold;font-stretch:semi-condensed;font-size:74.6667px;line-height:1.25;font-family:'Nimbus Sans Narrow';-inkscape-font-specification:'Nimbus Sans Narrow, Bold Semi-Condensed';text-align:center;text-anchor:middle"
+       x="1558.8644"
+       y="867.96411"
+       id="text2"><tspan
+         sodipodi:role="line"
+         id="tspan2"
+         x="1558.8644"
+         y="867.96411">Select Data </tspan><tspan
+         sodipodi:role="line"
+         x="1558.8644"
+         y="961.29749"
+         id="tspan3">to Display</tspan></text>
+    <path
+       style="fill:#ffffff;stroke:#000000;stroke-width:10;stroke-linejoin:round;stroke-dasharray:none;marker-end:url(#ConcaveTriangle)"
+       d="M 1457.019,809.92318 V 722.23221"
+       id="path3"
+       sodipodi:nodetypes="cc" />
+    <text
+       xml:space="preserve"
+       style="font-weight:bold;font-stretch:semi-condensed;font-size:74.6667px;line-height:1.25;font-family:'Nimbus Sans Narrow';-inkscape-font-specification:'Nimbus Sans Narrow, Bold Semi-Condensed';text-align:center;text-anchor:middle"
+       x="1110.3688"
+       y="1182.1416"
+       id="text4"><tspan
+         sodipodi:role="line"
+         id="tspan4"
+         x="1110.3688"
+         y="1182.1416">Row data summary for selected glyph</tspan></text>
+    <path
+       style="fill:#ffffff;stroke:#000000;stroke-width:10;stroke-linejoin:round;stroke-dasharray:none;marker-end:url(#marker5)"
+       d="M 526.14576,1155.1598 H 401.35478"
+       id="path4" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:10;stroke-linejoin:round;stroke-dasharray:none"
+       id="rect5"
+       width="346.33713"
+       height="555.77911"
+       x="6.1130705"
+       y="832.22089" />
+    <text
+       xml:space="preserve"
+       style="font-weight:bold;font-stretch:semi-condensed;font-size:74.6667px;line-height:1.25;font-family:'Nimbus Sans Narrow';-inkscape-font-specification:'Nimbus Sans Narrow, Bold Semi-Condensed';text-align:center;text-anchor:middle"
+       x="592.43298"
+       y="188.75465"
+       id="text5"><tspan
+         sodipodi:role="line"
+         id="tspan5"
+         x="592.43298"
+         y="188.75465">Selected Glyph</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:10;stroke-linejoin:round;stroke-dasharray:none;marker-end:url(#marker9)"
+       d="m 410.65979,188.75465 v 24.58076"
+       id="path6"
+       sodipodi:nodetypes="cc" />
+  </g>
+</svg>

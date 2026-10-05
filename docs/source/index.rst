@@ -12,6 +12,7 @@ See D-Manage GitHub repository: https://github.com/pearlmam/dmanage
    intro
    gettingStarted
    modules/modules
+   IVP/IVP
    concepts/concepts
    tutorials/tutorials
    development/development

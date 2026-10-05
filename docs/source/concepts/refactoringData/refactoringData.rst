@@ -35,8 +35,8 @@ We have data that consists of input and output voltages and currents versus time
 There are 5 columns. We are happy with the `Time`,`Vin`, and `Vout` headers, but we are unhappy with the 'INPUT_CURRENT' and 'OUTPUT_CURRENT' headers. We want to change these headers to 'Iin' and 'Iout' but we have already generated tons of data with this non-ideal naming scheme that doesn't work well with :ref:`Filenaming`. You want to change the variable name, but you still need the old data. How do we change the name without breaking all the code we developed? What do we do???
 
 
-Refactoring Data
-----------------
+Refactoring Data Itself
+-----------------------
 
 The header in the csv is reletively simple to refactor if we own the csv file, so we can develop a scheme to refactor the data itself. This refactoring scheme will be generic so that we can refactor the data again in the future if needed; this makes it simple to change variable names at will as our needs evolve. To be continued...
 

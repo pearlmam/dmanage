@@ -9,7 +9,7 @@ Introduction
 
 
 
-D-Manage is a Python package, a methodology, and a community to help with data generation, organization, processing, and visualization!
+D-Manage is a Python package, a methodology, and a forum to help with data generation, organization, processing, and visualization!
 
 * D-Manage demands personalized data management
 * D-Manage demands standardized data management
@@ -53,8 +53,8 @@ There are many aspects to the philosophy, but the crux of it is based on the dat
    Use dmanage to convert the DataUnit into a DataGroup object automatically. Now the DataGroup object can identify all data units within the directory scope, apply DataUnit methods to each unit, and collect the results in one place. In this way, access to the raw data is readily available and a summary of all the data can be generated for application of machine learning methods.  
 
 
-D-Manage as a Community
------------------------
+D-Manage as a Forum
+-------------------
 
 This is a place to discuss and debate the best practices for data management! By following the D-Manage methodology, understanding shared personal projects becomes easier. Researchers are often solving the same data management problems independently from each other, and each solution is unique. Not all solutions are robust or expandable to bigger datasets. Here the community can share projects and algorithms following the D-Manage methodology and determine the best technique for their applications.
 

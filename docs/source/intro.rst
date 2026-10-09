@@ -24,13 +24,13 @@ The dmanage_ open source Python package is focused on data management for STEM r
 
 this package provides:
 
-* Automatic and parallel application of user defined data run methods to the entire data sweep: see data hierarchy
+* Automatic and parallel application of user defined methods to the entire data sweep
+* Interactive Visualization Platforms 
+* Remote interface it interact with data objects remotely as if it was local
+* Access to community developed tools that also follow the D-Manage methodology
 * Caching methods to store high-cost processed data in RAM or the drive for use in other methods
 * Metadata methods to organize and interpret processed data
 * Algorithms for signal processing, coordinate transformation, and more
-* Data Plotting tools 
-* Data visualization interface
-* Server interface to run your project remotely as if it was local
 * Creating databases from experimental and simulation files, IN DEVELOPMENT
 * Data refactoring methods to help homogenize your data, IN DEVELOPMENT 
 * Community developed projects to interface with common software and datatypes, IN DEVELOPMENT
@@ -64,7 +64,7 @@ This documentation also discusses programming issues common with scientific rese
 Who is this package for?
 ------------------------
 
-This package is useful for anyone who needs to plot and analyze data! This package is especially useful for those who run many experiments and/or simulations and need to plot or process the all the data.
+This package is useful for anyone who needs to plot and analyze data! This package is especially useful for those who run many experiments and/or simulations and need to plot or process the all the data. If you already use python for data processing, it takes very little effort to convert your scripts into dmanage data objects to access the benefits of the D-Manage methodology.  
 
 This package is also useful for acquiring or sharing data processing algorithms from their field of study. The standards used in this project provide a way to easily communicate with the community!
 

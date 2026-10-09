@@ -1,21 +1,27 @@
+.. admonition:: What D-Manage offers
 
- *Currently in pre-release stage. An OSI-approved license (most likely Apache 2.0 or MIT) will be chosen before the first official release.* 
-
+    "D-Manage offers low level access to your data with a high level API that you create!"
+	
+	
 Online documentation: https://dmanage.readthedocs.io/
 
 D-Manage
 ========
 
-This is a Python package for generating, organizing, and processing data. This package offers many useful features to anyone who processes data, but it is most useful for those who wish to create a database from simulation or experimental data. By following the D-Manage methodology, this package offers:
+This is a Python package for generating, organizing, processing data. This package offers many useful features to anyone who processes data, but it is most useful for those who wish to create a database from simulation or experimental data. By following the D-Manage methodology, this package offers:
 
-* Automatic and parallel application of user defined data run methods to the entire data sweep
+* Automatic and parallel application of user defined methods to the entire data sweep
+* Interactive Visualization Platforms 
+* Remote interface it interact with data objects remotely as if it was local
+* Access to community developed tools that also follow the D-Manage methodology, IN DEVELOPMENT
+* Community developed components to interface with common software, equipment, and datatypes, IN DEVELOPMENT
+
+D-Manage also provides a number of tools to help create your data objects:
+
 * Caching methods to store high-cost processed data in RAM or the drive for use in other methods
-* Metadata methods to organize and interpret processed data
+* Metadata methods to organize and parse processed data
 * Algorithms for signal processing, coordinate transformation, and more. (**numpy**, **Pandas**, Polars, XArray, PyArrow) [#f1]_
-* Data Plotting tools 
-* Data visualization interface, IN DEVELOPMENT
-* Server interface to run your project remotely as if it was local, IN DEVELOPMENT
-* Creating databases from experimental and simulation files, IN DEVELOPMENT
+* Job scheduler to automate simulation jobs
 * Data refactoring methods to help homogenize your data, IN DEVELOPMENT 
 
 .. [#f1] Algorithms attempt to be datatype agnostic, where the same api can be used for numpy, Pandas, Polars, XArray, and PyArrow. This allows for easy code sharing and quick benchmarking. Currently only Numpy and Pandas are supported.

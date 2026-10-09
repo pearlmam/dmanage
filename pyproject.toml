@@ -9,6 +9,8 @@ allow-direct-references = true
 [project]
 name = "dmanage"
 version = "0.0.4"
+license = "Apache-2.0"
+license-files = ["LICENSE*"]
 authors = [
   { name="Marcus Pearlman", email="marcuspearlman@boisestate.edu" },
 ]

@@ -83,6 +83,36 @@ Pandas Terms
       A pandas_ object that represents a multiple column index of the DataFrame or Series.
       
    
+Data Visualization Terms
+------------------------
 
-      
+.. glossary::
+   :sorted:
    
+   Glyph
+       A visual symbol, mark, or character that represents a data property.
+       
+   Data Dimensionality
+       The number of independent coordinates, degrees of freedom, or structural parameters needed to specify an object.
+   
+   Array Dimensionality
+       The number of dimensions of the array itself that stores the data. The array dimensionality can be different than the data dimensionality.
+       
+   Data Property
+       An attribute, quality, or characteristic that can be predicated of or instantiated by an object. In other words, it is the measured characteristic of an object.
+   
+   Visualization Property
+       The properties of the glyph itself, like color, opacity, marker shape, marker size, etc. Visualization properties are used to represent data properties in a way we can see. 
+       
+   Spatial expansion of glyphs
+       The act of giving a glyph spatial depth to enable multiple visualization properties to be viewed simultainiously.
+   
+   Temporal expansion of glyphs
+       The act of giving a glyph the ability to change in time to enable viewing different visualization properties at different times. This allows users to concieve multiple properties at the same time with minimal effort.    
+       
+   Static Visualizations
+       Visualizations that do not change in time. These are often used in publications.
+       
+   Dynamic Visualizations
+       Visualizations that can change in time. These could be videos or interactive visualizations where the user can change the view or the view properties. 
+

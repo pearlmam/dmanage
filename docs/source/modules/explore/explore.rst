@@ -7,7 +7,7 @@ This module provides a few interactive visualization platforms (IVPs) and a star
 Dmanage IVPs
 ^^^^^^^^^^^^
 
-A list of the different IVP flavors is here. Each IVP has their own documentation.
+See :ref:`IVP/IVP:Interactive Visualization Platforms` for a list of the different IVP flavors. Each IVP has their own documentation.
 
 Community IVPs (Not Implemented)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

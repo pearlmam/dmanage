@@ -2,7 +2,7 @@
 Data Exploration
 ================
 
-Visualization of data is essential to interpreting and understanding data. In order to properly visualize data, a *data exploration environment* is helpful. A data exploration environment is an interactive visualization environment where users can plot the data and interact with the plot in such a way as to visualize different properties in an intuitive way. Here the focus is not on the visualizations themselves, but on ways to easily explore your data. Data exploration involves interactive visualizations of all levels in the hierarchy in one application. 
+Visualization of data is essential to interpreting and understanding data. In order to properly visualize data, a *interactive visualization platform* is helpful. A interactive visualization platform is an environment where users can plot the data and interact with the plot in such a way as to visualize different properties in an intuitive way. Here the focus is not on the visualizations themselves, but on ways to easily explore your data. Data exploration involves interactive visualizations of all levels in the hierarchy in one application. 
 
 The type of visualiziation used for each level depends on the degrees of freedom and the property to visualize.  See BLAH for more information on how to choose the visualization type. The key to data exploration is the ability to visualize different properties of each level and the ability to traverse and visualize each level. The levels here mirror the data hieararchy, but are somewhat arbitrary and the stacking of levels is possible as well. 
 
@@ -32,7 +32,7 @@ Hybrid explorers provide a way to mix and match different levels for different a
 Explorer Tools
 --------------
 
-There are many different tools to explore your data. Most tools are excellent for visualizing the data itself and the often provide simple operation and query methods; however, traversing data levels and unconventional operations and queries are challenging to implement with these tools. User friendly tools often use a GUI first approach, which limits or makes low level data access challenging. This is why dmanage pushes a code first approach; data objects created using the dmanage methodology provides the low level access, and the dmanage data exploration flavor modules automatically provides the high level visualization and integration with common commercial and open-source visualization tools for common applications. See here for a list of dmanage exploration flavors and how to contribute your own flavors to the community.
+There are many different tools to explore your data. Most tools are excellent for visualizing the data itself and the often provide simple operation and query methods; however, traversing data levels and unconventional operations and queries are challenging to implement with these tools. User friendly tools often use a GUI first approach, which limits or makes low level data access challenging. This is why dmanage pushes a code first approach; data objects created using the dmanage methodology provides the low level access, and the dmanage data exploration flavor modules automatically provides the high level visualization and integration with common commercial and open-source visualization tools for common applications. See :ref:`IVP/IVP:Interactive Visualization Platforms` for a list of dmanage exploration flavors and how to contribute your own flavors to the community.
 
 
 

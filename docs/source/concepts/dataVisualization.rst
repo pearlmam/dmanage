@@ -1,10 +1,8 @@
 
-Philosphy of Data Visualization 
+Philosophy of Data Visualization 
 ===============================
 
-The philosophy of data visualization starts with the language to describe data and the visualization. Here are a list of terms. 
-
-blah, blah blah.
+The philosophy of data visualization starts with the language to describe data and the visualization. This section describes the concepts and language to describe data and visualization. A list of the terms is given in the :ref:`glossary:Glossary`. 
 
 
 Describing Data
@@ -12,9 +10,9 @@ Describing Data
 
 Data can be categorized by it's *dimensionality* and the *properties* it represents. In philosophy speak, properties are an attribute, quality, or characteristic that can be predicated of or instantiated by an object. In other words, it is the measured characteristic of an object. The dimensionality represents the number of independent coordinates, degrees of freedom, or structural parameters needed to specify an object. Often dimensions are spatial locations, but they can also be properties or some other variable. We describe the dimensionality of date using a number followed by a 'D'; common dimensionalities are: 0D (scalars), 1D (lines), 2D (planes), 3D (boxes), and ND where N is an integer. 
 
-The separation between what constitues a dimension or a property can be blurry sometimes. For example a 3D array can consist of two dimensions and the third can represent different properties occupying the same spatial location. Examples of this are vector fields, a vector describes direction via the x, y, and z magnetudes at spatial locations; we consider the x, y, and z magnetudes as properties in this context and the spatial locations are the dimensions.
+The separation between what constitutes a dimension or a property can be blurry sometimes. For example a 3D array can consist of two spatial dimensions and the third can represent different properties occupying the same spatial location. Examples of this are vector fields, a vector describes direction via the x, y, and z magnitudes at spatial locations; this 3D array has 2 dimensions with 3 properties, where we consider the x, y, and z magnitudes as properties and the spatial locations are the dimensions.
 
-Topographical maps are another example where the distinction might be blurry. These consist of two dimensions and the property is height. While spatial coordinates like hieght, are generally considered dimensions, in this case height is being used as a property of a 2D spatial location. 
+Topographical maps are another example where the distinction might be blurry. These consist of two dimensions and the property is height. While spatial coordinates like height, are generally considered dimensions, in this case height is being used as a property of a 2D spatial location. 
 
 
 Visualization of Data Properties
@@ -24,11 +22,14 @@ Visualizations of ND data requires at least N spatial/time dimensions and the pr
 
 Glyphs can have multiple *visual properties* to represent multiple data properties simultaneously. Visual properties refers to the properties of the glyph itself, like color, opacity, marker shape, marker size, etc. Visualization properties are used to represent data properties in a way we can see. All visualization properties can represent analog or discrete properties; however some are better suited analog or discrete representations. For example, while there are infinite marker shapes to choose from, plotting software often as limited options of shapes to choose from; marker shapes should generally be limited to discrete values [#f4]_. Deciding which visualization properties to use for analog and discrete data is based on the human perception to differentiate between the mapped property.
 
+.. note::
+    Example images will go here supporting the text body
+
 
 Visualization Limitations to Dimensionality
 -------------------------------------------
 
-The real limitation to the highest dimensionality we can visualize is 4D, limited by human experience: we live in a 3D world with the fourth dimension time. Generally we view data on 2D screens; however that does NOT limit the dimensionality because 3D representations are possible by mathematically projecting three-dimensional coordinates (X, Y, Z) into a two-dimensional pixel grid (X, Y) and using visual cues like perspective and lighting to simulate depth in a way humans can comprehend.  Technically, even higher dimensions can be projected onto lower dimensions, but practically this difficult for humans because of our experience. *Static visualizations* [#f2]_ are limited to 3D because time cannot be used; these are used in manuscripts. *Dynamic visualizations* allow visualization of 4D data because this allows On 2D screens and paper.
+The real limitation to the highest dimensionality we can visualize is 4D, limited by human experience: we live in a 3D world with the fourth dimension time. Generally we view data on 2D screens; however that does NOT limit the dimensionality because 3D representations are possible by mathematically projecting three-dimensional coordinates (X, Y, Z) into a two-dimensional pixel grid (X, Y) and using visual cues like perspective and lighting to simulate depth in a way humans can comprehend.  Technically, even higher dimensions can be projected onto lower dimensions, but practically this difficult for humans because of our inherent 3D experience. *Static visualizations* [#f2]_ are limited to 3D because time cannot be used; these are used in manuscripts. *Dynamic visualizations* allow visualization of 4D data because this includes time.
 
 Visualization Limitations of Properties
 ---------------------------------------
@@ -43,7 +44,9 @@ Given the limitations discussed `Visualization Limitations to Dimensionality`_, 
 Viewing More Properties
 -----------------------
 
-As discussed in `Visualization Limitations of Properties`_, the number of simultaneous visualization properties is limited to perception. Ways to increase this limit involve *spatial or temporal expansion of glyphs*. Visualization properties cannot occupy the pixel, so we give the glyph depth so that glyphs can represent multiple visualization properties. The true limit to the simultaneous number of properties that can be viewed is only limited by your imagination and your ability to differentiate between glyph visual properties. "Time" also allows for viewing more properties; time in this sense does not necessarily imply a video, but it implies user interaction. Users can interact with the visualization to toggle data property glyph representations. 
+As discussed in `Visualization Limitations of Properties`_, the number of simultaneous visualization properties is limited to perception. Ways to increase this limit involve *spatial or temporal expansion of glyphs*. Multiple visualization properties cannot occupy the same pixel, so we give the glyph depth so that glyphs can represent multiple visualization properties. The true limit to the simultaneous number of viewable properties is only limited by your imagination and your ability to differentiate between glyph visual properties. 
+
+"Time" also allows for viewing more properties; time in this sense does not necessarily imply a video, but it implies user interaction. Users can interact with the visualization to toggle data property glyph representations. In this sense the the properties are not technically viewed simultaneously (at the same time), but the properties can be *conceived* simultaneously by a human.
 
 
 Visualization Types

@@ -35,7 +35,7 @@ Sometimes we need to use the result from ``method1()`` for ``method2()`` and ``m
   * The implementation should be consistent regardless of how its implemented
   * The organization might change as the complexity of your project increases. We don't want to have to find these variables all over?
   
-Here is a tutorial for how soft cache is implemented.
+See :ref:`tutorials/notebooks/cacheing/softCache:Soft Cache` tutorial for how soft cache is implemented
 
 Hard Cache
 ----------
@@ -52,5 +52,5 @@ Similar to the example in Soft Cache, we need the result from ``method1()`` for 
   
 * more????
 
-Here is a tutorial for how hard cache is implemented
+See undeveloped tutorial for how hard cache is implemented.
 

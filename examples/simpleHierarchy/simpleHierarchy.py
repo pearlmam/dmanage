@@ -6,10 +6,9 @@ import os
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from dmanage import make_data_group
-from dmanage.strata.unit import make_data_unit
-from dmanage import override
-from dmanage import parse
+
+from dmanage.strata import make_data_unit, make_data_group,override
+from dmanage import metastring
 from dmanage.ops.backends.pandas import plot
 
 
@@ -86,7 +85,7 @@ class DataFile(DataUnit):
         no override here because metastring.parse can take a list as an input
         This function will manually be overridden in the DataDirectory
         """
-        return parse(self.dataUnit, 'Vin')
+        return metastring.parse(self.dataUnit, 'Vin')
         
     @override()
     def get_waveform_rms(self):

@@ -5,12 +5,17 @@ import Pyro5
 import sys
 from pathlib import Path
 import dmanage.config
+
+### import the data objects you want to proxy
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
 from strata_objects import Parent,MyDataGroup,MyDataUnit,MyNewDataGroup,MyNewDataUnit
 
-ONLY_EXPOSED = False
+### Pyro5 options, see Pyro5 documentation for more info
+ONLY_EXPOSED = False                   # all data object methods are exposed
 Pyro5.api.config.PICKLE_ENABLE = False # Enabling pickle is a massive security risk
 Pyro5.api.config.SERIALIZER = "serpent"# serpent,json?,pickle,dill
+
+### dmanage config options
 dmanage.config.PARALLEL_BACKEND = "multiprocessing" # This is the local serializer used in multiprocessing, safe!
 dmanage.config.PARALLEL_START_METHOD = "fork" # this is faster but can cause issues with threading
 EXPOSED_OBJECTS = {

@@ -12,7 +12,7 @@ This is a Python package for generating, organizing, processing data. This packa
 
 * Automatic and parallel application of user defined methods to the entire data sweep
 * Interactive Visualization Platforms 
-* Remote interface it interact with data objects remotely as if it was local
+* Remote interface to interact with data objects remotely as if it was local
 * Access to community developed tools that also follow the D-Manage methodology, IN DEVELOPMENT
 * Community developed components to interface with common software, equipment, and datatypes, IN DEVELOPMENT
 

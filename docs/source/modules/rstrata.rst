@@ -49,7 +49,7 @@ On the client, you just need to modify the script you use locally to use the pro
 Caveats
 ^^^^^^^
 
-Because the data is remote, method results should be small because of data transfer speeds over the network are slow. Also, the default serialization over RPC uses ``serpent`` which requires data to be python literals, no numpy, matplotlib, or other objects[#f1]_. To allow all datatypes, the Pyro5-with-pickle variant must be used and PICKLE_ENABLE must be set to true in your config file[#f2]_.
+Because the data is remote, method results should be small because of data transfer speeds over the network are slow. Also, the default serialization over RPC uses ``serpent`` which requires data to be python literals, no numpy, matplotlib, or other objects [#f1]_. To allow all datatypes, the Pyro5-with-pickle variant must be used and PICKLE_ENABLE must be set to true in your config file [#f2]_.
 
 .. rubric:: Footnotes
 

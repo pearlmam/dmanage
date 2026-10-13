@@ -90,6 +90,7 @@ This functionality is not provided by default, but is easy to enable. Install a 
 Development
 ===========
 create a virtual environment, clone repo, and create an editable install::
+
         clone https://github.com/pearlmam/dmanage.git
         cd dmanage
         conda create -n dmanage -c conda-forge spyder-kernels

@@ -24,7 +24,7 @@ __all__ = ["PlotDefs","check_fig","plot1d","plot1ds","bar","num_scatter",
 
 warn.filterwarnings("ignore", message="Ignoring specified arguments in this call because figure with num:*") # ignore warning for fig = plt.figure(fig, figsize=figsize)
 class PlotDefs():
-    def __init__(self):
+    def __init__(self,set_params=True):
         self.fig = 1                     # figure number
         self.labelfs = 22               # font size
         self.tickfs = 18
@@ -35,7 +35,8 @@ class PlotDefs():
         self.saveType = 'png'
         self.axisUnits = {'t':'[ns]','x':'[cm]','y':'[cm]','z':'[cm]','phi':'[rad]','r':'[cm]','freq':'[GHz]','amp':'[arb]'}
         self.unitFactors = {'[ns]':1e9,'[cm]':1e2,'[GHz]':1e-9}
-        self.set_parameters()
+        if set_params:
+          self.set_parameters()
         
         # This doesnt work for some reason 
   

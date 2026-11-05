@@ -16,6 +16,7 @@ dmanage.config.PARALLEL_START_METHOD = "fork" # this is faster but can cause iss
 
 EXPOSED_OBJECTS = {
     "Parent":Parent,
+    "MySuperGroup":MySuperGroup,
     "MyDataGroup":MyDataGroup,
     "MyDataUnit":MyDataUnit,
     "MyNewDataGroup":MyNewDataGroup,

@@ -24,23 +24,29 @@ from dmanage.strata import helpers
 
 __all__ = ["make_data_group", "DataGroup"]
 
-# def make_data_group(base):
-#     """Makes a DataGroup object with inheritance, supporting multi-level group nesting."""
-#     # 1. Create a unique, dynamic subclass of DataGroup for this specific layer
-#     wrapper_cls = type(f"_{base.__name__}GroupWrapper", (DataGroup,), {})
-    
-#     # 2. Place the unique wrapper first so C3 Linearization puts it ahead of `base`
-#     return type(f"{base.__name__}DataGroup", (wrapper_cls, base), {})
-
 def make_data_group(base):
-    """Makes a DataGroup object with inheritance
+    """Makes a DataGroup object with inheritance, supporting multi-level group nesting 
+    by binding the immediate child class."""
     
-    Setting the __bases__ attribute is the best way to do this for a number of reasons
-    1. The object prints to the terminal with fewer wrapped namespaces
-    2. I think this allows the super() function to work better with multiprocess.Pool class
-    3. isinstance() works in multiprocess.Pool class
-    """
-    return type(f"{base.__name__}DataGroup", (DataGroup, base), {})
+    # Store 'base' as 'child_type' on the wrapper class
+    wrapper_cls = type(
+        f"{base.__name__}GroupWrapper", 
+        (DataGroup,), 
+        {"child_type": base}
+    )
+    
+    # Place wrapper first in MRO so it takes precedence over base
+    return type(f"{base.__name__}DataGroup", (wrapper_cls, base), {})
+
+# def make_data_group(base):
+#     """Makes a DataGroup object with inheritance
+    
+#     Setting the __bases__ attribute is the best way to do this for a number of reasons
+#     1. The object prints to the terminal with fewer wrapped namespaces
+#     2. I think this allows the super() function to work better with multiprocess.Pool class
+#     3. isinstance() works in multiprocess.Pool class
+#     """
+#     return type(f"{base.__name__}DataGroup", (DataGroup, base), {})
 
 class DataGroup():
     """ opens a sweep data directory containing VSim data directories for common analysis I use. 
@@ -50,7 +56,7 @@ class DataGroup():
     
     """
     
-    def __init__(self, baseDir, nc=1,testN=100,*args,**kwargs):
+    def __init__(self, baseDir, nc=1,testN=10,*args,**kwargs):
         """
         
 
@@ -87,8 +93,10 @@ class DataGroup():
         unitType = get_parent_attr(self, 'unitType')
         if not unitType:
             raise TypeError("DataGroup must have parent with a attribute 'unitType' defined as either 'file', 'dir', or 'test'")
-        if unitType == 'test':
+        if unitType == 'testFile':
             self.dataUnits = ['file-%02.d.test'%value for value in range(0,testN)]
+        elif unitType == 'testDir':
+            self.dataUnits = ['dir-%02.d'%value for value in range(0,testN)]
         elif unitType in ['dir','file']:
             self.dataUnits = self.get_dunits(baseDir)
         else:
@@ -156,7 +164,7 @@ class DataGroup():
             setattr(target, method_name, wrapped)
     
     def get_DataUnit(self,dataUnit=0,args=(),kwargs={}):
-        base = get_base(self,iLevel='du')
+        base = getattr(self, 'child_type', None)
         if isinstance(dataUnit,int):
             dataUnit = Path(os.path.join(self.baseDir,self.dataUnits[dataUnit]))
         elif isinstance(dataUnit,(str,Path)):
@@ -287,7 +295,7 @@ class make_wrapper:
         
         #### setup parameters
         self.dataUnits = [os.path.join(instance.baseDir,dataUnit) for dataUnit in instance.dataUnits]
-        self.base = get_base(instance,iLevel='du')
+        self.base = getattr(instance, 'child_type', None) # get_base(instance,iLevel='du')
         self.component_name = component_name
         self.method_name = method_name
         self.orKind = getattr(func,'_override',None)
@@ -384,6 +392,8 @@ def get_base(instance,iLevel='du'):
         # base = base.__bases__[0]
         # level = base.inheritance_level()
     return base
+
+
 
 def get_component_method(obj,component_name, method_name):
     if component_name == 'self':

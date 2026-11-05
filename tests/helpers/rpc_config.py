@@ -8,7 +8,7 @@ import dmanage.config
 
 ### import the data objects you want to proxy
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
-from strata_objects import Parent,MyDataGroup,MyDataUnit,MyNewDataGroup,MyNewDataUnit
+from strata_objects import Parent,MyDataGroup,MyDataUnit,MyNewDataGroup,MyNewDataUnit,MySuperGroup
 
 ### Pyro5 options, see Pyro5 documentation for more info
 ONLY_EXPOSED = False                   # all data object methods are exposed
@@ -20,6 +20,7 @@ dmanage.config.PARALLEL_BACKEND = "multiprocessing" # This is the local serializ
 dmanage.config.PARALLEL_START_METHOD = "fork" # this is faster but can cause issues with threading
 EXPOSED_OBJECTS = {
     "Parent":Parent,
+    "MySuperGroup":MySuperGroup,
     "MyDataGroup":MyDataGroup,
     "MyDataUnit":MyDataUnit,
     "MyNewDataGroup":MyNewDataGroup,

@@ -8,6 +8,7 @@ import os
 import dmanage
 import dmanage.rstrata as rstrata
 from helpers.strata_objects import (
+    MySuperGroup,
     MyDataGroup,
     MyDataUnit,
     MyNewDataGroup,
@@ -24,10 +25,12 @@ dataPath = "path.test"
 testN = 100
 kwargsDU = {"dataPath": dataPath}
 kwargsDG = {"baseDir": baseDir, "testN": testN}
+kwargsSG = {"baseDir": baseDir, "testN": testN}
 host = "127.0.0.1"
 port = 44444
 objDU = "MyDataUnit"
 objDG = "MyDataGroup"
+objSG = "MySuperGroup"
 objNDU = "MyNewDataUnit"
 objNDG = "MyNewDataGroup"
 
@@ -172,7 +175,37 @@ class TestAllLocal:
             assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
             assert proxyDU.Comp.Comp.func() == localDU.Comp.Comp.func()
             Pyro5.api.config.SERIALIZER = "serpent"
+            
+    @requires_rpc_server
+    def test_superGroup_proxy(self):
+        Pyro5.api.config.SERIALIZER = "serpent"
+        localDG = MySuperGroup(baseDir, testN=testN)
 
+        uri = f"PYRO:ProxyFactory@{host}:{port}"
+        Factory = rstrata.ProxyFactory(uri=uri)
+        proxyDG = Factory.create(objSG, **kwargsSG)
+        
+        #### serial implementation
+        local_result = localDG.gen_DataFrame()
+        proxy_result = proxyDG.gen_DataFrame()
+        
+        assert len(local_result) == len(proxy_result)
+        for resultLocal, resultProxy in zip(local_result, proxy_result):
+            assert len(resultLocal) == len(resultProxy)
+            for dfLocal, dfProxy in zip(resultLocal, resultProxy):
+                assert_frame_equal(dfLocal, dfProxy, check_names=False, check_dtype=False)
+        
+        #### parallel implementation
+        local_result = localDG.gen_DataFrame(nc=MAX_NC)
+        proxy_result = proxyDG.gen_DataFrame(nc=MAX_NC)
+        
+        assert len(local_result) == len(proxy_result)
+        for resultLocal, resultProxy in zip(local_result, proxy_result):
+            assert len(resultLocal) == len(resultProxy)
+            for dfLocal, dfProxy in zip(resultLocal, resultProxy):
+                assert_frame_equal(dfLocal, dfProxy, check_names=False, check_dtype=False)
+        
+        
     @requires_rpc_server
     def test_dataUnit_multiple_inheritance(self):
         Pyro5.api.config.SERIALIZER = "serpent"

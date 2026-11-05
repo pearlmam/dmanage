@@ -24,6 +24,14 @@ from dmanage.strata import helpers
 
 __all__ = ["make_data_group", "DataGroup"]
 
+# def make_data_group(base):
+#     """Makes a DataGroup object with inheritance, supporting multi-level group nesting."""
+#     # 1. Create a unique, dynamic subclass of DataGroup for this specific layer
+#     wrapper_cls = type(f"_{base.__name__}GroupWrapper", (DataGroup,), {})
+    
+#     # 2. Place the unique wrapper first so C3 Linearization puts it ahead of `base`
+#     return type(f"{base.__name__}DataGroup", (wrapper_cls, base), {})
+
 def make_data_group(base):
     """Makes a DataGroup object with inheritance
     
@@ -76,11 +84,12 @@ class DataGroup():
         #print('Opening %s...'%baseDir, end = ' ')
         #startTime = time.time()
         self.ignoreDirs = [self.processedDir]
-        if not hasattr(self,"unitType"):
+        unitType = get_parent_attr(self, 'unitType')
+        if not unitType:
             raise TypeError("DataGroup must have parent with a attribute 'unitType' defined as either 'file', 'dir', or 'test'")
-        if self.unitType == 'test':
+        if unitType == 'test':
             self.dataUnits = ['file-%02.d.test'%value for value in range(0,testN)]
-        elif self.unitType in ['dir','file']:
+        elif unitType in ['dir','file']:
             self.dataUnits = self.get_dunits(baseDir)
         else:
             raise Exception('Invalid unitType')
@@ -96,6 +105,21 @@ class DataGroup():
  
         #executionTime = time.time()-startTime
         #print('Done in %0.3f Seconds'%executionTime)
+
+    # @classmethod
+    # def is_valid(cls, path):
+    #     path = Path(path)
+        
+    #     # Automatically walk down the MRO from top (subclass) to bottom (base)
+    #     for base in cls.__mro__:
+    #         # If this class in the MRO defines its own 'is_valid' 
+    #         # and it's not DataGroup itself...
+    #         if 'is_valid' in base.__dict__ and base is not DataGroup:
+    #             # Call it directly as a function, passing cls and path
+    #             if not base.is_valid(path):
+    #                 return False
+                    
+    #     return True
 
     @staticmethod
     def inheritance_level():
@@ -164,6 +188,10 @@ class DataGroup():
         """
         valid_units = []
         base_path = Path(baseDir)
+        
+        is_valid_func = get_parent_attr(self, 'is_valid')
+        unitType = get_parent_attr(self, 'unitType')
+    
     
         for item in candidates:
             item_path = Path(item)
@@ -173,13 +201,14 @@ class DataGroup():
                 continue
     
             # 2. Run your application-specific validation
-            if self.is_valid(item):
+            # super is used rather than self.is_valid(item) here so one can use groups of groups, possibly
+            if is_valid_func(item):
                 try:
                     # Calculate relative path reliably
                     rel_path = item_path.relative_to(base_path)
                     
                     # Format directories with trailing slash if requested
-                    if self.unitType == 'dir':
+                    if unitType == 'dir':
                         output = str(rel_path) + os.sep
                     else:
                         output = str(rel_path)
@@ -202,12 +231,12 @@ class DataGroup():
         get_dunits_wrapper = parallelize_looped_method(self._get_dunits, ncPass=False)
     
         candidates = []
-        
+        unitType = get_parent_attr(self, 'unitType')
         # Efficiently collect only what is needed based on unitType
         for root, dirs, files in os.walk(baseDir, followlinks=True):
-            if self.unitType == 'dir':
+            if unitType == 'dir':
                 candidates.append(root)
-            elif self.unitType == 'file':
+            elif unitType == 'file':
                 for f in files:
                     candidates.append(os.path.join(root, f))
             else:
@@ -372,8 +401,14 @@ def get_component_method(obj,component_name, method_name):
 
         
 
-    
-    
-    
+def get_parent_attr(obj, method_name):
+    # Skip the first element [1:] so we don't grab the runtime class itself
+    for cls in type(obj).__mro__[1:]:
+        method = getattr(cls, method_name, None)
+        # Make sure we actually found a *different* attribute definition 
+        # (i.e. it's defined on this ancestor class, not just inherited)
+        if method and method_name in cls.__dict__:
+            return method
+    return None
     
 

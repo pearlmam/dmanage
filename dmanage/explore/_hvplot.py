@@ -1,213 +1,42 @@
 # -*- coding: utf-8 -*-
-import sys
-import time
 import json
-import asyncio
-import threading
-import weakref
 import numpy as np
 import pandas as pd
 import panel as pn
 import param
 import holoviews as hv
 import hvplot.pandas
-from bokeh.core.properties import field
-from bokeh.models import ColumnDataSource, CustomJS, Legend, LegendItem,Slider
-from panel.io.server import get_server
-from tornado.ioloop import IOLoop
-import webbrowser
+from bokeh.models import CustomJS, TextInput
+
+from ._base import launch_server,sanitize_df,_to_numeric_coords
+
+import warnings
+from bokeh.util.warnings import BokehUserWarning
+
+# Suppress harmless Bokeh document model re-registration warnings
+warnings.filterwarnings("ignore", category=BokehUserWarning)
+warnings.filterwarnings("ignore", message=".*reference already known.*")
+
+
+__all__ = ["HvPlotExplorer","HvPlotExplorer2",]
 
 hv.extension('bokeh')
-
-__all__ = [
-    "PanelServer",
-    "launch_server",
-    "HvPlotExplorer",
-    "HvPlotExplorer2",
-    "sanitize_df",
-]
-
-
-# =============================================================================
-# HELPER FUNCTIONS
-# =============================================================================
-def sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Sanitizes boolean columns to string categories for Bokeh safety."""
-    df_clean = df.copy()
-    for col in df_clean.columns:
-        if df_clean[col].dtype == "bool":
-            df_clean[col] = df_clean[col].astype(str)
-    return df_clean
-
-
-def _to_numeric_coords(series: pd.Series, raw_val):
-    """Converts Numeric, Datetime, or Categorical values to unified float coordinates."""
-    if pd.api.types.is_numeric_dtype(series):
-        return pd.to_numeric(series, errors="coerce"), float(raw_val)
-    elif pd.api.types.is_datetime64_any_dtype(series):
-        s_ms = pd.to_datetime(series).astype("int64") // 10**6
-        val_ms = (
-            float(raw_val)
-            if isinstance(raw_val, (int, float))
-            else float(pd.Timestamp(raw_val).value // 10**6)
-        )
-        return s_ms, val_ms
-    else:
-        s_str = series.astype(str)
-        uniques = list(s_str.unique())
-        mapping = {cat: idx for idx, cat in enumerate(uniques)}
-
-        if isinstance(raw_val, (int, float)):
-            target_idx = float(raw_val)
-        else:
-            target_idx = float(mapping.get(str(raw_val), 0))
-        return s_str.map(mapping).astype(float), target_idx
-
-
-# =============================================================================
-# BASE PANEL SERVER & LAUNCHER
-# =============================================================================
-
-# Persistent registry attached to Python process state (survives module reloads)
-if not hasattr(sys, "_panel_server_registry"):
-    sys._panel_server_registry = {}
-
-
-class PanelServer:
-    """Lightweight server wrapper with zero UI callback references."""
-
-    def __init__(self, app_factory, port=5006):
-        self.app_factory = app_factory
-        self.port = port
-        self.thread = None
-        self._finalizer = None
-
-    @staticmethod
-    def _stop_container(container):
-        if not container or container.get("stopped"):
-            return
-        container["stopped"] = True
-
-        server = container.get("server")
-        io_loop = container.get("io_loop")
-        port = container.get("port")
-
-        if io_loop:
-            def _in_thread_shutdown():
-                if server:
-                    try:
-                        server.unlisten()  # Unbinds OS socket immediately
-                        server.stop()
-                    except Exception:
-                        pass
-                io_loop.stop()
-
-            try:
-                io_loop.add_callback(_in_thread_shutdown)
-            except Exception:
-                pass
-
-        if port and sys._panel_server_registry.get(port) is container:
-            sys._panel_server_registry.pop(port, None)
-
-        if port:
-            print(f"Server on port {port} stopped cleanly.")
-
-    @staticmethod
-    def _thread_target(app_factory, port, container, ready_event):
-        async_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(async_loop)
-        io_loop = IOLoop.current()
-
-        server = get_server(
-            app_factory,
-            port=port,
-            loop=io_loop,
-            start=False,
-            show=False,
-        )
-        server.start()
-
-        container["server"] = server
-        container["io_loop"] = io_loop
-        ready_event.set()
-
-        io_loop.start()
-
-    def start(self,show=True):
-        if self.thread and self.thread.is_alive():
-            return
-
-        # Reclaim port if a previous server container exists
-        if self.port in sys._panel_server_registry:
-            old_container = sys._panel_server_registry.get(self.port)
-            PanelServer._stop_container(old_container)
-
-        container = {"port": self.port}
-        ready_event = threading.Event()
-
-        # Finalizer is bound ONLY to this wrapper instance
-        self._finalizer = weakref.finalize(
-            self, PanelServer._stop_container, container
-        )
-
-        self.thread = threading.Thread(
-            target=PanelServer._thread_target,
-            args=(self.app_factory, self.port, container, ready_event),
-            daemon=True,
-        )
-        container["thread"] = self.thread
-
-        sys._panel_server_registry[self.port] = container
-        
-        url = f"http://localhost:{self.port}"
-        self.thread.start()
-        ready_event.wait()
-        print(f"Background explorer running at {url}")
-        webbrowser.open(url)
-
-    def stop(self):
-        if self._finalizer and self._finalizer.alive:
-            self._finalizer()
-        else:
-            container = sys._panel_server_registry.get(self.port)
-            PanelServer._stop_container(container)
-
-    def __enter__(self):
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
-
-
-def launch_server(app_or_factory, port: int = 5006) -> PanelServer:
-    """Helper function to construct, start, and return a non-blocking PanelServer."""
-    if hasattr(app_or_factory, "create_app"):
-        factory = app_or_factory.create_app
-    elif hasattr(app_or_factory, "get_app"):
-        factory = app_or_factory.get_app
-    elif callable(app_or_factory):
-        factory = app_or_factory
-    else:
-        factory = lambda: app_or_factory
-
-    server = PanelServer(factory, port=port)
-    server.start()
-    return server
-
 
 # =============================================================================
 # PARAMETERIZED EXPLORER WITH IMMUTABLE MARKERS
 # =============================================================================
-
 class HvPlotExplorer(param.Parameterized):
-    """Declarative Interactive Explorer supporting multi-column Color and Marker grouping."""
+    """Lean Explorer with persistent viewport zooming and custom dataset reset."""
 
     x = param.Selector(doc="X Axis Column")
     y = param.Selector(doc="Y Axis Column")
     color_by = param.ListSelector(default=[], doc="Color By Column(s)")
     marker_by = param.ListSelector(default=[], doc="Marker Shape Column(s)")
+
+    color_filter = param.ListSelector(default=[], doc="Filter Colors (Discrete)")
+    color_range = param.Parameter(default=None, doc="Filter Colors (Continuous)")
+    marker_filter = param.ListSelector(default=[], doc="Filter Markers")
+
     group_by = param.Selector(default="None", doc="Group By Column")
     aggregation = param.Selector(
         default="mean",
@@ -220,6 +49,12 @@ class HvPlotExplorer(param.Parameterized):
     create_category = param.Action(
         lambda self: self._add_category_action(), label="Create Category"
     )
+
+    # Custom action to reset zoom state to full data extents
+    reset_zoom = param.Action(
+        lambda self: self._reset_zoom_action(), label="Reset Plot View"
+    )
+
     status_msg = param.String(default="", doc="Status Message")
 
     MARKER_PALETTE = [
@@ -227,37 +62,32 @@ class HvPlotExplorer(param.Parameterized):
         "square",
         "triangle",
         "diamond",
+        "hexagon",
         "star",
-        "cross",
-        "hex",
-        "asterisk",
         "inverted_triangle",
-        "plus",
+        "cross",
     ]
-
-    # High-contrast, saturated primary hues first (Red & Blue start)
+    MARKER_SYMBOLS = {
+        "circle": "●",
+        "square": "■",
+        "triangle": "▲",
+        "diamond": "◆",
+        "hexagon": "⬢",
+        "star": "★",
+        "inverted_triangle": "▼",
+        "cross": "✖",
+    }
     COLOR_PALETTE = [
-        "#e41a1c",  # Vivid Red
-        "#377eb8",  # Strong Blue
-        "#4daf4a",  # Vibrant Green
-        "#ff7f00",  # Bright Orange
-        "#984ea3",  # Deep Purple
-        "#00bed6",  # Vibrant Cyan/Teal
-        "#e6ab02",  # Gold / Deep Yellow
-        "#f781bf",  # Bright Pink
-        "#a65628",  # Brown
-        "#2d3748",  # Dark Slate
-        # Lighter / pastels reserved only if category counts exceed 10
-        "#aec7e8",  # Light Blue
-        "#ffbb78",  # Light Orange
-        "#98df8a",  # Light Green
-        "#ff9896",  # Light Red
-        "#c5b0d5",  # Light Purple
-        "#c49c94",  # Light Brown
-        "#f7b6d2",  # Light Pink
-        "#dbdb8d",  # Light Yellow-Green
-        "#9edae5",  # Light Cyan
-        "#c7c7c7",  # Light Grey
+        "#e41a1c",
+        "#377eb8",
+        "#4daf4a",
+        "#ff7f00",
+        "#984ea3",
+        "#00bed6",
+        "#e6ab02",
+        "#f781bf",
+        "#a65628",
+        "#2d3748",
     ]
 
     def __init__(self, df: pd.DataFrame, **params):
@@ -265,46 +95,66 @@ class HvPlotExplorer(param.Parameterized):
         self.df = sanitize_df(df)
         self.tap_stream = hv.streams.Tap()
 
-        # 1. Initialize Options Widgets persistent instances
-        self.opacity_slider = Slider(
-            start=0.0,
-            end=1.0,
-            value=0.15,
-            step=0.05,
-            title="Deselected Opacity",
-            width=160,
-            name="deselected_opacity_slider",
-        )
-
-        # 2. Assemble Plot Options Layout once
-        self._options_layout = pn.Column(
-            pn.pane.Markdown("### Plot Options"),
-            pn.pane.Bokeh(self.opacity_slider),
-            width=180,
-        )
+        # Combined range stream for tracking interactive zoom/pan
+        self.range_xy = hv.streams.RangeXY()
 
         self._update_column_options()
-
         all_cols = self.param.x.objects
         num_cols = list(self.df.select_dtypes(include=[np.number]).columns)
         self.x = num_cols[0] if num_cols else all_cols[0]
         self.y = num_cols[1] if len(num_cols) > 1 else all_cols[0]
 
+    @param.depends("x", "y", watch=True)
+    def _on_axis_change(self):
+        """Reset custom viewport limits whenever the underlying axes change."""
+        self.range_xy.reset()
+
+    def _reset_zoom_action(self):
+        """Clears zoom streams and triggers a plot re-render using full data limits."""
+        self.range_xy.reset()
+        self.param.trigger("x")
+
+    def _configure_toolbar(self, plot, element):
+        """HoloViews hook: removes duplicate/unwanted tools and sets explicit tool defaults."""
+        fig = plot.state
+
+        # Filter out native reset and help tools
+        cleaned_tools = []
+        seen_types = set()
+        for tool in list(fig.tools):
+            tool_type = type(tool).__name__
+            if tool_type in ("ResetTool", "HelpTool"):
+                continue
+            if tool_type not in seen_types:
+                seen_types.add(tool_type)
+                cleaned_tools.append(tool)
+
+        fig.tools = cleaned_tools
+
+        # Consistently activate Pan and WheelZoom tools by default
+        tool_map = {type(t).__name__: t for t in fig.tools}
+        if "PanTool" in tool_map:
+            fig.toolbar.active_drag = tool_map["PanTool"]
+        if "WheelZoomTool" in tool_map:
+            fig.toolbar.active_scroll = tool_map["WheelZoomTool"]
+
+    def _has_continuous_col(self, df: pd.DataFrame, cols: list) -> bool:
+        return any(
+            c in df.columns
+            and pd.api.types.is_numeric_dtype(df[c])
+            and not pd.api.types.is_bool_dtype(df[c])
+            and not pd.api.types.is_categorical_dtype(df[c])
+            for c in cols
+        )
+
+    def _is_continuous_color(self, df: pd.DataFrame, color_cols: list) -> bool:
+        return len(color_cols) == 1 and self._has_continuous_col(df, color_cols)
+
     def _update_column_options(self):
         all_cols = list(self.df.columns)
         num_cols = list(self.df.select_dtypes(include=[np.number]).columns)
-        cat_cols = list(
-            self.df.select_dtypes(
-                include=[
-                    "object",
-                    "category",
-                    "string",
-                    "datetime",
-                    "datetimetz",
-                    "bool",
-                ]
-            ).columns
-        )
+        cat_dtypes = ["object", "category", "string", "datetime", "datetimetz", "bool"]
+        cat_cols = list(self.df.select_dtypes(include=cat_dtypes).columns)
 
         self.param.x.objects = all_cols
         self.param.y.objects = all_cols
@@ -312,6 +162,35 @@ class HvPlotExplorer(param.Parameterized):
         self.param.marker_by.objects = cat_cols
         self.param.group_by.objects = ["None"] + all_cols
         self.param.cat_col.objects = ["None"] + num_cols
+
+    @param.depends("color_by", watch=True)
+    def _update_color_filters(self):
+        color_cols = [c for c in (self.color_by or []) if c in self.df.columns]
+
+        if len(color_cols) > 1 and self._has_continuous_col(self.df, color_cols):
+            self.color_filter = []
+            self.color_range = None
+            return
+
+        if self._is_continuous_color(self.df, color_cols):
+            s = self.df[color_cols[0]].dropna()
+            if not s.empty:
+                self.color_range = (float(s.min()), float(s.max()))
+            else:
+                self.color_range = (0.0, 1.0)
+            self.color_filter = []
+        else:
+            self.color_range = None
+            _, c_cats = self._get_composite_series(self.df, color_cols)
+            self.param.color_filter.objects = c_cats
+            self.color_filter = list(c_cats)
+
+    @param.depends("marker_by", watch=True)
+    def _update_marker_filters(self):
+        marker_cols = [c for c in (self.marker_by or []) if c in self.df.columns]
+        _, m_cats = self._get_composite_series(self.df, marker_cols)
+        self.param.marker_filter.objects = m_cats
+        self.marker_filter = list(m_cats)
 
     def _add_category_action(self):
         if self.cat_col == "None" or self.n_bins < 2:
@@ -334,578 +213,496 @@ class HvPlotExplorer(param.Parameterized):
         except Exception as e:
             self.status_msg = f"*Error:* {e}"
 
+    def _get_composite_series(self, df: pd.DataFrame, cols: list):
+        valid = [c for c in (cols or []) if c in df.columns]
+        if not valid:
+            return None, []
+        series = df[valid].astype(str).agg(" | ".join, axis=1)
+        all_cats = sorted(
+            self.df[valid]
+            .drop_duplicates()
+            .astype(str)
+            .agg(" | ".join, axis=1)
+            .tolist()
+        )
+        return series, all_cats
+
     def _prepare_data(self) -> pd.DataFrame:
         temp_df = self.df.copy()
-        if self.group_by == "None":
-            return temp_df
 
-        color_cols = [c for c in (self.color_by or []) if c in temp_df.columns]
-        marker_cols = [c for c in (self.marker_by or []) if c in temp_df.columns]
+        color_cols = [
+            c for c in (self.color_by or [])
+            if c in temp_df.columns and c not in ("None", None, "")
+        ]
+        marker_cols = [
+            c for c in (self.marker_by or [])
+            if c in temp_df.columns and c not in ("None", None, "")
+        ]
 
-        group_keys = [self.group_by]
-        for c in [self.x] + color_cols + marker_cols:
-            if c in temp_df.columns and c not in group_keys:
-                if not pd.api.types.is_numeric_dtype(temp_df[c]):
+        group_col = self.group_by
+        if (
+            group_col
+            and group_col not in ("None", None, "")
+            and group_col in temp_df.columns
+        ):
+            group_keys = [group_col]
+            for c in color_cols + marker_cols:
+                if c not in group_keys:
                     group_keys.append(c)
 
-        try:
-            if self.aggregation == "count":
-                temp_df = (
-                    temp_df.groupby(group_keys, as_index=False)
-                    .size()
-                    .rename(columns={"size": self.y})
-                )
-            else:
-                temp_df = temp_df.groupby(group_keys, as_index=False).agg(
-                    self.aggregation, numeric_only=True
-                )
-        except Exception as e:
-            print(f"Aggregation error: {e}")
+            try:
+                if pd.api.types.is_float_dtype(temp_df[group_col]):
+                    temp_df[group_col] = temp_df[group_col].round(6)
+
+                if self.aggregation == "count":
+                    agg_df = (
+                        temp_df.groupby(group_keys, as_index=False)
+                        .size()
+                        .rename(columns={"size": self.y})
+                    )
+                else:
+                    agg_df = temp_df.groupby(group_keys, as_index=False).agg(
+                        self.aggregation, numeric_only=True
+                    )
+
+                if self.x in temp_df.columns and self.x not in agg_df.columns:
+                    if pd.api.types.is_numeric_dtype(temp_df[self.x]):
+                        x_vals = temp_df.groupby(group_keys, as_index=False)[
+                            self.x
+                        ].mean()
+                    else:
+                        x_vals = temp_df.groupby(group_keys, as_index=False)[
+                            self.x
+                        ].first()
+                    agg_df[self.x] = x_vals[self.x]
+
+                temp_df = agg_df
+
+            except Exception as e:
+                print(f"Aggregation error: {e}")
+
+        if color_cols and not self._is_continuous_color(temp_df, color_cols):
+            c_series, _ = self._get_composite_series(temp_df, color_cols)
+            if c_series is not None:
+                temp_df["_c_val"] = c_series
+
+        if marker_cols:
+            m_series, _ = self._get_composite_series(temp_df, marker_cols)
+            if m_series is not None:
+                temp_df["_m_val"] = m_series
 
         return temp_df
 
-    def _add_marker_legend_hook(
-        self, plot, element, color_map, shape_map, color_cols, marker_cols
+    def _get_axis_limits(self, series: pd.Series):
+        if (
+            series is None
+            or series.empty
+            or not pd.api.types.is_numeric_dtype(series)
+            or pd.api.types.is_bool_dtype(series)
+        ):
+            return None
+
+        s_clean = series.dropna()
+        if s_clean.empty:
+            return None
+
+        s_min, s_max = float(s_clean.min()), float(s_clean.max())
+        if s_min == s_max:
+            pad = 1.0 if s_min == 0 else abs(s_min) * 0.1
+            return (s_min - pad, s_max + pad)
+
+        margin = (s_max - s_min) * 0.05
+        return (s_min - margin, s_max + margin)
+
+    def _create_filter_rows(
+        self,
+        cats: list,
+        active_filter: list,
+        filter_attr: str,
+        palette: list,
+        symbol_map: dict = None,
     ):
-        bokeh_fig = plot.handles["plot"]
+        rows = []
+        for i, cat in enumerate(cats):
+            cb = pn.widgets.Checkbox(
+                value=cat in active_filter,
+                width=20,
+                margin=(2, 2, 2, 0),
+            )
 
-        JS_UPDATE_ALPHA = """
-        function updateSourceAlpha(src, inactiveAlpha) {
-            const d = src.data;
-            if (!d || !d['_alpha']) return;
-            const ca = d['_color_active'], ma = d['_marker_active'];
-            const calpha = d['_color_alpha'], malpha = d['_marker_alpha'], alpha = d['_alpha'];
-            for (let i = 0; i < alpha.length; i++) {
-                calpha[i] = ca[i] ? 1.0 : inactiveAlpha;
-                malpha[i] = ma[i] ? 1.0 : inactiveAlpha;
-                alpha[i] = Math.min(calpha[i], malpha[i]);
-            }
-            src.data = Object.assign({}, src.data);
-            src.change.emit();
-        }
-        """
+            def _on_change(event, c=cat):
+                cur = list(getattr(self, filter_attr))
+                if event.new and c not in cur:
+                    cur.append(c)
+                elif not event.new and c in cur:
+                    cur.remove(c)
+                setattr(self, filter_attr, cur)
 
-        # 1. Deduplicate & configure tools
-        seen_tools = set()
-        unique_tools = []
-        wheel_zoom, hover_tool = None, None
+            cb.param.watch(_on_change, "value")
 
-        for t in bokeh_fig.tools:
-            ttype = type(t).__name__
-            if ttype == "WheelZoomTool":
-                wheel_zoom = t
-            elif ttype == "HoverTool":
-                hover_tool = t
+            if symbol_map:
+                symbol = symbol_map.get(palette[i % len(palette)], "●")
+                badge = (
+                    f'<span style="color:#4A5568; font-size:14px; '
+                    f'font-weight:bold; margin-right:6px;">{symbol}</span>'
+                )
+            else:
+                hex_color = palette[i % len(palette)]
+                badge = (
+                    f'<span style="color:{hex_color}; font-size:16px; '
+                    f'margin-right:6px;">●</span>'
+                )
 
-            if ttype in {
-                "ResetTool",
-                "PanTool",
-                "WheelZoomTool",
-                "BoxZoomTool",
-                "SaveTool",
-                "HoverTool",
-            }:
-                if ttype in seen_tools:
-                    continue
-                seen_tools.add(ttype)
+            label = pn.pane.HTML(
+                f'<div style="display:flex; align-items:center;">{badge}'
+                f'<span style="font-size:13px; word-break:break-word;">{cat}</span>'
+                f"</div>",
+                margin=(2, 0, 2, 0),
+            )
+            rows.append(pn.Row(cb, label, margin=(0, 0, 2, 0)))
+        return rows
 
-            if ttype in {
-                "TapTool",
-                "BoxSelectTool",
-                "LassoSelectTool",
-                "PolySelectTool",
-            }:
-                if hasattr(t, "renderers"):
-                    t.renderers = []
-
-            unique_tools.append(t)
-
-        bokeh_fig.tools = unique_tools
-        if wheel_zoom:
-            bokeh_fig.toolbar.active_scroll = wheel_zoom
-
-        # 2. Collect renderers & initialize CDS arrays
-        main_sources, main_renderers = [], []
-
-        for r in bokeh_fig.renderers:
-            if (
-                hasattr(r, "glyph")
-                and hasattr(r.glyph, "marker")
-                and hasattr(r, "data_source")
-            ):
-                if getattr(r, "name", None) == "dummy_legend_renderer":
-                    continue
-                main_renderers.append(r)
-                if r.data_source not in main_sources:
-                    main_sources.append(r.data_source)
-
-                r.selection_glyph = r.glyph
-                r.nonselection_glyph = r.glyph
-                r.hover_glyph = None
-
-                ds = r.data_source
-                if ds and ds.data:
-                    n_pts = len(next(iter(ds.data.values()), []))
-                    if n_pts > 0:
-                        for col, default_val in [
-                            ("_color_active", 1),
-                            ("_marker_active", 1),
-                            ("_color_alpha", 1.0),
-                            ("_marker_alpha", 1.0),
-                            ("_alpha", 1.0),
-                        ]:
-                            if col not in ds.data or len(ds.data[col]) != n_pts:
-                                ds.data[col] = np.full(n_pts, default_val)
-
-                    r.glyph.fill_alpha = {"field": "_alpha"}
-                    r.glyph.line_alpha = {"field": "_alpha"}
-
-        # Filter internal/composite fields from hover tooltips
-        if hover_tool and main_renderers:
-            hover_tool.renderers = main_renderers
-            if isinstance(hover_tool.tooltips, list):
-                exclude_fields = {
-                    "marker_composite",
-                    "color_composite",
-                    "_color_active",
-                    "_marker_active",
-                    "_color_alpha",
-                    "_marker_alpha",
-                    "_alpha",
-                }
-                hover_tool.tooltips = [
-                    item
-                    for item in hover_tool.tooltips
-                    if item[0] not in exclude_fields
-                    and not str(item[0]).startswith("_")
-                ]
-
-        # 3. Bind Opacity Slider JS Callback
-        self.opacity_slider.js_property_callbacks.clear()
-        self.opacity_slider.js_on_change(
-            "value",
-            CustomJS(
-                args=dict(sources=main_sources, slider=self.opacity_slider),
-                code=JS_UPDATE_ALPHA
-                + """
-                for (let src of sources) {
-                    updateSourceAlpha(src, slider.value);
-                }
-            """,
-            ),
+    @param.depends("color_by", "marker_by")
+    def _render_legend_panel(self):
+        color_cols = [c for c in (self.color_by or []) if c in self.df.columns]
+        marker_cols = [c for c in (self.marker_by or []) if c in self.df.columns]
+        is_continuous = self._is_continuous_color(self.df, color_cols)
+        has_invalid_color = len(color_cols) > 1 and self._has_continuous_col(
+            self.df, color_cols
         )
 
-        # 4. Remove all auto-generated / old custom legends
-        containers = [
-            bokeh_fig.above,
-            bokeh_fig.below,
-            bokeh_fig.left,
-            bokeh_fig.right,
-            bokeh_fig.center,
+        reset_btn = pn.widgets.Button(
+            label="↺ Reset View Extents",
+            color="primary",
+            sizing_mode="stretch_width",
+            margin=(5, 0, 10, 0),
+        )
+        reset_btn.on_click(lambda event: self._reset_zoom_action())
+
+        items = [
+            pn.pane.Markdown("### Legend & Filters"),
+            reset_btn,
+            pn.layout.Divider(),
         ]
-        for c in containers:
-            for item in list(c):
-                if isinstance(item, Legend):
-                    c.remove(item)
 
-        # 5. Construct Custom Color Legend
-        if color_map and color_cols:
-            color_legend_items = []
-            for val, hex_color in color_map.items():
-                dummy_ds = ColumnDataSource(data=dict(x=[np.nan], y=[np.nan]))
-                dummy_r = bokeh_fig.scatter(
-                    x="x",
-                    y="y",
-                    source=dummy_ds,
-                    marker="circle",
-                    fill_color=hex_color,
-                    line_color="#222222",
-                    size=10,
-                    name="dummy_legend_renderer",
-                )
-                cb = CustomJS(
-                    args=dict(
-                        sources=main_sources,
-                        val=str(val),
-                        slider=self.opacity_slider,
+        if has_invalid_color:
+            items.extend(
+                [
+                    pn.pane.Markdown("**Color:** *Invalid Selection*"),
+                    pn.pane.Markdown(
+                        "⚠️ *Multiple selections are not possible when a "
+                        "continuous (colorbar) column is selected.*"
                     ),
-                    code=JS_UPDATE_ALPHA
-                    + """
-                        const is_vis = cb_obj.visible;
-                        const target = String(val);
-                        for (let src of sources) {
-                            const d = src.data;
-                            const colors = d['color_composite'] || d['_color_composite'];
-                            if (!colors || !d['_color_active']) continue;
-
-                            let mod = false;
-                            for (let i = 0; i < colors.length; i++) {
-                                if (String(colors[i]) === target) {
-                                    d['_color_active'][i] = is_vis ? 1 : 0;
-                                    mod = true;
-                                }
-                            }
-                            if (mod) updateSourceAlpha(src, slider.value);
-                        }
-                    """,
-                )
-                item = LegendItem(label=str(val), renderers=[dummy_r])
-                item.js_on_change("visible", cb)
-                dummy_r.js_on_change("visible", cb)
-                color_legend_items.append(item)
-
-            color_legend = Legend(
-                items=color_legend_items,
-                title=f"Color: {', '.join(color_cols)}",
-                orientation="vertical",
-                background_fill_alpha=0.8,
-                margin=5,
-                click_policy="hide",
-                name="custom_color_legend",
+                    pn.layout.Spacer(height=10),
+                ]
             )
-            bokeh_fig.add_layout(color_legend, "right")
-
-        # 6. Construct Custom Marker Legend
-        if shape_map and marker_cols:
-            marker_legend_items = []
-            for val, shape in shape_map.items():
-                dummy_ds = ColumnDataSource(data=dict(x=[np.nan], y=[np.nan]))
-                dummy_r = bokeh_fig.scatter(
-                    x="x",
-                    y="y",
-                    source=dummy_ds,
-                    marker=shape,
-                    fill_color="#555555",
-                    line_color="#222222",
-                    size=10,
-                    name="dummy_legend_renderer",
+        elif color_cols:
+            c_str = ", ".join(color_cols)
+            if is_continuous:
+                s = self.df[color_cols[0]].dropna()
+                min_v, max_v = (float(s.min()), float(s.max())) if not s.empty else (0.0, 1.0)
+                step_val = (max_v - min_v) / 100 if max_v > min_v else 0.01
+                rs = pn.widgets.RangeSlider(
+                    name="Range Filter",
+                    start=min_v,
+                    end=max_v,
+                    value=self.color_range or (min_v, max_v),
+                    step=step_val,
+                    width=170,
                 )
-
-                cb = CustomJS(
-                    args=dict(
-                        sources=main_sources,
-                        val=str(val),
-                        slider=self.opacity_slider,
-                    ),
-                    code=JS_UPDATE_ALPHA
-                    + """
-                        const is_vis = cb_obj.visible;
-                        const target = String(val);
-                        for (let src of sources) {
-                            const d = src.data;
-                            const markers = d['marker_composite'] || d['_marker_composite'];
-                            if (!markers || !d['_marker_active']) continue;
-
-                            let mod = false;
-                            for (let i = 0; i < markers.length; i++) {
-                                if (String(markers[i]) === target) {
-                                    d['_marker_active'][i] = is_vis ? 1 : 0;
-                                    mod = true;
-                                }
-                            }
-                            if (mod) updateSourceAlpha(src, slider.value);
-                        }
-                    """,
+                rs.param.watch(
+                    lambda e: setattr(self, "color_range", e.new), "value"
                 )
-                item = LegendItem(label=str(val), renderers=[dummy_r])
-                item.js_on_change("visible", cb)
-                dummy_r.js_on_change("visible", cb)
-                marker_legend_items.append(item)
-
-            marker_legend = Legend(
-                items=marker_legend_items,
-                title=f"Marker: {', '.join(marker_cols)}",
-                orientation="vertical",
-                background_fill_alpha=0.8,
-                margin=5,
-                click_policy="hide",
-                name="custom_marker_legend",
-            )
-            bokeh_fig.add_layout(marker_legend, "right")
-
-    @param.depends("x", "y", "color_by", "marker_by", "group_by", "aggregation")
-    def make_plot(self):
-        temp_df = self._prepare_data()
-
-        plot_kwargs = dict(
-            x=self.x,
-            y=self.y,
-            size=120,
-            height=420,
-            responsive=True,
-            tools=["hover"],
-        )
-
-        color_cols = [c for c in (self.color_by or []) if c in temp_df.columns]
-        marker_cols = [c for c in (self.marker_by or []) if c in temp_df.columns]
-        hover_cols = []
-
-        # 1. COLOR CONFIGURATION
-        color_map = {}
-        is_numeric_color = False
-
-        if color_cols:
-            if len(color_cols) == 1 and pd.api.types.is_numeric_dtype(
-                temp_df[color_cols[0]]
-            ):
-                is_numeric_color = True
-                col_name = color_cols[0]
-                c_min = (
-                    float(self.df[col_name].min()) if not self.df.empty else 0.0
-                )
-                c_max = (
-                    float(self.df[col_name].max()) if not self.df.empty else 1.0
-                )
-                plot_kwargs.update(
-                    c=col_name,
-                    cmap="viridis",
-                    colorbar=True,
-                    clim=(c_min, c_max),
-                )
-            else:
-                if len(color_cols) == 1:
-                    temp_df["color_composite"] = temp_df[color_cols[0]].astype(
-                        str
-                    )
-                    full_color_cats = sorted(
-                        self.df[color_cols[0]].astype(str).unique().tolist()
-                    )
-                else:
-                    temp_df["color_composite"] = temp_df[color_cols].apply(
-                        lambda col: col.astype(str)
-                    ).agg(" | ".join, axis=1)
-                    full_color_cats = sorted(
-                        self.df[color_cols]
-                        .drop_duplicates()
-                        .apply(lambda col: col.astype(str))
-                        .agg(" | ".join, axis=1)
-                        .tolist()
-                    )
-
-                color_map = {
-                    cat: self.COLOR_PALETTE[i % len(self.COLOR_PALETTE)]
-                    for i, cat in enumerate(full_color_cats)
-                }
-                hover_cols.extend(["color_composite"] + color_cols)
-
-        # 2. MARKER CONFIGURATION
-        shape_map = {}
-        if marker_cols:
-            if len(marker_cols) == 1:
-                temp_df["marker_composite"] = temp_df[marker_cols[0]].astype(
-                    str
-                )
-                full_marker_cats = sorted(
-                    self.df[marker_cols[0]].astype(str).unique().tolist()
-                )
-            else:
-                temp_df["marker_composite"] = temp_df[marker_cols].apply(
-                    lambda col: col.astype(str)
-                ).agg(" | ".join, axis=1)
-                full_marker_cats = sorted(
-                    self.df[marker_cols]
-                    .drop_duplicates()
-                    .apply(lambda col: col.astype(str))
-                    .agg(" | ".join, axis=1)
-                    .tolist()
-                )
-
-            shape_map = {
-                val: self.MARKER_PALETTE[i % len(self.MARKER_PALETTE)]
-                for i, val in enumerate(full_marker_cats)
-            }
-            hover_cols.extend(["marker_composite"] + marker_cols)
-
-        if hover_cols:
-            plot_kwargs["hover_cols"] = list(set(hover_cols))
-
-        hook = lambda plot, element: self._add_marker_legend_hook(
-            plot, element, color_map, shape_map, color_cols, marker_cols
-        )
-
-        # 3. BUILD SUB-PLOTS WITH HARDCODED LITERAL PROPERTIES
-        sub_plots = []
-
-        if shape_map and color_map:
-            # Categorical Color + Marker Shapes
-            for m_val, shape_name in shape_map.items():
-                for c_val, color_hex in color_map.items():
-                    sub_df = temp_df[
-                        (temp_df["marker_composite"] == m_val)
-                        & (temp_df["color_composite"] == c_val)
+                items.extend(
+                    [
+                        pn.pane.Markdown(f"**Color:** {c_str} *(Continuous)*"),
+                        rs,
+                        pn.layout.Spacer(height=10),
                     ]
-                    if sub_df.empty:
-                        continue
-                    sp = sub_df.hvplot.scatter(
-                        marker=shape_name, color=color_hex, **plot_kwargs
-                    )
-                    sub_plots.append(sp)
-
-        elif shape_map and is_numeric_color:
-            # Numeric Color + Marker Shapes
-            for m_val, shape_name in shape_map.items():
-                sub_df = temp_df[temp_df["marker_composite"] == m_val]
-                if sub_df.empty:
-                    continue
-                sp = sub_df.hvplot.scatter(marker=shape_name, **plot_kwargs)
-                sub_plots.append(sp)
-
-        elif shape_map:
-            # No Color + Marker Shapes
-            for m_val, shape_name in shape_map.items():
-                sub_df = temp_df[temp_df["marker_composite"] == m_val]
-                if sub_df.empty:
-                    continue
-                sp = sub_df.hvplot.scatter(
-                    marker=shape_name, color="#377eb8", **plot_kwargs
                 )
-                sub_plots.append(sp)
+            else:
+                _, c_cats = self._get_composite_series(self.df, color_cols)
+                c_rows = self._create_filter_rows(
+                    c_cats, self.color_filter, "color_filter", self.COLOR_PALETTE
+                )
+                items.extend(
+                    [
+                        pn.pane.Markdown(f"**Color:** {c_str}"),
+                        pn.Column(*c_rows, margin=(0, 0, 0, 4)),
+                        pn.layout.Spacer(height=10),
+                    ]
+                )
 
-        elif color_map:
-            # Categorical Color + No Marker Shapes
-            for c_val, color_hex in color_map.items():
-                sub_df = temp_df[temp_df["color_composite"] == c_val]
-                if sub_df.empty:
-                    continue
-                sp = sub_df.hvplot.scatter(color=color_hex, **plot_kwargs)
-                sub_plots.append(sp)
-
-        else:
-            # Default Single Plot
-            if not is_numeric_color:
-                plot_kwargs["color"] = "#377eb8"
-            sp = temp_df.hvplot.scatter(**plot_kwargs)
-            sub_plots.append(sp)
-
-        if len(sub_plots) > 1:
-            plot = hv.Overlay(sub_plots).opts(
-                hooks=[hook],
-                legend_position="right",
+        if marker_cols:
+            m_str = ", ".join(marker_cols)
+            _, m_cats = self._get_composite_series(self.df, marker_cols)
+            m_rows = self._create_filter_rows(
+                m_cats, self.marker_filter, "marker_filter", self.MARKER_PALETTE, self.MARKER_SYMBOLS
             )
-        else:
-            plot = sub_plots[0].opts(
-                hooks=[hook],
-                legend_position="right",
+            items.extend(
+                [
+                    pn.pane.Markdown(f"**Marker:** {m_str}"),
+                    pn.Column(*m_rows, margin=(0, 0, 0, 4)),
+                ]
             )
 
-        if hasattr(self, "tap_stream") and self.tap_stream is not None:
-            self.tap_stream.source = plot
+        if not color_cols and not marker_cols:
+            items.append(
+                pn.pane.Markdown(
+                    "*Select **Color By** or **Marker By** to see categories.*"
+                )
+            )
 
-        return plot
+        return pn.Card(
+            pn.Column(*items, sizing_mode="stretch_width"),
+            collapsible=False,
+            margin=(0, 0, 0, 10),
+            width=210,
+        )
 
     def _render_details(self, x, y):
         if x is None or y is None:
-            return pn.pane.Markdown(
-                "### Details Panel\n*Click any point on the plot above to display details here.*"
-            )
+            return pn.pane.Markdown("### Details Panel\n*Click any point on the plot above.*")
 
         temp_df = self._prepare_data()
-        if (
-            temp_df.empty
-            or self.x not in temp_df.columns
-            or self.y not in temp_df.columns
-        ):
+        if temp_df.empty or self.x not in temp_df.columns or self.y not in temp_df.columns:
             return pn.pane.Markdown("*No matching data found.*")
 
         try:
             x_series, target_x = _to_numeric_coords(temp_df[self.x], x)
             y_series, target_y = _to_numeric_coords(temp_df[self.y], y)
 
-            x_std = (
-                x_series.std()
-                if (pd.notna(x_series.std()) and x_series.std() > 0)
-                else 1.0
-            )
-            y_std = (
-                y_series.std()
-                if (pd.notna(y_series.std()) and y_series.std() > 0)
-                else 1.0
-            )
+            x_std = x_series.std() if pd.notna(x_series.std()) and x_series.std() > 0 else 1.0
+            y_std = y_series.std() if pd.notna(y_series.std()) and y_series.std() > 0 else 1.0
 
-            dist = np.sqrt(
-                ((x_series - target_x) / x_std) ** 2
-                + ((y_series - target_y) / y_std) ** 2
-            )
+            dist = np.sqrt(((x_series - target_x) / x_std) ** 2 + ((y_series - target_y) / y_std) ** 2)
             best_idx = dist.idxmin()
-            selected_row = temp_df.loc[[best_idx]]
 
-            json_data = json.loads(
-                selected_row.to_json(orient="records", date_format="iso")
-            )[0]
+            display_cols = [c for c in temp_df.columns if not str(c).startswith("_")]
+            selected_row = temp_df.loc[[best_idx], display_cols]
 
+            json_data = json.loads(selected_row.to_json(orient="records", date_format="iso"))[0]
             return pn.Column(
-                pn.pane.Markdown(
-                    f"### Selected Record Details (Index {best_idx})"
-                ),
+                pn.pane.Markdown(f"### Selected Record Details (Index {best_idx})"),
                 pn.pane.JSON(json_data, depth=3, theme="light"),
             )
         except Exception as e:
             return pn.pane.Markdown(f"*Error matching selected point: {e}*")
 
+    @param.depends(
+        "x",
+        "y",
+        "color_by",
+        "marker_by",
+        "color_filter",
+        "color_range",
+        "marker_filter",
+        "group_by",
+        "aggregation",
+    )
+    def make_plot(self):
+        temp_df = self._prepare_data()
+        color_cols = [
+            c for c in (self.color_by or [])
+            if c in temp_df.columns and c not in ("None", None, "")
+        ]
+        marker_cols = [
+            c for c in (self.marker_by or [])
+            if c in temp_df.columns and c not in ("None", None, "")
+        ]
+
+        if len(color_cols) > 1 and self._has_continuous_col(temp_df, color_cols):
+            return hv.Scatter([]).opts(
+                title="Error: Multiple selections not possible with continuous column.",
+                height=420,
+                responsive=True,
+            )
+
+        hover_cols = [
+            c for c in list(dict.fromkeys(color_cols + marker_cols))
+            if c in temp_df.columns and not str(c).startswith("_")
+        ]
+
+        tools_list = ["pan", "wheel_zoom", "box_zoom", "hover", "save"]
+
+        hvplot_opts = dict(
+            x=self.x,
+            y=self.y,
+            xlabel=str(self.x),
+            ylabel=str(self.y),
+            size=120,
+            height=420,
+            responsive=True,
+            tools=tools_list,
+        )
+        if hover_cols:
+            hvplot_opts["hover_cols"] = hover_cols
+
+        hv_element_opts = dict(
+            height=420,
+            responsive=True,
+            tools=tools_list,
+        )
+
+        # Preserve user zoom bounds across updates
+        if self.range_xy.x_range is not None:
+            hvplot_opts["xlim"] = self.range_xy.x_range
+            hv_element_opts["xlim"] = self.range_xy.x_range
+        elif self.x in self.df.columns and (x_lim := self._get_axis_limits(self.df[self.x])):
+            hvplot_opts["xlim"] = x_lim
+            hv_element_opts["xlim"] = x_lim
+
+        if self.range_xy.y_range is not None:
+            hvplot_opts["ylim"] = self.range_xy.y_range
+            hv_element_opts["ylim"] = self.range_xy.y_range
+        elif self.y in self.df.columns and (y_lim := self._get_axis_limits(self.df[self.y])):
+            hvplot_opts["ylim"] = y_lim
+            hv_element_opts["ylim"] = y_lim
+
+        is_continuous = self._is_continuous_color(self.df, color_cols)
+        has_color = bool(color_cols and ("_c_val" in temp_df.columns or is_continuous))
+        has_marker = bool(marker_cols and "_m_val" in temp_df.columns)
+
+        all_c_cats = self._get_composite_series(self.df, color_cols)[1] if (has_color and not is_continuous) else []
+        all_m_cats = self._get_composite_series(self.df, marker_cols)[1] if has_marker else []
+
+        color_map = {cat: self.COLOR_PALETTE[i % len(self.COLOR_PALETTE)] for i, cat in enumerate(all_c_cats)}
+        shape_map = {cat: self.MARKER_PALETTE[i % len(self.MARKER_PALETTE)] for i, cat in enumerate(all_m_cats)}
+
+        # Filtering logic
+        if is_continuous and color_cols and self.color_range:
+            c_min, c_max = self.color_range
+            temp_df = temp_df[(temp_df[color_cols[0]] >= c_min) & (temp_df[color_cols[0]] <= c_max)]
+        elif color_cols and "_c_val" in temp_df.columns:
+            active_c_filter = self.color_filter if self.color_filter else all_c_cats
+            temp_df = temp_df[temp_df["_c_val"].isin(active_c_filter)]
+
+        if marker_cols and "_m_val" in temp_df.columns:
+            active_m_filter = self.marker_filter if self.marker_filter else all_m_cats
+            temp_df = temp_df[temp_df["_m_val"].isin(active_m_filter)]
+
+        if temp_df.empty:
+            return hv.Scatter([]).opts(
+                title="No Data Matches Selected Filters",
+                hooks=[self._configure_toolbar],
+                **hv_element_opts,
+            )
+
+        sub_plots = []
+        m_cats = all_m_cats if has_marker else [None]
+
+        if is_continuous:
+            col_name = color_cols[0]
+            s = self.df[col_name].dropna()
+            c_min, c_max = (float(s.min()), float(s.max())) if not s.empty else (0.0, 1.0)
+
+            for m_val in m_cats:
+                sub_df = temp_df if m_val is None else temp_df[temp_df["_m_val"] == m_val]
+                if sub_df.empty:
+                    continue
+                opts = dict(
+                    c=col_name,
+                    cmap="Viridis",
+                    clim=(c_min, c_max),
+                    colorbar=(len(sub_plots) == 0),
+                    clabel=col_name,
+                    **hvplot_opts,
+                )
+                if m_val:
+                    opts["marker"] = shape_map[m_val]
+                sub_plots.append(sub_df.hvplot.scatter(**opts))
+        else:
+            c_cats = all_c_cats if has_color else [None]
+            for c_val in c_cats:
+                for m_val in m_cats:
+                    sub_df = temp_df
+                    if c_val:
+                        sub_df = sub_df[sub_df["_c_val"] == c_val]
+                    if m_val:
+                        sub_df = sub_df[sub_df["_m_val"] == m_val]
+                    if sub_df.empty:
+                        continue
+                    opts = dict(**hvplot_opts)
+                    opts["color"] = color_map[c_val] if c_val else "#377eb8"
+                    if m_val:
+                        opts["marker"] = shape_map[m_val]
+                    sub_plots.append(sub_df.hvplot.scatter(**opts))
+
+        plot = hv.Overlay(sub_plots) if len(sub_plots) > 1 else sub_plots[0]
+
+        plot = plot.opts(
+            show_legend=False,
+            hooks=[self._configure_toolbar],
+        )
+
+        self.range_xy.source = plot
+
+        if hasattr(self, "tap_stream") and self.tap_stream is not None:
+            self.tap_stream.source = plot
+
+        return plot
+
     def create_app(self) -> pn.viewable.Viewable:
-        CONTROL_WIDTH = 160
+        control_width = 180
 
         controls_widgets = {
-            "x": {"width": CONTROL_WIDTH},
-            "y": {"width": CONTROL_WIDTH},
-            "color_by": {"width": CONTROL_WIDTH, "height": 90},
-            "marker_by": {"width": CONTROL_WIDTH, "height": 90},
-            "group_by": {"width": CONTROL_WIDTH},
-            "aggregation": {"width": CONTROL_WIDTH},
+            c: {"width": control_width}
+            for c in ["x", "y", "group_by", "aggregation"]
         }
+        controls_widgets.update(
+            {
+                "color_by": {"width": control_width, "height": 80},
+                "marker_by": {"width": control_width, "height": 80},
+            }
+        )
 
         binning_widgets = {
-            "cat_col": {"width": CONTROL_WIDTH},
-            "n_bins": {"width": CONTROL_WIDTH},
-            "create_category": {"width": CONTROL_WIDTH, "color": "primary"},
+            "cat_col": {"width": control_width},
+            "n_bins": {"width": control_width},
+            "create_category": {"width": control_width, "color": "primary"},
         }
 
         controls_ui = pn.Param(
             self.param,
-            parameters=[
-                "x",
-                "y",
-                "color_by",
-                "marker_by",
-                "group_by",
-                "aggregation",
-            ],
+            parameters=["x", "y", "color_by", "marker_by", "group_by", "aggregation"],
             widgets=controls_widgets,
             name="Controls",
-            width=CONTROL_WIDTH + 20,
+            width=control_width + 20,
         )
-
         binning_ui = pn.Column(
             pn.Param(
                 self.param,
                 parameters=["cat_col", "n_bins", "create_category"],
                 widgets=binning_widgets,
                 name="Binning",
-                width=CONTROL_WIDTH + 20,
+                width=control_width + 20,
             ),
-            pn.pane.Markdown(self.param.status_msg, width=CONTROL_WIDTH + 20),
+            pn.pane.Markdown(self.param.status_msg, width=control_width + 20),
         )
 
         sidebar_tabs = pn.Tabs(
             ("Controls", controls_ui),
             ("Bin Numeric", binning_ui),
-            ("Plot Options", self._options_layout),
-            width=CONTROL_WIDTH + 30,
+            width=control_width + 30,
         )
-
         details_pane = pn.bind(
             self._render_details,
             x=self.tap_stream.param.x,
             y=self.tap_stream.param.y,
         )
 
+        plot_pane = pn.pane.HoloViews(self.make_plot, sizing_mode="stretch_width")
+
         top_row = pn.Row(
             sidebar_tabs,
-            pn.Column(self.make_plot, sizing_mode="stretch_width"),
+            pn.Column(plot_pane, sizing_mode="stretch_width"),
+            self._render_legend_panel,
             sizing_mode="stretch_width",
         )
         bottom_row = pn.Column(
-            pn.layout.Divider(), details_pane, sizing_mode="stretch_width"
+            pn.layout.Divider(),
+            details_pane,
+            sizing_mode="stretch_width",
         )
 
         return pn.Column(top_row, bottom_row, sizing_mode="stretch_width")

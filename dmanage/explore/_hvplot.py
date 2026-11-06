@@ -8,7 +8,7 @@ import holoviews as hv
 import hvplot.pandas
 from bokeh.models import CustomJS, TextInput
 
-from ._base import launch_server,sanitize_df,_to_numeric_coords
+from _base import launch_server,sanitize_df,_to_numeric_coords
 
 import warnings
 from bokeh.util.warnings import BokehUserWarning
@@ -143,7 +143,7 @@ class HvPlotExplorer(param.Parameterized):
             c in df.columns
             and pd.api.types.is_numeric_dtype(df[c])
             and not pd.api.types.is_bool_dtype(df[c])
-            and not pd.api.types.is_categorical_dtype(df[c])
+            and not isinstance(df[c], pd.CategoricalDtype)
             for c in cols
         )
 
@@ -721,6 +721,68 @@ class HvPlotExplorer2:
         df_clean = sanitize_df(self.df)
         return df_clean.hvplot.explorer(**self.explorer_kwargs)
 
+
+class HvCSVExplorer(param.Parameterized):
+    """Param-based interactive CSV explorer."""
+
+    x = param.Selector(doc="Column for the X axis")
+    y = param.Selector(doc="Column for the Y axis")
+    kind = param.Selector(
+        default="scatter", 
+        objects=["scatter", "line", "bar", "box"], 
+        doc="Plot type"
+    )
+
+    def __init__(self, path: str, *args, **kwargs):
+        super().__init__()
+        self.path = path
+        self.df = pd.read_csv(path, *args, **kwargs)
+        self.cols = list(self.df.columns)
+
+        # Populate selector options based on loaded dataframe columns
+        self.param.x.objects = self.cols
+        self.param.y.objects = self.cols
+
+        if self.cols:
+            self.x = self.cols[0]
+            self.y = self.cols[1] if len(self.cols) > 1 else self.cols[0]
+
+    @param.depends("x", "y", "kind")
+    def plot(self):
+        """Generates reactive hvPlot visualization."""
+        if not self.x or not self.y:
+            return pn.pane.Markdown("⚠️ *Please select valid X and Y columns.*")
+        
+        return self.df.hvplot(
+            x=self.x,
+            y=self.y,
+            kind=self.kind,
+            title=f"{self.y} vs {self.x}",
+            responsive=True,
+            height=500,
+            grid=True,
+        )
+
+    def get_app(self):
+        """Returns the Panel layout. Compatible with launch_server."""
+        controls = pn.Param(
+            self.param,
+            parameters=["x", "y", "kind"],
+            widgets={
+                "x": {"widget_type": pn.widgets.Select, "name": "X Axis"},
+                "y": {"widget_type": pn.widgets.Select, "name": "Y Axis"},
+                "kind": {"widget_type": pn.widgets.RadioButtonGroup, "name": "Plot Type"},
+            },
+            default_layout=pn.Row,
+            show_name=False,
+        )
+
+        return pn.Column(
+            pn.pane.Markdown(f"## 📊 CSV Explorer — `{self.path}`"),
+            controls,
+            self.plot,
+            sizing_mode="stretch_width"
+        )
 
 # =============================================================================
 # USAGE PATTERNS

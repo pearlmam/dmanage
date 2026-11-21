@@ -65,12 +65,12 @@ df = pd.DataFrame(
     )
 
 
-# explorer = viz.HvPlotExplorer(df,port=5007)
-# explorer.start(True)
+explorer = explore.HvDataPointExplorer(df)
+server = explore.launch_server(explorer, port=5006)
 
-with explore.HvPlotExplorer(df, port=5006) as exp:
-    while True:
-        time.sleep(2)  # Keep running while inspecting in the browser
+# with explore.HvDataPointExplorer(df, port=5006) as exp:
+#     while True:
+#         time.sleep(2)  # Keep running while inspecting in the browser
 
 
 # explorer2 = viz.HvPlotExplorer2(df)

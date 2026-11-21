@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import os
 import numpy as np
 import pandas as pd
 import panel as pn
@@ -8,7 +9,7 @@ import holoviews as hv
 import hvplot.pandas
 from bokeh.models import CustomJS, TextInput
 
-from _base import launch_server,sanitize_df,_to_numeric_coords
+from dmanage.explore._base import launch_server,sanitize_df,_to_numeric_coords
 
 import warnings
 from bokeh.util.warnings import BokehUserWarning
@@ -18,14 +19,14 @@ warnings.filterwarnings("ignore", category=BokehUserWarning)
 warnings.filterwarnings("ignore", message=".*reference already known.*")
 
 
-__all__ = ["HvPlotExplorer","HvPlotExplorer2",]
+__all__ = ["HvDataPointExplorer","HvColumnExplorer","HvPlotExplorer2",]
 
 hv.extension('bokeh')
 
 # =============================================================================
 # PARAMETERIZED EXPLORER WITH IMMUTABLE MARKERS
 # =============================================================================
-class HvPlotExplorer(param.Parameterized):
+class HvDataPointExplorer(param.Parameterized):
     """Lean Explorer with persistent viewport zooming and custom dataset reset."""
 
     x = param.Selector(doc="X Axis Column")
@@ -722,9 +723,10 @@ class HvPlotExplorer2:
         return df_clean.hvplot.explorer(**self.explorer_kwargs)
 
 
-class HvCSVExplorer(param.Parameterized):
-    """Param-based interactive CSV explorer."""
+class HvColumnExplorer(param.Parameterized):
+    """Param-based interactive multi-CSV explorer."""
 
+    csv_file = param.Selector(doc="Selected CSV file")
     x = param.Selector(doc="Column for the X axis")
     y = param.Selector(doc="Column for the Y axis")
     kind = param.Selector(
@@ -733,42 +735,69 @@ class HvCSVExplorer(param.Parameterized):
         doc="Plot type"
     )
 
-    def __init__(self, path: str, *args, **kwargs):
+    def __init__(self, paths: list, *args, **kwargs):
         super().__init__()
-        self.path = path
-        self.df = pd.read_csv(path, *args, **kwargs)
-        self.cols = list(self.df.columns)
+        self.csv_args = args
+        self.csv_kwargs = kwargs
+        
+        # Ensure paths is a list
+        self.paths = [str(p) for p in paths] if isinstance(paths, (list, tuple)) else [paths]
+        
+        # Populate file selector options
+        self.param.csv_file.objects = self.paths
+        if self.paths:
+            self.csv_file = self.paths[0]
+            self._load_csv()
 
-        # Populate selector options based on loaded dataframe columns
-        self.param.x.objects = self.cols
-        self.param.y.objects = self.cols
+    @param.depends("csv_file", watch=True)
+    def _load_csv(self):
+        """Loads data when csv_file changes and refreshes column selectors."""
+        if not self.csv_file or not os.path.exists(self.csv_file):
+            return
 
-        if self.cols:
-            self.x = self.cols[0]
-            self.y = self.cols[1] if len(self.cols) > 1 else self.cols[0]
+        self.df = pd.read_csv(self.csv_file, *self.csv_args, **self.csv_kwargs)
+        cols = list(self.df.columns)
 
-    @param.depends("x", "y", "kind")
+        # Update X and Y available options
+        self.param.x.objects = cols
+        self.param.y.objects = cols
+
+        # Update selected values safely
+        if cols:
+            self.x = cols[0]
+            self.y = cols[1] if len(cols) > 1 else cols[0]
+
+    @param.depends("csv_file","x", "y", "kind")
     def plot(self):
         """Generates reactive hvPlot visualization."""
-        if not self.x or not self.y:
-            return pn.pane.Markdown("⚠️ *Please select valid X and Y columns.*")
-        
+        if (
+            not hasattr(self, "df") 
+            or self.df is None 
+            or not self.x 
+            or not self.y 
+            or self.x not in self.df.columns 
+            or self.y not in self.df.columns
+        ):
+            return pn.pane.Markdown("⚠️ *Select a valid file and column pair to plot.*")
+
+        filename = os.path.basename(self.csv_file)
         return self.df.hvplot(
             x=self.x,
             y=self.y,
             kind=self.kind,
-            title=f"{self.y} vs {self.x}",
+            title=f"{filename}: {self.y} vs {self.x}",
             responsive=True,
             height=500,
             grid=True,
         )
 
     def get_app(self):
-        """Returns the Panel layout. Compatible with launch_server."""
+        """Returns the Panel layout compatible with launch_server."""
         controls = pn.Param(
             self.param,
-            parameters=["x", "y", "kind"],
+            parameters=["csv_file", "x", "y", "kind"],
             widgets={
+                "csv_file": {"widget_type": pn.widgets.Select, "name": "Select File"},
                 "x": {"widget_type": pn.widgets.Select, "name": "X Axis"},
                 "y": {"widget_type": pn.widgets.Select, "name": "Y Axis"},
                 "kind": {"widget_type": pn.widgets.RadioButtonGroup, "name": "Plot Type"},
@@ -778,7 +807,7 @@ class HvCSVExplorer(param.Parameterized):
         )
 
         return pn.Column(
-            pn.pane.Markdown(f"## 📊 CSV Explorer — `{self.path}`"),
+            pn.pane.Markdown("## 📊 Multi-CSV Explorer"),
             controls,
             self.plot,
             sizing_mode="stretch_width"
@@ -799,7 +828,7 @@ if __name__ == "__main__":
     })
 
     # Option 1: Standard top-level non-blocking launcher (for interactive terminal scripts)
-    explorer = HvPlotExplorer(df)
+    explorer = HvDataPointExplorer(df)
     server = launch_server(explorer, port=5006)
 
     # Option 2: Context manager usage

@@ -8,7 +8,7 @@ from pathlib import Path
 import os
 import uuid
 
-from dmanage import metastring as ms
+from dmanage.meta import metastring as ms
 from ._scheduler import Scheduler
 from ._job import Job,PrettyList
 

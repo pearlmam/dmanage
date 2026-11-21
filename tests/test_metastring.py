@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import MagicMock
 from unittest.mock import patch
-from dmanage import metastring as ms
+from dmanage.meta import metastring as ms
 
 
 

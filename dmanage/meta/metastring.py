@@ -5,6 +5,7 @@ import re
 import decimal
 from datetime import datetime
 from pathlib import Path
+import numbers
 
 from dmanage import _compat
 from dmanage._compat import pd
@@ -71,10 +72,13 @@ def compose(dataStruct, equiv='-', sep='_', order=False, format=None, numDecimal
             keys = list(dataStruct.keys())
         for key, f in zip(keys, format):
             value = dataStruct[key]
-            if not isinstance(value, str) and f is None:
-                value = smartString(value, numDecimals)
-            elif not isinstance(value, str) and f is not None:
-                value = f % value
+            if not isinstance(value, str):
+                if f is not None:
+                    value = f % value
+                elif isinstance(value, numbers.Integral) and not isinstance(value, bool):
+                    value = str(int(value))
+                else:
+                    value = smartString(value, numDecimals)
             outString = outString + key + equiv + value + sep
 
     elif isinstance(dataStruct, list):
@@ -82,7 +86,7 @@ def compose(dataStruct, equiv='-', sep='_', order=False, format=None, numDecimal
             dataStruct = natsort.natsorted(dataStruct)
 
         for item in dataStruct:
-            outString = outString + item + sep
+            outString = outString + str(item) + sep
 
     outString = (outString[::-1].replace(sep[::-1], '', 1))[::-1]  # remove last occurrence of sep
     return outString
@@ -211,8 +215,11 @@ def format_value(val_str, rule):
 
     if val_str and not val_str[0].isalpha():
         nums = regex_number.findall(val_str)
-        if nums and nums[0]:
-            return float(nums[0])
+        if nums and nums[0] and val_str.count('.') <= 1:
+            num_str = nums[0].replace(' ', '')
+            if '.' not in num_str and 'e' not in num_str.lower():
+                return int(num_str)
+            return float(num_str)
 
     return val_str
 
